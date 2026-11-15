@@ -61,12 +61,12 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
               {t.description && <p className="relative mt-2 text-[15px] leading-relaxed text-white/90">{t.description}</p>}
             </div>
             <p className="mt-4 text-sm leading-relaxed text-muted">
-              Not a summary. Your bite blends the best ideas from these books into one practical framework,
+              Not a summary. Your toolkit turns the best ideas from these books into practical tools you can use straight away,
               shaped for {me?.persona ? personaPhrase(me.persona) : 'you'}{me?.industry && me.industry !== 'Other' ? ` in ${me.industry.toLowerCase()}` : ''}
               {me?.goals?.[0] ? <> and your goal: <span className="text-ink/90">{me.goals[0].toLowerCase()}</span></> : null}.
             </p>
             <ul className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-              {[['Learn', '5 key ideas'], ['Check', 'Quick quiz'], ['Apply', 'Real scenario']].map(([a, b]) => (
+              {[['Learn', '5–8 tools'], ['Check', '5 questions'], ['Practise', 'with your coach']].map(([a, b]) => (
                 <li key={a} className="surface rounded-2xl px-2 py-3">
                   <span className="block text-sm font-bold" style={{ color: tint }}>{a}</span>
                   <span className="text-muted">{b}</span>
@@ -87,11 +87,20 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
                 </li>
               ))}
             </ul>
-            <div className="mt-7 space-y-3">
+            <p className="mt-4 text-xs leading-relaxed text-muted">
+              Each tool comes with the theory, how to use it, what to say, and a real case study.
+            </p>
+            <div className="sticky -mx-5 mt-5 space-y-3 px-5 pt-6"
+              style={{
+                bottom: 'calc(-1.5rem - env(safe-area-inset-bottom))',
+                marginBottom: 'calc(-1.5rem - env(safe-area-inset-bottom))',
+                paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+                background: 'linear-gradient(to bottom, rgba(16,39,90,0) 0%, #10275a 24px)',
+              }}>
               {t.unlocked ? (
                 <>
                   {t.free && <p className="text-center text-sm font-medium text-accent">This is your free topic.</p>}
-                  <button className="btn-primary" onClick={() => nav(`/bite/${t.id}`)}>Start your bite · {me?.dailyMinutes ?? 5} min</button>
+                  <button className="btn-primary" onClick={() => nav(`/bite/${t.id}`)}>Open your toolkit</button>
                 </>
               ) : !me?.freeTopicId ? (
                 <>
