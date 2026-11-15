@@ -7,6 +7,7 @@ import { Alert } from '../components/ui';
 import { CoachAvatar } from '../components/Coach';
 import { CategoryGlyph, categoryTint, tileBackground } from '../components/CategoryIcon';
 import { Paywall } from '../components/Paywall';
+import { appendSpoken, VoiceRow } from '../components/Mic';
 import { COACHES, personaLabel } from '../options';
 
 type Tool = {
@@ -338,6 +339,7 @@ export default function Bite() {
             <textarea id="answer" value={answer} onChange={(e) => setAnswer(e.target.value.slice(0, 1500))} rows={7}
               placeholder="Type what you would say…" className="field mt-3 flex-1 py-3 leading-relaxed" />
             <div className="mt-1.5 flex justify-between text-xs text-muted"><span>Your answer is sent to our AI provider for feedback.</span><span>{answer.length}/1500</span></div>
+            <VoiceRow onText={(t) => setAnswer((p) => appendSpoken(p, t, 1500))} />
             {gradeErr && <div className="mt-3"><Alert>{gradeErr}</Alert></div>}
             <button className="btn-primary mt-4" disabled={grading || answer.trim().length < 20} onClick={submit}>{grading ? `${coachName} is reading your answer…` : 'Get coaching'}</button>
             <button className="mt-2 min-h-[44px] text-sm text-muted" onClick={() => setPhase('done')}>Skip for now</button>
@@ -433,8 +435,34 @@ function Loading({ topic, coach, persona, tint, mastery = false }: { topic: Topi
           {lines[i]}
         </motion.p>
       </AnimatePresence>
-      <p className="mt-8 max-w-[17rem] text-xs text-muted">The first time a toolkit is made it can take a minute or two. After that it opens instantly.</p>
+      <p className="mt-4 max-w-[17rem] text-xs text-muted">The first time a toolkit is made it can take a minute or two. After that it opens instantly.</p>
+      {topic && !mastery && <WhileYouWait topic={topic} tint={tint} />}
     </>
+  );
+}
+
+/** Something useful while the toolkit is written: a confidence check-in and the books it draws on. */
+function WhileYouWait({ topic, tint }: { topic: TopicDetail; tint: string }) {
+  const [score, setScore] = useState<number | null>(null);
+  const pick = (n: number) => { setScore(n); api('/bites/confidence', { body: { topicId: topic.id, score: n, when: 'before' } }).catch(() => {}); };
+  return (
+    <div className="mt-6 w-full space-y-3 text-left">
+      <div className="card p-4">
+        <p className="eyebrow">While you wait</p>
+        <p className="mt-1 font-bold leading-snug">How confident are you at {topic.name.toLowerCase()} today?</p>
+        <div className="mt-3 grid grid-cols-10 gap-1" role="radiogroup" aria-label="Confidence from 1 to 10">
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <button key={n} role="radio" aria-checked={score === n} onClick={() => pick(n)} className="h-9 rounded-lg text-sm font-bold"
+              style={{ background: score === n ? tint : 'rgba(255,255,255,0.07)', color: score === n ? '#0b1640' : undefined }}>{n}</button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-muted">{score ? "Saved. We'll ask again after you've practised, so you can see how far you've come." : '1 = not at all, 10 = very. Only you see this.'}</p>
+      </div>
+      <div className="card p-4">
+        <p className="eyebrow">Drawing on</p>
+        <ul className="mt-1.5 space-y-1 text-sm">{topic.books.map((b) => <li key={b.title}><span className="font-semibold">{b.title}</span>{b.author ? <span className="text-muted"> · {b.author}</span> : null}{b.kind === 'fiction' ? <span className="ml-1.5 text-[11px] font-bold uppercase text-[#c4b5fd]">fiction</span> : null}</li>)}</ul>
+      </div>
+    </div>
   );
 }
 

@@ -81,6 +81,7 @@ export const topics = pgTable('topics', {
   name: text('name').notNull(),
   description: text('description'), // one-line scope, keeps topics mutually exclusive
   sortOrder: integer('sort_order').notNull(),
+  featured: boolean('featured').notNull().default(false), // Editor's pick: hand-checked flagship topic
 }, (t) => [uniqueIndex('topics_name_unique').on(t.name), index('topics_category_idx').on(t.categoryId)]);
 
 export const books = pgTable('books', {
@@ -420,3 +421,54 @@ export const activityEvents = pgTable('activity_events', {
   localDay: date('local_day').notNull(),
   createdAt: createdAt(),
 }, (t) => [index('activity_events_user_day_idx').on(t.userId, t.localDay)]);
+
+// ---------- Real-world check-ins ("did you use it?") ----------
+// Created after a role-play debrief or a situation plan; asked a day or two later.
+export const checkins = pgTable('checkins', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  kind: text('kind').notNull(), // roleplay | situation
+  sourceId: uuid('source_id').notNull(),
+  topicId: uuid('topic_id').references(() => topics.id, { onDelete: 'set null' }),
+  title: text('title').notNull(),
+  withName: text('with_name'),
+  dueAt: ts('due_at').notNull(),
+  outcome: text('outcome'), // well | mixed | not_yet
+  note: text('note'),
+  answeredAt: ts('answered_at'),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex('checkins_user_source_unique').on(t.userId, t.kind, t.sourceId), index('checkins_user_due_idx').on(t.userId, t.dueAt)]);
+
+// ---------- Beta feedback ----------
+export const betaFeedback = pgTable('beta_feedback', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  usedAtWork: text('used_at_work'),
+  feltGeneric: text('felt_generic'),
+  wouldPay: text('would_pay'), // yes | maybe | no
+  priceUsd: integer('price_usd'),
+  createdAt: createdAt(),
+}, (t) => [index('beta_feedback_user_idx').on(t.userId)]);
+
+// ---------- Teams (companies) ----------
+// A team owner sees aggregate practice per member, never transcripts or notes.
+export const teams = pgTable('teams', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  inviteCode: text('invite_code').notNull(),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex('teams_invite_code_unique').on(t.inviteCode)]);
+
+export const teamMembers = pgTable('team_members', {
+  teamId: uuid('team_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
+  userId: userRef(),
+  role: text('role').notNull().default('member'), // owner | member
+  joinedAt: ts('joined_at').notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.teamId, t.userId] }), uniqueIndex('team_members_user_unique').on(t.userId)]);
+
+// ---------- App settings (e.g. generated web-push keys) ----------
+export const appSettings = pgTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+});

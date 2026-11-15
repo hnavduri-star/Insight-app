@@ -22,8 +22,8 @@ export async function seed(db: DB, opts: { catalog?: CatalogHeading[]; prune?: b
         .onConflictDoUpdate({ target: categories.name, set: { icon: c.icon, sortOrder: ci + 1 } }).returning();
       for (const [ti, t] of c.topics.entries()) {
         topicNames.push(t.name);
-        const [topic] = await tx.insert(topics).values({ categoryId: cat.id, name: t.name, description: t.description, sortOrder: ti + 1 })
-          .onConflictDoUpdate({ target: topics.name, set: { categoryId: cat.id, description: t.description, sortOrder: ti + 1 } }).returning();
+        const [topic] = await tx.insert(topics).values({ categoryId: cat.id, name: t.name, description: t.description, featured: t.featured ?? false, sortOrder: ti + 1 })
+          .onConflictDoUpdate({ target: topics.name, set: { categoryId: cat.id, description: t.description, featured: t.featured ?? false, sortOrder: ti + 1 } }).returning();
         await tx.delete(topicBooks).where(eq(topicBooks.topicId, topic.id));
         for (const [bi, b] of t.books.entries()) {
           const [book] = await tx.insert(books).values(b)

@@ -87,7 +87,7 @@ dailyRoutes.post('/complete', async (req, res) => {
   res.json({ ...(await streakView(userId)), usedFreeze: !!r?.usedFreeze, earnedFreeze: !!r?.earnedFreeze });
 });
 
-const KIND_LABEL: Record<string, string> = { tools: 'Toolkits', quiz: 'Quizzes', scenario: 'Scenarios', rep: 'Practice reps', roleplay: 'Role-plays', review: 'Reviews', situation: 'Real situations', daily: 'Daily sessions' };
+const KIND_LABEL: Record<string, string> = { tools: 'Toolkits', quiz: 'Quizzes', scenario: 'Scenarios', rep: 'Practice reps', roleplay: 'Role-plays', review: 'Reviews', situation: 'Real situations', daily: 'Daily sessions', win: 'Real-world wins' };
 
 /** The last 7 local days: activity, scores and a focus for next week. */
 dailyRoutes.get('/week', async (req, res) => {
@@ -128,7 +128,7 @@ dailyRoutes.get('/week', async (req, res) => {
   res.json({
     from, to: st.today, streak: st.streak, freezes: st.freezes, daysActive, days,
     counts: Object.entries(counts).filter(([, n]) => n > 0).map(([kind, n]) => ({ kind, label: KIND_LABEL[kind], n })),
-    total: rows.length, avgRep: avgOf('rep'), avgRoleplay: avgOf('roleplay'), reviewAccuracy, reviewsDone: reviews.length,
+    wins: rows.filter((r) => r.kind === 'win').length, total: rows.length, avgRep: avgOf('rep'), avgRoleplay: avgOf('roleplay'), reviewAccuracy, reviewsDone: reviews.length,
     topics: scored.map(({ id, name, category, avg }) => ({ id, name, category, avg })), focus,
   });
 });

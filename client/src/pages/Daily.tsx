@@ -168,8 +168,8 @@ export function Week() {
               ))}
             </div>
           </section>
-          <section className="mt-4 grid grid-cols-3 gap-2.5">
-            {[['Reps avg', w.avgRep], ['Role-play avg', w.avgRoleplay], ['Review', w.reviewAccuracy != null ? `${w.reviewAccuracy}%` : null]].map(([label, v]) => (
+          <section className="mt-4 grid grid-cols-2 gap-2.5">
+            {[['Real-world wins', w.wins], ['Reps avg', w.avgRep], ['Role-play avg', w.avgRoleplay], ['Review accuracy', w.reviewAccuracy != null ? `${w.reviewAccuracy}%` : null]].map(([label, v]) => (
               <div key={String(label)} className="card p-3 text-center"><p className="text-[22px] font-extrabold">{v ?? '–'}</p><p className="text-[11px] font-semibold text-muted">{label}</p></div>
             ))}
           </section>

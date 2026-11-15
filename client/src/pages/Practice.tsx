@@ -7,6 +7,7 @@ import { Alert } from '../components/ui';
 import { CoachAvatar } from '../components/Coach';
 import { categoryTint, tileBackground } from '../components/CategoryIcon';
 import { GradeResult } from '../components/GradeResult';
+import { appendSpoken, VoiceRow } from '../components/Mic';
 import { COACHES } from '../options';
 
 type Phase = 'loading' | 'rep' | 'result' | 'error';
@@ -115,6 +116,7 @@ export default function Practice() {
             <textarea id="rep-answer" value={answer} onChange={(e) => setAnswer(e.target.value.slice(0, 1500))} rows={6}
               placeholder="Type exactly what you would say…" className="field mt-4 flex-1 py-3 leading-relaxed" />
             <div className="mt-1.5 flex justify-between text-xs text-muted"><span>Sent to our AI provider for feedback.</span><span>{answer.length}/1500</span></div>
+            <VoiceRow onText={(t) => setAnswer((p) => appendSpoken(p, t, 1500))} />
             {error && <div className="mt-3"><Alert>{error.message}</Alert></div>}
             <button className="btn-primary mt-4" disabled={busy || answer.trim().length < 20} onClick={submit}>{busy ? `${coachName} is reading…` : 'Get coaching'}</button>
           </motion.section>

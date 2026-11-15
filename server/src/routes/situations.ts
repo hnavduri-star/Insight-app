@@ -9,6 +9,7 @@ import { HttpError } from '../lib/errors.js';
 import { generateSituation, gradeScenario, type Plan } from '../lib/ai.js';
 import { runJob } from '../lib/jobs.js';
 import { recordActivity } from '../lib/activity.js';
+import { scheduleCheckin } from './checkins.js';
 import { PERSONAS, RELATIONSHIPS } from '../../../shared/options.js';
 import { checkLimit, learnerKey, responseInput, uuid } from './bites.js';
 
@@ -33,6 +34,7 @@ situationRoutes.post('/', async (req, res) => {
         traits: p.traitsJson as string[], notes: p.notes })),
     });
     const [row] = await db.insert(situations).values({ userId, inputText: text, planJson: plan }).returning({ id: situations.id });
+    await scheduleCheckin({ userId, kind: 'situation', sourceId: row.id, title: plan.title, afterHours: 44 });
     return row.id;
   }, () => checkLimit(userId, 'situation'));
   if (!r.done) return void res.status(202).json({ status: 'generating' });

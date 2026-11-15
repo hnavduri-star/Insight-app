@@ -193,8 +193,16 @@ Quality rules:
 - Be concrete and specific to the learner's career stage, industry and goals. No generic advice.
 - Plain, warm, direct English. Short sentences.`;
 
+/** What each career stage needs most, so toolkits differ in substance, not just wording. */
+export function personaFocus(persona: string) {
+  const p = persona.toLowerCase();
+  if (p.includes('early')) return 'Early-stage employee: give confidence and ready-to-use scripts; situations with managers, peers and first clients; how to earn trust and visibility without formal authority.';
+  if (p.includes('senior') || p.includes('executive')) return 'Senior executive: board, investor and C-suite stakes; stakeholder politics, ambiguity and trade-offs; edge cases and second-order effects; shaping culture through others. Skip basic definitions.';
+  return 'Manager: leading through others; balancing the team and the boss; feedback, delegation and accountability conversations; translating strategy into team action.';
+}
+
 export async function generateBite(userId: string, input: {
-  topic: string; scope: string | null; books: { title: string; author: string | null }[];
+  topic: string; scope: string | null; books: { title: string; author: string | null; kind?: 'fiction' | 'nonfiction' }[];
   persona: string; industry: string; goals: string[]; minutes: number; band: 'foundation' | 'core' | 'advanced' | 'mastery';
 }) {
   const depth = {
@@ -203,11 +211,13 @@ export async function generateBite(userId: string, input: {
   }[input.band];
   const user = `Topic: ${input.topic}
 Scope: ${input.scope ?? '(none given)'}
-Books to synthesize: ${input.books.map((b) => `"${b.title}"${b.author ? ` by ${b.author}` : ''}`).join('; ')}
+Books to synthesize: ${input.books.map((b) => `"${b.title}"${b.author ? ` by ${b.author}` : ''}${b.kind === 'fiction' ? ' (fiction)' : ''}`).join('; ')}
 
 Learner: ${input.persona}, industry ${input.industry}.
 Main goal: ${input.goals[0] ?? 'general growth'}${input.goals.length > 1 ? `; also: ${input.goals.slice(1).join('; ')}` : ''}.
 Time: about ${input.minutes} minutes per day. Depth: ${depth}.
+Career-stage focus: ${personaFocus(input.persona)}
+${input.books.some((b) => b.kind === 'fiction') ? `Lessons from fiction: at least one tool must come from the fiction book(s) above. In "idea", say in your own words what a character does or learns and the transferable lesson; set "source" to that novel's title. Never quote the novel beyond one short phrase.` : ''}
 
 Write the bite as a practical toolkit:
 - title: short and specific.

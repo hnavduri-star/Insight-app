@@ -46,6 +46,10 @@ export default function People() {
     <main className="page page-with-nav">
       <p className="eyebrow">Practise for real life</p>
       <h1 className="mt-1.5 text-[28px] font-semibold leading-tight">Your people</h1>
+      <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-[13px] leading-snug">
+        <span aria-hidden>🔒</span>
+        <span><span className="font-semibold">Private to you.</span> <span className="text-muted">Only you can see these notes. They're used only to tailor your practice, never shared with your team or anyone else, and you can edit or delete them at any time.</span></span>
+      </div>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">
         Add the people you actually talk to. Then rehearse the conversations that matter, with them playing themselves.
       </p>
@@ -189,6 +193,7 @@ function PersonSheet({ person, premium, onUpgrade, onClose, onSaved }: {
           <label htmlFor="notes" className="label">How do they usually react? What do they care about?</label>
           <textarea id="notes" rows={3} maxLength={500} className="field py-3" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })}
             placeholder="e.g. Wants the numbers first. Gets defensive if surprised in meetings." />
+          <p className="mt-1.5 text-xs text-muted">🔒 Only you see this. Deleting the person deletes these notes.</p>
         </div>
         <Field label="What do you want to practise with them?" maxLength={200} value={f.practiceGoal}
           onChange={(e) => setF({ ...f, practiceGoal: e.target.value })} placeholder="e.g. Ask for a raise" />

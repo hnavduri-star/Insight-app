@@ -6,7 +6,9 @@ import { users, profiles } from '../db/schema.js';
 import { requireAuth, checkPassword, clearSession } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { profileInput } from '../lib/validate.js';
-import { accessFor, chooseFreeTopic } from '../lib/access.js';
+import { accessFor, canAccessTopic, chooseFreeTopic } from '../lib/access.js';
+import { suggestedTopic } from './home.js';
+import { prewarmToolkit } from './bites.js';
 import { cancelSubscriptionsFor } from '../lib/billing.js';
 import { topics } from '../db/schema.js';
 
@@ -45,6 +47,11 @@ me.post('/onboarding', async (req, res) => {
     .omit({ name: true }).parse(req.body);
   await db.update(profiles).set({ ...input, onboardedAt: sql`coalesce(${profiles.onboardedAt}, now())`, updatedAt: new Date() })
     .where(eq(profiles.userId, req.userId!));
+  // Get their first suggested toolkit ready while they look around, so it opens fast.
+  if (process.env.NODE_ENV !== 'test' || process.env.PREWARM_IN_TESTS) {
+    const s = await suggestedTopic(req.userId!).catch(() => null);
+    if (s && (await canAccessTopic(req.userId!, s.id))) prewarmToolkit(req.userId!, s.id);
+  }
   res.json(await loadMe(req.userId!));
 });
 

@@ -100,6 +100,25 @@ export async function trackFor(userId: string, topicId: string) {
   };
 }
 
+/** Quick reference: the learner's tools on a topic (Foundations, plus Mastery when done), for the moment before a meeting. */
+biteRoutes.get('/library/:topicId', async (req, res) => {
+  const topicId = uuid(req.params.topicId, 'Topic');
+  const userId = req.userId!;
+  await requireTopicAccess(userId, topicId);
+  const sets: { level: Level; framework: string; tools: Bite['tools'] }[] = [];
+  for (const level of ['toolkit', 'mastery'] as const) {
+    const { where } = await learnerKey(userId, topicId, level);
+    const [l] = await db.select().from(cachedLessons).where(where);
+    if (l && checkBite(l.contentJson as Bite) === null && (level === 'toolkit' || (await trackFor(userId, topicId)).mastery.unlocked)) {
+      const b = l.contentJson as Bite;
+      sets.push({ level, framework: b.framework, tools: b.tools });
+    }
+  }
+  const [meta] = await db.select({ name: topics.name, category: categories.name }).from(topics)
+    .innerJoin(categories, eq(categories.id, topics.categoryId)).where(eq(topics.id, topicId));
+  res.json({ topic: { id: topicId, ...meta }, sets });
+});
+
 biteRoutes.get('/track/:topicId', async (req, res) => {
   const topicId = uuid(req.params.topicId, 'Topic');
   await requireTopicAccess(req.userId!, topicId);
@@ -119,16 +138,33 @@ biteRoutes.post('/', async (req, res) => {
         : `Complete ${t.mastery.needsReps} more practice rep${t.mastery.needsReps === 1 ? '' : 's'} to unlock Mastery.`, 'locked');
     }
   }
-  const { profile: p, goals, key, where } = await learnerKey(userId, topicId, level);
-
+  const { where } = await learnerKey(userId, topicId, level);
   let [lesson] = await db.select().from(cachedLessons).where(where);
-  // A bite saved in an older format is rebuilt once and replaced.
-  const ready = (l?: typeof lesson) => !!l && checkBite(l.contentJson as Bite) === null;
-  const cached = ready(lesson);
+  const cached = readyLesson(lesson);
   if (!cached) {
+    const r = await startToolkit(userId, topicId, level);
+    [lesson] = await db.select().from(cachedLessons).where(where);
+    if (!r.done || !readyLesson(lesson)) return void res.status(202).json({ status: 'generating' });
+  }
+  const [meta] = await db.select({ name: topics.name, category: categories.name }).from(topics)
+    .innerJoin(categories, eq(categories.id, topics.categoryId)).where(eq(topics.id, topicId));
+  res.json({ lessonId: lesson.id, level, topic: { id: topicId, ...meta }, bite: lesson.contentJson as Bite, cached });
+});
+
+const readyLesson = (l?: typeof cachedLessons.$inferSelect) => !!l && checkBite(l.contentJson as Bite) === null;
+
+/**
+ * Starts (or joins) building a learner's toolkit in the background and waits briefly.
+ * Also used to get a toolkit ready ahead of time (after onboarding, or while a topic is being read).
+ */
+export async function startToolkit(userId: string, topicId: string, level: Level = 'toolkit') {
+  const { profile: p, goals, key, where } = await learnerKey(userId, topicId, level);
+  let [lesson] = await db.select().from(cachedLessons).where(where);
+  if (readyLesson(lesson)) return { done: true as const, result: undefined };
+  {
     const build = () => runJob(`bite:${JSON.stringify(key)}`, async () => {
       const [t] = await db.select({ name: topics.name, description: topics.description }).from(topics).where(eq(topics.id, topicId));
-      const bookRows = await db.select({ title: books.title, author: books.author }).from(topicBooks)
+      const bookRows = await db.select({ title: books.title, author: books.author, kind: books.kind }).from(topicBooks)
         .innerJoin(books, eq(books.id, topicBooks.bookId)).where(eq(topicBooks.topicId, topicId)).orderBy(asc(topicBooks.sortOrder));
       const { bite, model } = await generateBite(userId, {
         topic: t.name, scope: t.description, books: bookRows,
@@ -142,12 +178,31 @@ biteRoutes.post('/', async (req, res) => {
     [lesson] = await db.select().from(cachedLessons).where(where);
     // A job that finished earlier but whose result no longer applies (e.g. the saved toolkit was
     // since removed or needs rebuilding): it has now been collected, so start a fresh one.
-    if (r.done && !ready(lesson)) { r = await build(); [lesson] = await db.select().from(cachedLessons).where(where); }
-    if (!r.done || !ready(lesson)) return void res.status(202).json({ status: 'generating' });
+    if (r.done && !readyLesson(lesson)) r = await build();
+    return r;
   }
-  const [meta] = await db.select({ name: topics.name, category: categories.name }).from(topics)
-    .innerJoin(categories, eq(categories.id, topics.categoryId)).where(eq(topics.id, topicId));
-  res.json({ lessonId: lesson.id, level, topic: { id: topicId, ...meta }, bite: lesson.contentJson as Bite, cached });
+}
+
+/** Gets a toolkit ready in the background without waiting (errors are only logged). */
+export function prewarmToolkit(userId: string, topicId: string) {
+  startToolkit(userId, topicId).catch((e) => console.warn('[prewarm]', e instanceof Error ? e.message : e));
+}
+
+/** Self-rated confidence on a topic (1-10), before starting and later on, for a before/after view. Doesn't change the toolkit. */
+biteRoutes.post('/confidence', async (req, res) => {
+  const body = z.object({ topicId: z.string().uuid(), score: z.number().int().min(1).max(10), when: z.enum(['before', 'now']) }).parse(req.body);
+  await requireTopicAccess(req.userId!, body.topicId);
+  const phase = body.when === 'before' ? 'self_before' : 'self_now';
+  await db.insert(assessments).values({ userId: req.userId!, topicId: body.topicId, score: body.score, phase })
+    .onConflictDoUpdate({ target: [assessments.userId, assessments.topicId, assessments.phase], set: { score: body.score, updatedAt: new Date() } });
+  res.json({ ok: true });
+});
+
+biteRoutes.post('/prewarm', async (req, res) => {
+  const topicId = uuid(req.body?.topicId, 'Topic');
+  await requireTopicAccess(req.userId!, topicId);
+  prewarmToolkit(req.userId!, topicId);
+  res.status(202).json({ status: 'started' });
 });
 
 async function lessonFor(userId: string, lessonId: string) {

@@ -11,6 +11,7 @@ import {
 } from '../lib/ai.js';
 import { runJob } from '../lib/jobs.js';
 import { recordActivity } from '../lib/activity.js';
+import { scheduleCheckin } from './checkins.js';
 import { PERSONAS, RELATIONSHIPS } from '../../../shared/options.js';
 import { checkLimit, learnerKey, readyToolkit, trackFor, uuid } from './bites.js';
 
@@ -210,6 +211,8 @@ roleplayRoutes.post('/:id/debrief', async (req, res) => {
     const [u] = await db.update(roleplaySessions).set({ status: 'debriefed', debriefJson: debrief, score: debrief.score, rubricScoresJson: debrief.rubric, endedAt: row.endedAt ?? new Date() })
       .where(eq(roleplaySessions.id, row.id)).returning();
     await recordActivity(userId, 'roleplay', { topicId: row.topicId, score: debrief.score, xp: 30 });
+    await scheduleCheckin({ userId, kind: 'roleplay', sourceId: row.id, topicId: row.topicId, title: (row.setupJson as RoleplaySetup).title,
+      withName: row.personId ? await personName(row.personId) : null, afterHours: 20 });
     return u;
   }, () => checkLimit(userId, 'roleplay_debrief'));
   if (!r.done) return void res.status(202).json({ status: 'generating' });

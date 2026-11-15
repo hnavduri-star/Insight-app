@@ -7,6 +7,7 @@ import { Alert, Avatar, Spinner } from '../components/ui';
 import { CoachAvatar } from '../components/Coach';
 import { categoryTint, tileBackground } from '../components/CategoryIcon';
 import { ScoreRing } from '../components/GradeResult';
+import { appendSpoken, MicButton, speechSupported } from '../components/Mic';
 import { COACHES } from '../options';
 
 type Phase = 'choose' | 'setting-up' | 'brief' | 'chat' | 'debriefing' | 'debrief' | 'error';
@@ -211,6 +212,7 @@ export default function RolePlay() {
             <p className="mt-3 text-sm leading-relaxed text-muted">
               {name} has something on their mind they won't say straight away. Up to {rp.maxTurns} turns. Stuck? Tap Hint and {coachName} steps in.
             </p>
+            <p className="mt-2 text-xs leading-relaxed text-muted/80">This is practice coaching, not therapy or professional advice. If something feels heavy, pause and talk to someone you trust.</p>
             <button className="btn-primary mt-auto" onClick={() => setPhase('chat')}>Start the conversation</button>
           </motion.section>
         )}
@@ -255,12 +257,13 @@ export default function RolePlay() {
                   <label htmlFor="rp-line" className="sr-only">Your reply</label>
                   <textarea id="rp-line" value={line} rows={2} onChange={(e) => setLine(e.target.value.slice(0, 600))} placeholder={`Reply to ${name}…`}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} className="field min-h-[52px] flex-1 py-3 leading-relaxed" />
+                  <MicButton onText={(t) => setLine((p) => appendSpoken(p, t, 600))} label={`Speak your reply to ${name}`} />
                   <button className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40" style={{ background: tileBackground(tint) }}
                     onClick={send} disabled={!!busy || line.trim().length < 2} aria-label="Send">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                   </button>
                 </div>
-                <p className="mt-1.5 text-[11px] text-muted">Sent to our AI provider to play the character.</p>
+                <p className="mt-1.5 text-[11px] text-muted">{speechSupported() ? 'Tap the mic to say it out loud. ' : ''}Sent to our AI provider to play the character.</p>
               </div>
             ) : (
               <div className="mt-5 space-y-2">

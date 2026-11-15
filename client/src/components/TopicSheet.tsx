@@ -41,6 +41,12 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
       if (d.unlocked) api<Track>(`/bites/track/${id}`).then(setTrack).catch(() => {});
     }).catch((e) => setError(e.message));
   }, [id]);
+  // Someone reading a topic for a few seconds is likely to start it: get their toolkit ready now.
+  useEffect(() => {
+    if (!id || !t?.unlocked || !track || track.toolkit.toolsDone) return;
+    const timer = setTimeout(() => { api('/bites/prewarm', { body: { topicId: id } }).catch(() => {}); }, 5000);
+    return () => clearTimeout(timer);
+  }, [id, t?.unlocked, track]);
   const chooseFree = async () => {
     if (!t) return;
     setBusy(true); setError('');
@@ -60,7 +66,7 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
           <div>
             <div className="tile -mx-1 p-5" style={{ background: tileBackground(tint) }}>
               <CategoryGlyph name={t.category} size={120} className="absolute -right-5 -top-4 text-white/15" />
-              <p className="relative text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">{t.category}</p>
+              <p className="relative text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">{t.category}{t.featured ? " · Editor's pick" : ''}</p>
               <h3 className="relative mt-2 text-[28px] leading-tight">{t.name}</h3>
               {t.description && <p className="relative mt-2 text-[15px] leading-relaxed text-white/90">{t.description}</p>}
             </div>
@@ -70,6 +76,12 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
               {me?.goals?.[0] ? <> and your goal: <span className="text-ink/90">{me.goals[0].toLowerCase()}</span></> : null}.
             </p>
             <TrackLevels t={t} track={track} tint={tint} go={(path) => nav(path)} />
+            {track?.toolkit.toolsDone && (
+              <button onClick={() => nav(`/tools/${t.id}`)} className="card mt-2.5 flex w-full items-center gap-3 p-4 text-left">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full text-base" style={{ background: `color-mix(in oklab, ${tint} 22%, transparent)` }} aria-hidden>📋</span>
+                <span className="flex-1"><span className="block font-bold">Quick reference</span><span className="block text-[13px] text-muted">Your tools and what to say, for the minute before a meeting</span></span>
+              </button>
+            )}
             <p className="eyebrow mt-6">Drawn from</p>
             <ul className="mt-2.5 space-y-2.5">
               {t.books.map((b) => (

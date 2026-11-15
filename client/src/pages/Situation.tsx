@@ -6,6 +6,7 @@ import { useAuth } from '../auth';
 import { Alert, Spinner } from '../components/ui';
 import { CoachAvatar } from '../components/Coach';
 import { GradeResult } from '../components/GradeResult';
+import { appendSpoken, VoiceRow } from '../components/Mic';
 import { COACHES } from '../options';
 
 const TINT = '#ffb36b';
@@ -67,6 +68,7 @@ export function NewSituation() {
           <textarea id="situation" rows={4} value={text} onChange={(e) => setText(e.target.value.slice(0, 600))} className="field py-3 leading-relaxed"
             placeholder="e.g. My boss Raj wants to cut my team's budget at Thursday's review, and I need to keep two roles." />
           <div className="mt-1.5 flex justify-between text-xs text-muted"><span>Sent to our AI provider to build your plan.</span><span>{text.length}/600</span></div>
+          <VoiceRow onText={(t) => setText((p) => appendSpoken(p, t, 600))} />
           <div className="mt-3 flex flex-wrap gap-2">
             {EXAMPLES.map((x) => <button key={x} type="button" onClick={() => setText(x)} className="chip chip-off min-h-[36px] text-xs">{x}</button>)}
           </div>
@@ -194,6 +196,7 @@ export function SituationPlan() {
                 <div className="tile mt-2 p-5" style={{ background: GRAD }}><p className="relative text-[16px] font-semibold leading-relaxed text-white">{p.rehearsal}</p></div>
                 <label htmlFor="rehearse" className="sr-only">Your response</label>
                 <textarea id="rehearse" rows={6} value={answer} onChange={(e) => setAnswer(e.target.value.slice(0, 1500))} className="field mt-4 flex-1 py-3 leading-relaxed" placeholder="Type exactly what you would say…" />
+                <VoiceRow onText={(t) => setAnswer((p) => appendSpoken(p, t, 1500))} />
                 {error && <div className="mt-3"><Alert>{error}</Alert></div>}
                 <button className="btn-primary mt-4" disabled={busy || answer.trim().length < 20} onClick={submit}>{busy ? `${coachName} is reading…` : 'Get coaching'}</button>
                 <button className="mt-2 min-h-[44px] text-sm text-muted" onClick={() => setRehearsing(false)}>Back to the plan</button>

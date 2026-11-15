@@ -18,6 +18,7 @@ import Bite from './pages/Bite';
 import Practice from './pages/Practice';
 import { NewSituation, SituationPlan } from './pages/Situation';
 import RolePlay from './pages/RolePlay';
+import Tools from './pages/Tools';
 import Daily, { Week } from './pages/Daily';
 
 /** Signed-out only. */
@@ -87,6 +88,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/practice/:topicId" element={<Practice />} />
             <Route path="/roleplay/:topicId" element={<RolePlay />} />
             <Route path="/daily" element={<Daily />} />
+            <Route path="/tools/:topicId" element={<Tools />} />
             <Route path="/week" element={<Week />} />
             <Route path="/situation" element={<NewSituation />} />
             <Route path="/situation/:id" element={<SituationPlan />} />

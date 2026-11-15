@@ -6,7 +6,7 @@ export type Me = {
   planSource: 'subscription' | 'grant' | 'purchase' | 'test' | 'beta' | null; premiumUntil: string | null;
 };
 export type Category = { id: string; name: string; icon: string; sortOrder: number; topics: { id: string; name: string; description: string | null; unlocked: boolean; free: boolean }[] };
-export type TopicDetail = { id: string; name: string; description: string | null; category: string; icon: string; books: { title: string; author: string | null; kind: 'fiction' | 'nonfiction'; buyUrl: string | null }[];
+export type TopicDetail = { id: string; name: string; description: string | null; featured?: boolean; category: string; icon: string; books: { title: string; author: string | null; kind: 'fiction' | 'nonfiction'; buyUrl: string | null }[];
   unlocked: boolean; free: boolean };
 export type Person = { id: string; name: string; relationship: string; traits: string[]; notes: string | null; practiceGoal: string | null };
 
@@ -74,8 +74,9 @@ export type Daily = {
 export type Week = {
   from: string; to: string; streak: number; freezes: number; daysActive: number; days: { day: string; weekday: string; active: boolean }[];
   counts: { kind: string; label: string; n: number }[]; total: number; avgRep: number | null; avgRoleplay: number | null;
-  reviewAccuracy: number | null; reviewsDone: number; topics: { id: string; name: string; category: string; avg: number | null }[]; focus: string;
+  reviewAccuracy: number | null; reviewsDone: number; wins: number; topics: { id: string; name: string; category: string; avg: number | null }[]; focus: string;
 };
+export type Checkin = { id: string; kind: 'roleplay' | 'situation'; title: string; withName: string | null; question: string; outcome: 'well' | 'mixed' | 'not_yet' | null };
 export type Situation = { id: string; text: string; createdAt: string; bestScore: number | null; plan: Plan };
 
 /** POSTs until the server stops answering "generating", riding out brief hosting hiccups. */

@@ -2,7 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { activityEvents, profiles, userProgress } from '../db/schema.js';
 
-export type ActivityKind = 'tools' | 'quiz' | 'scenario' | 'rep' | 'roleplay' | 'review' | 'situation' | 'daily';
+export type ActivityKind = 'tools' | 'quiz' | 'scenario' | 'rep' | 'roleplay' | 'review' | 'situation' | 'daily' | 'win';
 
 /** The learner's local calendar day (YYYY-MM-DD) in their time zone. */
 export function localDay(timeZone: string, now = new Date()) {
