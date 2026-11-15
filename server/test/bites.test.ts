@@ -128,7 +128,18 @@ describe('bites (milestone 2)', () => {
     parse.mockResolvedValue({ ...reply(null), content: [{ type: 'text', text: 'not json at all' }] });
     const r = await l.a.post('/api/bites').send({ topicId: l.topic.id });
     expect(r.status).toBe(502);
-    expect(r.body.error).toMatch(/couldn't build this bite/);
+    expect(r.body.error).toMatch(/could not be read/);
+
+    // An unexpected client-side failure (e.g. a dropped stream) is retried once, then shown with its reason.
+    parse.mockReset();
+    parse.mockRejectedValueOnce(new Error('stream ended without producing a Message with role=assistant')).mockResolvedValueOnce(reply(bite()));
+    expect((await l.a.post('/api/bites').send({ topicId: l.topic.id })).status).toBe(200);
+    await pool.query('delete from cached_lessons');
+    parse.mockRejectedValue(new Error('request ended without sending any chunks (key sk-ant-secret123)'));
+    const r2 = await l.a.post('/api/bites').send({ topicId: l.topic.id });
+    expect(r2.status).toBe(502);
+    expect(r2.body.error).toMatch(/request ended without sending any chunks/);
+    expect(r2.body.error).not.toMatch(/sk-ant-secret/);
   });
 
   it('answers "still building" for slow toolkits, then serves the result on the next poll', async () => {

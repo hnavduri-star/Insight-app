@@ -142,7 +142,9 @@ async function call<T extends z.ZodType>(endpoint: string, userId: string | null
     if (e instanceof Anthropic.AuthenticationError) { console.error('[ai] the API key was rejected'); throw new HttpError(503, 'The AI key was rejected. Check ANTHROPIC_API_KEY in Render.', 'ai_key_rejected'); }
     if (e instanceof Anthropic.APIError) { console.error(`[ai] ${endpoint} API error ${e.status}:`, e.message); throw new HttpError(502, 'Could not reach the AI service. Please try again.', 'ai_error'); }
     console.error(`[ai] ${endpoint} unexpected error:`, e);
-    throw new HttpError(502, 'Something went wrong while talking to the AI service. Please try again.', 'ai_error');
+    // Show the short technical reason so problems can be diagnosed from a screenshot (never contains the key).
+    const reason = (e instanceof Error ? e.message : String(e)).replace(/sk-ant-[\w-]+/g, '[key]').slice(0, 140);
+    throw new HttpError(502, `Something went wrong while talking to the AI service (${reason}). Please try again.`, 'ai_unexpected');
   } finally {
     await db.insert(aiCalls).values({
       userId, endpoint, model, ok, latencyMs: Date.now() - started,
@@ -199,7 +201,10 @@ Write the bite as a practical toolkit:
     try {
       result = await call('bite', userId, BiteSchema, BITE_SYSTEM, prompt, 'medium', 32000);
     } catch (e) {
-      if (e instanceof HttpError && ['ai_incomplete', 'ai_unreadable'].includes(e.code ?? '')) { last = e.message; continue; }
+      if (e instanceof HttpError && ['ai_incomplete', 'ai_unreadable', 'ai_unexpected', 'ai_error'].includes(e.code ?? '')) {
+        if (attempt === 1) throw e; // second failure: report the real reason
+        last = e.message; continue;
+      }
       throw e;
     }
     const problem = checkBite(result.data);
