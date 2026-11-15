@@ -105,7 +105,7 @@ Wio-style vivid design: each heading has its own bright two-colour fill (`client
 - Home: avatar and greeting (tap for Profile), verify-email banner, all 8 headings as collapsible lists, and a topic sheet that shows its 3 source books.
 - Profile: details, Edit profile, switch coach, log out, delete account (asks for the password and removes all of the user's data), privacy notice.
 - Access control: every user query is scoped to the session's user id (the brief's "equivalent check" to RLS). Auth endpoints are rate-limited, inputs are validated and size-limited, and writes must be JSON.
-- 41 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
+- 40 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
 
 ## Decisions made inside the brief's options
 
