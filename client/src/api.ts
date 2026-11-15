@@ -3,7 +3,7 @@ export type Me = {
   persona: string | null; industry: string | null; goal: string | null; dailyMinutes: number | null;
   coach: 'maya' | 'alex' | null; timezone: string; onboarded: boolean;
   plan: 'free' | 'premium'; freeTopicId: string | null;
-  planSource: 'subscription' | 'grant' | 'purchase' | null; premiumUntil: string | null;
+  planSource: 'subscription' | 'grant' | 'purchase' | 'test' | null; premiumUntil: string | null;
 };
 export type Category = { id: string; name: string; icon: string; sortOrder: number; topics: { id: string; name: string; unlocked: boolean; free: boolean }[] };
 export type TopicDetail = { id: string; name: string; category: string; icon: string; books: { title: string; author: string | null; kind: 'fiction' | 'nonfiction'; buyUrl: string | null }[];
@@ -35,4 +35,4 @@ export const browserTimezone = () => {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; }
 };
 
-export type Plans = { enabled: boolean; plans: { interval: 'month' | 'year'; amount: number | null; currency: string | null }[] };
+export type Plans = { enabled: boolean; testMode?: boolean; plans: { interval: 'month' | 'year'; amount: number | null; currency: string | null }[] };

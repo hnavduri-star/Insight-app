@@ -7,7 +7,7 @@ import { requireAuth } from '../lib/auth.js';
 import { config } from '../lib/config.js';
 import { HttpError } from '../lib/errors.js';
 import {
-  applySubscription, confirmCheckout, createCheckout, createPortal, linkCustomer, listPlans, webhookVerifier,
+  applySubscription, confirmCheckout, testUpgrade, testCancel, createCheckout, createPortal, linkCustomer, listPlans, webhookVerifier,
 } from '../lib/billing.js';
 import { loadMe } from './me.js';
 
@@ -25,6 +25,17 @@ billing.post('/checkout', requireAuth, async (req, res) => {
 billing.post('/confirm', requireAuth, async (req, res) => {
   const { sessionId } = z.object({ sessionId: z.string().startsWith('cs_').max(255) }).parse(req.body);
   await confirmCheckout(req.userId!, sessionId);
+  res.json(await loadMe(req.userId!));
+});
+
+/** Test mode only (Stripe not configured): Premium without payment, for trying the app. */
+billing.post('/test-upgrade', requireAuth, async (req, res) => {
+  const { interval } = z.object({ interval: z.enum(['month', 'year']) }).parse(req.body);
+  await testUpgrade(req.userId!, interval);
+  res.json(await loadMe(req.userId!));
+});
+billing.post('/test-cancel', requireAuth, async (req, res) => {
+  await testCancel(req.userId!);
   res.json(await loadMe(req.userId!));
 });
 

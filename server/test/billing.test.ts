@@ -86,3 +86,33 @@ describe('practice is Premium only', () => {
     await expect(requirePremium(id)).rejects.toMatchObject({ status: 402, code: 'premium_required' });
   });
 });
+
+describe('test mode (Premium without payment, for trying the app)', () => {
+  it('upgrades and cancels with no payment, showing USD plans', async () => {
+    process.env.BILLING_TEST_MODE = 'true';
+    process.env.TEST_PRICE_MONTHLY_USD = '9.99';
+    try {
+      const { a, id } = await user();
+      const plans = (await a.get('/api/billing/plans')).body;
+      expect(plans).toMatchObject({ enabled: false, testMode: true });
+      expect(plans.plans[0]).toEqual({ interval: 'month', amount: 999, currency: 'usd' });
+      const me = (await a.post('/api/billing/test-upgrade').send({ interval: 'year' })).body;
+      expect(me).toMatchObject({ plan: 'premium', planSource: 'test' });
+      expect(new Date(me.premiumUntil).getTime()).toBeGreaterThan(Date.now() + 360 * 86400_000);
+      await expect(requirePremium(id)).resolves.toBeUndefined();
+      expect((await a.post('/api/billing/test-cancel').send({})).body.plan).toBe('free');
+    } finally { delete process.env.BILLING_TEST_MODE; delete process.env.TEST_PRICE_MONTHLY_USD; }
+  });
+
+  it('is off unless enabled, and always off once Stripe is configured', async () => {
+    const { a } = await user();
+    expect((await a.post('/api/billing/test-upgrade').send({ interval: 'month' })).status).toBe(404);
+    Object.assign(process.env, { BILLING_TEST_MODE: 'true', STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_PRICE_MONTHLY: 'price_m', STRIPE_PRICE_ANNUAL: 'price_y' });
+    try {
+      expect((await a.post('/api/billing/test-upgrade').send({ interval: 'month' })).status).toBe(404);
+      expect((await a.get('/api/auth/me')).body.plan).toBe('free');
+    } finally {
+      for (const k of ['BILLING_TEST_MODE', 'STRIPE_SECRET_KEY', 'STRIPE_PRICE_MONTHLY', 'STRIPE_PRICE_ANNUAL']) delete process.env[k];
+    }
+  });
+});

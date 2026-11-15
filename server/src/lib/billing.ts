@@ -36,11 +36,40 @@ export const webhookVerifier = () => new Stripe(env().key || 'sk_test_placeholde
 
 export const billingEnabled = () => { const e = env(); return !!(e.key && e.prices.month && e.prices.year); };
 
+/**
+ * Test mode: lets people try Premium end to end with no payment. It is only
+ * available while Stripe is NOT configured, so it can never bypass real billing.
+ * Display prices (USD) come from TEST_PRICE_MONTHLY_USD / TEST_PRICE_ANNUAL_USD.
+ */
+export const testModeEnabled = () => !billingEnabled() && process.env.BILLING_TEST_MODE === 'true';
+const usdCents = (v?: string) => (v && !isNaN(Number(v)) ? Math.round(Number(v) * 100) : null);
+export const TEST_REF = (userId: string) => `test_${userId}`;
+
+export async function testUpgrade(userId: string, interval: Interval) {
+  if (!testModeEnabled()) throw new HttpError(404, 'Not found');
+  const end = new Date();
+  if (interval === 'month') end.setMonth(end.getMonth() + 1); else end.setFullYear(end.getFullYear() + 1);
+  await db.insert(entitlements)
+    .values({ userId, kind: 'all_access', source: 'grant', providerRef: TEST_REF(userId), expiresAt: end })
+    .onConflictDoUpdate({ target: entitlements.providerRef, set: { expiresAt: end } });
+}
+
+export async function testCancel(userId: string) {
+  if (!testModeEnabled()) throw new HttpError(404, 'Not found');
+  await db.update(entitlements).set({ expiresAt: new Date() }).where(eq(entitlements.providerRef, TEST_REF(userId)));
+}
+
 // ---------- Plans shown on the paywall ----------
 type Plan = { interval: Interval; amount: number | null; currency: string | null };
 let planCache: { at: number; plans: Plan[] } | null = null;
 
-export async function listPlans(): Promise<{ enabled: boolean; plans: Plan[] }> {
+export async function listPlans(): Promise<{ enabled: boolean; testMode?: boolean; plans: Plan[] }> {
+  if (testModeEnabled()) {
+    return { enabled: false, testMode: true, plans: [
+      { interval: 'month', amount: usdCents(process.env.TEST_PRICE_MONTHLY_USD), currency: 'usd' },
+      { interval: 'year', amount: usdCents(process.env.TEST_PRICE_ANNUAL_USD), currency: 'usd' },
+    ] };
+  }
   if (!billingEnabled()) return { enabled: false, plans: [] };
   if (planCache && Date.now() - planCache.at < 10 * 60_000) return { enabled: true, plans: planCache.plans };
   const s = stripe();

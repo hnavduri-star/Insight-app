@@ -12,7 +12,8 @@ export async function accessFor(userId: string) {
   const freeTopicId = rows.find((r) => r.source === 'free_trial')?.topicId ?? null;
   const topicIds = new Set(rows.filter((r) => r.kind === 'topic' && r.topicId).map((r) => r.topicId!));
   const premium = rows.filter((r) => r.kind === 'all_access');
-  const planSource = premium.find((r) => r.source === 'subscription')?.source ?? premium[0]?.source ?? null;
+  const planSource = premium.find((r) => r.source === 'subscription')?.source
+    ?? (premium.find((r) => r.providerRef?.startsWith('test_')) ? ('test' as const) : premium[0]?.source ?? null);
   const ends = premium.map((r) => r.expiresAt);
   const premiumUntil = !premium.length || ends.some((e) => e === null) ? null : new Date(Math.max(...ends.map((e) => e!.getTime())));
   return { plan: allAccess ? ('premium' as const) : ('free' as const), allAccess, freeTopicId, topicIds, planSource, premiumUntil };

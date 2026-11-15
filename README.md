@@ -53,7 +53,9 @@ The catalogue lives in [`data/topics.csv`](data/topics.csv), one row per book:
 - **Stripe** (`server/src/lib/billing.ts`): Stripe-hosted Checkout in subscription mode, the Customer Portal for managing or cancelling, and a signed webhook at `/api/billing/webhook` that keeps Premium in step (subscription created, updated, deleted, paused or resumed). Events are applied once. Premium lasts until the paid period ends, plus 2 days' grace. Deleting an account cancels its subscription.
 - **Apple Pay and Google Pay** come with Stripe Checkout. Turn them on under Stripe Dashboard → Settings → Payment methods; there's no code to change.
 - To switch checkout on, set in `server/.env`: `STRIPE_SECRET_KEY`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL` (Price ids from a Product with a monthly and an annual recurring price), and `STRIPE_WEBHOOK_SECRET`. The webhook should send `checkout.session.completed` and `customer.subscription.*` to `https://<your-domain>/api/billing/webhook`. Until then the paywall shows "Subscriptions open soon".
-- Testing without Stripe: `npm run grant -w server -- user@example.com` (add `--revoke` to undo).
+- **Test mode** (`BILLING_TEST_MODE=true`, on in development): while Stripe isn't configured, the paywall's button upgrades instantly with no payment, and Profile has **End test**. Display prices in USD come from `TEST_PRICE_MONTHLY_USD` and `TEST_PRICE_ANNUAL_USD`. Test mode switches itself off as soon as Stripe keys are set.
+- Prices are in **USD**. Create the Stripe prices in USD.
+- Testing without Stripe from the command line: `npm run grant -w server -- user@example.com` (add `--revoke` to undo).
 
 ## Your people
 
@@ -71,7 +73,7 @@ Matte finish: a fine film grain over every screen, low-sheen card surfaces with 
 - Home: avatar and greeting (tap for Profile), verify-email banner, all 8 headings as collapsible lists, and a topic sheet that shows its 3 source books.
 - Profile: details, Edit profile, switch coach, log out, delete account (asks for the password and removes all of the user's data), privacy notice.
 - Access control: every user query is scoped to the session's user id (the brief's "equivalent check" to RLS). Auth endpoints are rate-limited, inputs are validated and size-limited, and writes must be JSON.
-- 27 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
+- 29 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
 
 ## Decisions made inside the brief's options
 

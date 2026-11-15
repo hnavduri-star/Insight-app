@@ -16,6 +16,9 @@ export default function Profile() {
   const [coachErr, setCoachErr] = useState('');
   const [paywall, setPaywall] = useState(false);
   const [portalBusy, setPortalBusy] = useState(false);
+  const endTest = async () => {
+    try { setMe(await api<Me>('/billing/test-cancel', { body: {} })); } catch (e) { setCoachErr((e as Error).message); }
+  };
   const manage = async () => {
     setPortalBusy(true);
     try { window.location.assign((await api<{ url: string }>('/billing/portal', { body: {} })).url); }
@@ -42,14 +45,15 @@ export default function Profile() {
       <section className="card flex items-center gap-4 p-5">
         <div className="flex-1">
           <p className="eyebrow">Your plan</p>
-          <p className="mt-1 font-display text-lg font-semibold">{m.plan === 'premium' ? 'Insight Premium' : 'Free'}</p>
+          <p className="mt-1 font-display text-lg font-semibold">{m.plan === 'premium' ? 'Insight Premium' : 'Free'}{m.planSource === 'test' && <span className="ml-2 inline-block whitespace-nowrap align-middle rounded-full border border-[#f5b971]/40 px-2 py-0.5 font-sans text-[11px] font-semibold text-[#f5b971]">Test mode</span>}</p>
           <p className="text-sm text-muted">
             {m.plan === 'free' ? 'Learn one topic free. Upgrade for every topic and practice.'
-              : m.planSource === 'subscription' && m.premiumUntil ? `Every topic unlocked · renews or ends ${new Date(m.premiumUntil).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`
+              : (m.planSource === 'subscription' || m.planSource === 'test') && m.premiumUntil ? `Every topic unlocked · ${m.planSource === 'test' ? 'test plan ends' : 'renews or ends'} ${new Date(m.premiumUntil).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`
               : 'Every topic unlocked.'}
           </p>
         </div>
         {m.plan === 'free' && <button className="btn-primary w-auto px-4" onClick={() => setPaywall(true)}>Upgrade</button>}
+        {m.planSource === 'test' && <button className="btn-ghost px-3 text-sm" onClick={endTest}>End test</button>}
         {m.planSource === 'subscription' && <button className="btn-ghost px-3 text-sm" onClick={manage} disabled={portalBusy}>{portalBusy ? 'Opening…' : 'Manage'}</button>}
       </section>
 

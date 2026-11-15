@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { api, type Plans } from '../api';
+import { api, type Me, type Plans } from '../api';
+import { useAuth } from '../auth';
+import { useToast } from './Toast';
 import { Sheet } from './Sheet';
 import { Alert } from './ui';
 
@@ -15,6 +17,8 @@ const money = (amount: number, currency: string) =>
 
 /** Upgrade sheet: pick monthly or annual, then go to Stripe Checkout (card, Apple Pay, Google Pay). */
 export function Paywall({ open, onClose, topicName, reason }: { open: boolean; onClose: () => void; topicName?: string; reason?: string }) {
+  const { setMe } = useAuth();
+  const toast = useToast();
   const [plans, setPlans] = useState<Plans | null>(null);
   const [interval, setInterval] = useState<'month' | 'year'>('year');
   const [busy, setBusy] = useState(false);
@@ -36,6 +40,15 @@ export function Paywall({ open, onClose, topicName, reason }: { open: boolean; o
       const { url } = await api<{ url: string }>('/billing/checkout', { body: { interval } });
       window.location.assign(url);
     } catch (e) { setError((e as Error).message); setBusy(false); }
+  };
+
+  const testUpgrade = async () => {
+    setBusy(true); setError('');
+    try {
+      setMe(await api<Me>('/billing/test-upgrade', { body: { interval } }));
+      toast('Welcome to Insight Premium (test mode). Every topic is now open.', 'success');
+      onClose();
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
 
   const option = (iv: 'month' | 'year', title: string, plan?: Plans['plans'][number]) => {
@@ -88,17 +101,26 @@ export function Paywall({ open, onClose, topicName, reason }: { open: boolean; o
         </div>
 
         {error && <div className="mt-4"><Alert>{error}</Alert></div>}
-        {plans?.enabled ? (
+        {plans?.testMode ? (
+          <>
+            <button className="btn-primary mt-5" onClick={testUpgrade} disabled={busy}>
+              {busy ? 'Upgrading…' : `Upgrade to ${interval === 'year' ? 'annual' : 'monthly'} · test mode`}
+            </button>
+            <p className="mt-3 rounded-input border border-[#f5b971]/30 bg-[#f5b971]/[0.07] px-3 py-2 text-center text-xs text-[#f5d29e]">
+              Test mode: no payment is taken. You can end the test plan from your Profile.
+            </p>
+          </>
+        ) : plans?.enabled ? (
           <button className="btn-primary mt-5" onClick={checkout} disabled={busy}>
             {busy ? 'Opening secure checkout…' : `Continue with ${interval === 'year' ? 'annual' : 'monthly'}`}
           </button>
         ) : (
           <button className="btn-primary mt-5" disabled>{plans ? 'Subscriptions open soon' : 'Loading plans…'}</button>
         )}
-        <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-muted">
+        {!plans?.testMode && <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-muted">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
           Secure checkout by Stripe · Card, Apple Pay or Google Pay · Cancel anytime
-        </p>
+        </p>}
         <button className="btn-ghost mt-4 w-full" onClick={onClose}>Not now</button>
       </div>
     </Sheet>
