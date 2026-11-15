@@ -56,11 +56,30 @@ export default function Bite() {
   const [gradeErr, setGradeErr] = useState('');
   const started = useRef(false);
 
-  const start = () => {
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+
+  /** Starts (or joins) building the toolkit, checking back every few seconds until it's ready. */
+  const start = async () => {
     setPhase('loading'); setError(null);
-    api<Started>('/bites', { body: { topicId } })
-      .then((d) => { setData(d); setPhase('intro'); })
-      .catch((e: ApiError) => { setError({ message: e.message, code: e.code }); setPhase('error'); });
+    const began = Date.now();
+    try {
+      while (alive.current) {
+        const d = await api<Started | { status: 'generating' }>('/bites', { body: { topicId } });
+        if ('status' in d) {
+          if (Date.now() - began > 6 * 60_000) throw new ApiError(504, 'This is taking longer than usual. Please try again in a minute.');
+          await new Promise((r) => setTimeout(r, 3000));
+          continue;
+        }
+        if (!alive.current) return;
+        setData(d); setPhase('intro');
+        return;
+      }
+    } catch (e) {
+      if (!alive.current) return;
+      const err = e as ApiError;
+      setError({ message: err.message, code: err.code }); setPhase('error');
+    }
   };
   useEffect(() => {
     if (started.current) return; started.current = true;

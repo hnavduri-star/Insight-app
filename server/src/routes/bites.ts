@@ -31,8 +31,15 @@ const uuid = (v: unknown, what = 'Bite') => {
   return r.data;
 };
 
-/** Two learners asking for the same new bite at once share one AI call. */
-const inFlight = new Map<string, Promise<void>>();
+/**
+ * Toolkits are built in the background so no single request has to stay open for minutes.
+ * Learners asking for the same new toolkit share one job (and one AI call). A failed job
+ * keeps its error for a few minutes so the next poll can report it.
+ */
+type Job = { promise: Promise<void>; error?: unknown };
+const jobs = new Map<string, Job>();
+export const WAIT_MS = { value: 15_000 }; // how long one request waits before answering "still building"
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Start a bite: returns the shared cached version for this learner's profile, generating it once if needed. */
 biteRoutes.post('/', async (req, res) => {
@@ -50,28 +57,43 @@ biteRoutes.post('/', async (req, res) => {
     eq(cachedLessons.goal, key.goal), eq(cachedLessons.ratingBand, key.ratingBand));
 
   let [lesson] = await db.select().from(cachedLessons).where(where);
-  // A bite saved in an older format (e.g. 3 questions, no examples) is rebuilt once and replaced.
-  const stale = !!lesson && checkBite(lesson.contentJson as Bite) !== null;
-  const cached = !!lesson && !stale;
+  // A bite saved in an older format is rebuilt once and replaced.
+  const ready = (l?: typeof lesson) => !!l && checkBite(l.contentJson as Bite) === null;
+  const cached = ready(lesson);
   if (!cached) {
     const k = JSON.stringify(key);
-    if (!inFlight.has(k)) {
-      inFlight.set(k, (async () => {
-        await checkLimit(userId, 'bite');
-        const [t] = await db.select({ name: topics.name, description: topics.description }).from(topics).where(eq(topics.id, topicId));
-        const bookRows = await db.select({ title: books.title, author: books.author }).from(topicBooks)
-          .innerJoin(books, eq(books.id, topicBooks.bookId)).where(eq(topicBooks.topicId, topicId)).orderBy(asc(topicBooks.sortOrder));
-        const { bite, model } = await generateBite(userId, {
-          topic: t.name, scope: t.description, books: bookRows,
-          persona: PERSONAS.find((x) => x.value === key.persona)!.label, industry: key.industry, goals, minutes: p.dailyMinutes!, band: key.ratingBand,
-        });
-        await db.insert(cachedLessons).values({ ...key, contentJson: bite, model })
-          .onConflictDoUpdate({ target: [cachedLessons.topicId, cachedLessons.persona, cachedLessons.industry, cachedLessons.goal, cachedLessons.ratingBand],
-            set: { contentJson: bite, model, createdAt: new Date() } });
-      })().finally(() => inFlight.delete(k)));
+    let job = jobs.get(k);
+    if (job?.error) { jobs.delete(k); throw job.error; }
+    if (!job) {
+      await checkLimit(userId, 'bite');
+      const j: Job = {
+        promise: (async () => {
+          const [t] = await db.select({ name: topics.name, description: topics.description }).from(topics).where(eq(topics.id, topicId));
+          const bookRows = await db.select({ title: books.title, author: books.author }).from(topicBooks)
+            .innerJoin(books, eq(books.id, topicBooks.bookId)).where(eq(topicBooks.topicId, topicId)).orderBy(asc(topicBooks.sortOrder));
+          const { bite, model } = await generateBite(userId, {
+            topic: t.name, scope: t.description, books: bookRows,
+            persona: PERSONAS.find((x) => x.value === key.persona)!.label, industry: key.industry, goals, minutes: p.dailyMinutes!, band: key.ratingBand,
+          });
+          await db.insert(cachedLessons).values({ ...key, contentJson: bite, model })
+            .onConflictDoUpdate({ target: [cachedLessons.topicId, cachedLessons.persona, cachedLessons.industry, cachedLessons.goal, cachedLessons.ratingBand],
+              set: { contentJson: bite, model, createdAt: new Date() } });
+        })(),
+      };
+      j.promise.then(() => { if (jobs.get(k) === j) jobs.delete(k); }, (err) => {
+        console.error('[bites] toolkit job failed:', err instanceof Error ? err.message : err);
+        j.error = err;
+        setTimeout(() => { if (jobs.get(k) === j) jobs.delete(k); }, 5 * 60_000).unref?.();
+      });
+      jobs.set(k, j);
+      job = j;
     }
-    await inFlight.get(k);
+    await Promise.race([job.promise.catch(() => {}), sleep(WAIT_MS.value)]);
     [lesson] = await db.select().from(cachedLessons).where(where);
+    if (!ready(lesson)) {
+      if (job.error) { jobs.delete(k); throw job.error; }
+      return void res.status(202).json({ status: 'generating' });
+    }
   }
   const [meta] = await db.select({ name: topics.name, category: categories.name }).from(topics)
     .innerJoin(categories, eq(categories.id, topics.categoryId)).where(eq(topics.id, topicId));

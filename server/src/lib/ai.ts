@@ -95,31 +95,54 @@ const GradeSchema = z.object({
 export type Grade = z.infer<typeof GradeSchema>;
 
 // ---------- Calls ----------
+/**
+ * One Claude call with a JSON-schema response. Streams (long toolkits plus thinking can be large)
+ * and validates the result ourselves, so a cut-off or malformed answer becomes a clear, retryable
+ * error instead of a crash. Every call is logged to ai_calls.
+ */
 async function call<T extends z.ZodType>(endpoint: string, userId: string | null, schema: T, system: string, user: string, effort: 'low' | 'medium' | 'high', maxTokens: number) {
   const started = Date.now();
   let ok = false;
-  let usage: { input_tokens?: number; output_tokens?: number } = {};
+  let usage: { input_tokens?: number | null; output_tokens?: number | null } = {};
   let model = AI_MODEL;
   try {
-    const res = await anthropic().beta.messages.parse({
+    const format = betaZodOutputFormat(schema);
+    const stream = anthropic().beta.messages.stream({
       model: AI_MODEL,
       max_tokens: maxTokens,
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default', // if Sonnet 5.5 declines, the API retries on a suitable fallback model
-      output_config: { effort, format: betaZodOutputFormat(schema) },
+      output_config: { effort, format: { type: 'json_schema', schema: format.schema } }, // no parse(): we validate below
       system,
       messages: [{ role: 'user', content: user }],
     });
+    const res = await stream.finalMessage();
     usage = res.usage; model = res.model;
     if (res.stop_reason === 'refusal') throw new HttpError(422, 'This request could not be completed. Please try again.', 'ai_refused');
-    if (res.stop_reason === 'max_tokens' || !res.parsed_output) throw new HttpError(502, 'The AI response was incomplete.', 'ai_incomplete');
+    if (res.stop_reason === 'max_tokens') {
+      console.error(`[ai] ${endpoint} hit max_tokens (${maxTokens}); output ${usage.output_tokens} tokens`);
+      throw new HttpError(502, 'The AI response was cut off.', 'ai_incomplete');
+    }
+    const text = res.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+    let json: unknown;
+    try { json = JSON.parse(text); } catch {
+      console.error(`[ai] ${endpoint} returned text that is not JSON (stop: ${res.stop_reason}): ${text.slice(0, 200)}`);
+      throw new HttpError(502, 'The AI response could not be read.', 'ai_unreadable');
+    }
+    const parsed = schema.safeParse(json);
+    if (!parsed.success) {
+      console.error(`[ai] ${endpoint} JSON did not match the schema: ${parsed.error.message.slice(0, 300)}`);
+      throw new HttpError(502, 'The AI response could not be read.', 'ai_unreadable');
+    }
     ok = true;
-    return { data: res.parsed_output as z.infer<T>, model };
+    return { data: parsed.data as z.infer<T>, model };
   } catch (e) {
     if (e instanceof HttpError) throw e;
     if (e instanceof Anthropic.RateLimitError) throw new HttpError(503, 'Insight is busy right now. Please try again in a minute.', 'ai_busy');
-    if (e instanceof Anthropic.APIError) { console.error(`[ai] ${endpoint} ${e.status}`, e.message); throw new HttpError(502, 'Could not reach the AI service. Please try again.', 'ai_error'); }
-    throw e;
+    if (e instanceof Anthropic.AuthenticationError) { console.error('[ai] the API key was rejected'); throw new HttpError(503, 'The AI key was rejected. Check ANTHROPIC_API_KEY in Render.', 'ai_key_rejected'); }
+    if (e instanceof Anthropic.APIError) { console.error(`[ai] ${endpoint} API error ${e.status}:`, e.message); throw new HttpError(502, 'Could not reach the AI service. Please try again.', 'ai_error'); }
+    console.error(`[ai] ${endpoint} unexpected error:`, e);
+    throw new HttpError(502, 'Something went wrong while talking to the AI service. Please try again.', 'ai_error');
   } finally {
     await db.insert(aiCalls).values({
       userId, endpoint, model, ok, latencyMs: Date.now() - started,
@@ -171,10 +194,18 @@ Write the bite as a practical toolkit:
 
   let last = '';
   for (let attempt = 0; attempt < 2; attempt++) {
-    const { data, model } = await call('bite', userId, BiteSchema, BITE_SYSTEM, attempt ? `${user}\n\nYour previous answer was invalid (${last}). Follow the counts exactly.` : user, 'high', 16000);
-    const problem = checkBite(data);
-    if (!problem) return { bite: data, model };
+    const prompt = attempt ? `${user}\n\nYour previous answer was invalid (${last}). Follow the counts and word limits exactly.` : user;
+    let result: { data: Bite; model: string };
+    try {
+      result = await call('bite', userId, BiteSchema, BITE_SYSTEM, prompt, 'medium', 32000);
+    } catch (e) {
+      if (e instanceof HttpError && ['ai_incomplete', 'ai_unreadable'].includes(e.code ?? '')) { last = e.message; continue; }
+      throw e;
+    }
+    const problem = checkBite(result.data);
+    if (!problem) return { bite: result.data, model: result.model };
     last = problem;
+    console.error(`[ai] bite failed validation: ${problem}`);
   }
   throw new HttpError(502, "We couldn't build this bite just now. Please try again.", 'ai_invalid');
 }
@@ -193,6 +224,6 @@ ${input.response.replaceAll('</response>', '')}
 </response>
 
 Return: score (integer 0-100), feedback (50 words or fewer), strength (20 words or fewer), improve (25 words or fewer: one concrete next step), toolsUsed (the exact names of the tools above that the response clearly applied; empty if none), modelAnswer (70 words or fewer: a stronger version of what they could say, in their voice, using the most relevant tools).`;
-  const { data } = await call('grade', userId, GradeSchema, GRADE_SYSTEM, user, 'medium', 4000);
+  const { data } = await call('grade', userId, GradeSchema, GRADE_SYSTEM, user, 'medium', 8000);
   return { ...data, score: Math.max(0, Math.min(100, Math.round(data.score))) };
 }

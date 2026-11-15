@@ -6,7 +6,12 @@ const parse = vi.fn();
 vi.mock('@anthropic-ai/sdk', () => {
   class APIError extends Error { status = 500; }
   class RateLimitError extends APIError { status = 429; }
-  class Anthropic { beta = { messages: { parse } }; static APIError = APIError; static RateLimitError = RateLimitError; }
+  class AuthenticationError extends APIError { status = 401; }
+  // The app streams; finalMessage() resolves with whatever the test queued on `parse`.
+  class Anthropic {
+    beta = { messages: { stream: (params: unknown) => ({ finalMessage: () => parse(params) }) } };
+    static APIError = APIError; static RateLimitError = RateLimitError; static AuthenticationError = AuthenticationError;
+  }
   return { default: Anthropic };
 });
 
@@ -23,7 +28,7 @@ const bite = (tools = 6, quiz = 5) => ({
   quiz: Array.from({ length: quiz }, () => ({ q: 'Q?', options: ['a', 'b', 'c', 'd'], answer: 1, why: 'Because' })),
   scenario: 'Your client asks for a discount. Write what you say.',
 });
-const reply = (data: unknown) => ({ parsed_output: data, stop_reason: 'end_turn', model: 'claude-sonnet-5-5', usage: { input_tokens: 900, output_tokens: 700 } });
+const reply = (data: unknown) => ({ content: [{ type: 'text', text: JSON.stringify(data) }], stop_reason: 'end_turn', model: 'claude-sonnet-5-5', usage: { input_tokens: 900, output_tokens: 700 } });
 
 beforeEach(async () => {
   await pool.query('delete from users; delete from cached_lessons; delete from ai_calls');
@@ -109,6 +114,41 @@ describe('bites (milestone 2)', () => {
     expect(again.bite.tools).toHaveLength(7);
     expect(parse).toHaveBeenCalledTimes(2);
     expect((await l.a.post('/api/bites').send({ topicId: l.topic.id })).body.cached).toBe(true);
+  });
+
+  it('retries a cut-off or unreadable answer, then reports a clear error (never a crash)', async () => {
+    const l = await learner('cutoff@example.com');
+    parse.mockResolvedValueOnce({ ...reply(null), content: [{ type: 'text', text: '{"title": "Half' }], stop_reason: 'max_tokens' })
+      .mockResolvedValueOnce(reply(bite()));
+    expect((await l.a.post('/api/bites').send({ topicId: l.topic.id })).status).toBe(200);
+    expect(parse.mock.calls[1][0].messages[0].content).toMatch(/previous answer was invalid \(The AI response was cut off/);
+    expect(parse.mock.calls[0][0].max_tokens).toBe(32000);
+
+    await pool.query('delete from cached_lessons');
+    parse.mockResolvedValue({ ...reply(null), content: [{ type: 'text', text: 'not json at all' }] });
+    const r = await l.a.post('/api/bites').send({ topicId: l.topic.id });
+    expect(r.status).toBe(502);
+    expect(r.body.error).toMatch(/couldn't build this bite/);
+  });
+
+  it('answers "still building" for slow toolkits, then serves the result on the next poll', async () => {
+    const { WAIT_MS } = await import('../src/routes/bites.js');
+    const l = await learner('slow@example.com');
+    let release!: () => void;
+    parse.mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve(reply(bite())); }));
+    const before = WAIT_MS.value; WAIT_MS.value = 30;
+    try {
+      const first = await l.a.post('/api/bites').send({ topicId: l.topic.id });
+      expect(first.status).toBe(202);
+      expect(first.body).toEqual({ status: 'generating' });
+      expect((await l.a.post('/api/bites').send({ topicId: l.topic.id })).status).toBe(202);
+      release();
+      await new Promise((r) => setTimeout(r, 50));
+      const done = await l.a.post('/api/bites').send({ topicId: l.topic.id });
+      expect(done.status).toBe(200);
+      expect(done.body.bite.tools).toHaveLength(6);
+      expect(parse).toHaveBeenCalledTimes(1); // polling never started a second job
+    } finally { WAIT_MS.value = before; }
   });
 
   it('handles refusals and API errors gracefully', async () => {
