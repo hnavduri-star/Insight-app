@@ -7,9 +7,19 @@ vi.mock('@anthropic-ai/sdk', () => {
   class APIError extends Error { status = 500; }
   class RateLimitError extends APIError { status = 429; }
   class AuthenticationError extends APIError { status = 401; }
-  // The app streams; finalMessage() resolves with whatever the test queued on `parse`.
+  // The app reads a raw event stream; this turns whatever the test queued on `parse` into stream events.
+  async function* events(msg: any) {
+    yield { type: 'message_start', message: { model: msg.model, usage: { input_tokens: msg.usage?.input_tokens, output_tokens: 1 } } };
+    for (const [i, b] of (msg.content ?? []).entries()) {
+      yield { type: 'content_block_start', index: i, content_block: { type: b.type, text: '' } };
+      if (b.type === 'text') for (let k = 0; k < b.text.length; k += 50) yield { type: 'content_block_delta', index: i, delta: { type: 'text_delta', text: b.text.slice(k, k + 50) } };
+      yield { type: 'content_block_stop', index: i };
+    }
+    yield { type: 'message_delta', delta: { stop_reason: msg.stop_reason }, usage: { output_tokens: msg.usage?.output_tokens } };
+    yield { type: 'message_stop' };
+  }
   class Anthropic {
-    beta = { messages: { stream: (params: unknown) => ({ finalMessage: () => parse(params) }) } };
+    beta = { messages: { create: async (params: unknown) => events(await parse(params)) } };
     static APIError = APIError; static RateLimitError = RateLimitError; static AuthenticationError = AuthenticationError;
   }
   return { default: Anthropic };
@@ -122,7 +132,8 @@ describe('bites (milestone 2)', () => {
       .mockResolvedValueOnce(reply(bite()));
     expect((await l.a.post('/api/bites').send({ topicId: l.topic.id })).status).toBe(200);
     expect(parse.mock.calls[1][0].messages[0].content).toMatch(/previous answer was invalid \(The AI response was cut off/);
-    expect(parse.mock.calls[0][0].max_tokens).toBe(32000);
+    expect(parse.mock.calls[0][0].max_tokens).toBe(64000);
+    expect(parse.mock.calls[0][0].stream).toBe(true);
 
     await pool.query('delete from cached_lessons');
     parse.mockResolvedValue({ ...reply(null), content: [{ type: 'text', text: 'not json at all' }] });
@@ -140,6 +151,15 @@ describe('bites (milestone 2)', () => {
     expect(r2.status).toBe(502);
     expect(r2.body.error).toMatch(/request ended without sending any chunks/);
     expect(r2.body.error).not.toMatch(/sk-ant-secret/);
+  });
+
+  it('joins an answer that arrives split across several text blocks (e.g. after a fallback switch)', async () => {
+    const l = await learner('split@example.com');
+    const json = JSON.stringify(bite());
+    parse.mockResolvedValueOnce({ ...reply(null), content: [{ type: 'text', text: json.slice(0, 300) }, { type: 'text', text: json.slice(300) }] });
+    const r = await l.a.post('/api/bites').send({ topicId: l.topic.id });
+    expect(r.status).toBe(200);
+    expect(r.body.bite.tools).toHaveLength(6);
   });
 
   it('answers "still building" for slow toolkits, then serves the result on the next poll', async () => {

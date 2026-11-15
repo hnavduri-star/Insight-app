@@ -107,26 +107,37 @@ async function call<T extends z.ZodType>(endpoint: string, userId: string | null
   let model = AI_MODEL;
   try {
     const format = betaZodOutputFormat(schema);
-    const stream = anthropic().beta.messages.stream({
+    // Raw event stream: the SDK's stream helper JSON-parses each text block itself whenever a
+    // json_schema format is set, and throws if one is incomplete (cut off, or split by a fallback
+    // switch). Reading the events directly lets us join the text and validate it ourselves.
+    const events = await anthropic().beta.messages.create({
       model: AI_MODEL,
       max_tokens: maxTokens,
+      stream: true,
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default', // if Sonnet 5.5 declines, the API retries on a suitable fallback model
-      output_config: { effort, format: { type: 'json_schema', schema: format.schema } }, // no parse(): we validate below
+      output_config: { effort, format: { type: 'json_schema', schema: format.schema } },
       system,
       messages: [{ role: 'user', content: user }],
     });
-    const res = await stream.finalMessage();
-    usage = res.usage; model = res.model;
-    if (res.stop_reason === 'refusal') throw new HttpError(422, 'This request could not be completed. Please try again.', 'ai_refused');
-    if (res.stop_reason === 'max_tokens') {
+    let text = '';
+    let stopReason: string | null = null;
+    const textBlocks = new Set<number>();
+    for await (const ev of events) {
+      if (ev.type === 'message_start') { model = ev.message.model; usage = { ...ev.message.usage }; }
+      else if (ev.type === 'content_block_start' && ev.content_block.type === 'text') { textBlocks.add(ev.index); text += ev.content_block.text ?? ''; }
+      else if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') text += ev.delta.text;
+      else if (ev.type === 'message_delta') { stopReason = ev.delta.stop_reason ?? stopReason; if (ev.usage?.output_tokens != null) usage.output_tokens = ev.usage.output_tokens; }
+    }
+    if (stopReason === 'refusal') throw new HttpError(422, 'This request could not be completed. Please try again.', 'ai_refused');
+    if (stopReason === 'max_tokens') {
       console.error(`[ai] ${endpoint} hit max_tokens (${maxTokens}); output ${usage.output_tokens} tokens`);
       throw new HttpError(502, 'The AI response was cut off.', 'ai_incomplete');
     }
-    const text = res.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+    if (textBlocks.size > 1) console.warn(`[ai] ${endpoint} answer arrived in ${textBlocks.size} text blocks (model ${model}); joined`);
     let json: unknown;
     try { json = JSON.parse(text); } catch {
-      console.error(`[ai] ${endpoint} returned text that is not JSON (stop: ${res.stop_reason}): ${text.slice(0, 200)}`);
+      console.error(`[ai] ${endpoint} returned text that is not JSON (stop: ${stopReason}, ${text.length} chars): ${text.slice(0, 200)}`);
       throw new HttpError(502, 'The AI response could not be read.', 'ai_unreadable');
     }
     const parsed = schema.safeParse(json);
@@ -199,7 +210,7 @@ Write the bite as a practical toolkit:
     const prompt = attempt ? `${user}\n\nYour previous answer was invalid (${last}). Follow the counts and word limits exactly.` : user;
     let result: { data: Bite; model: string };
     try {
-      result = await call('bite', userId, BiteSchema, BITE_SYSTEM, prompt, 'medium', 32000);
+      result = await call('bite', userId, BiteSchema, BITE_SYSTEM, prompt, 'medium', 64000);
     } catch (e) {
       if (e instanceof HttpError && ['ai_incomplete', 'ai_unreadable', 'ai_unexpected', 'ai_error'].includes(e.code ?? '')) {
         if (attempt === 1) throw e; // second failure: report the real reason
@@ -229,6 +240,6 @@ ${input.response.replaceAll('</response>', '')}
 </response>
 
 Return: score (integer 0-100), feedback (50 words or fewer), strength (20 words or fewer), improve (25 words or fewer: one concrete next step), toolsUsed (the exact names of the tools above that the response clearly applied; empty if none), modelAnswer (70 words or fewer: a stronger version of what they could say, in their voice, using the most relevant tools).`;
-  const { data } = await call('grade', userId, GradeSchema, GRADE_SYSTEM, user, 'medium', 8000);
+  const { data } = await call('grade', userId, GradeSchema, GRADE_SYSTEM, user, 'medium', 16000);
   return { ...data, score: Math.max(0, Math.min(100, Math.round(data.score))) };
 }
