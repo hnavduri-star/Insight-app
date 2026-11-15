@@ -1,785 +1,211 @@
 {
-  "note": "Reference sample bites written to the app's exact format and rules (5 cards, 2-3 real-life examples, 5 quiz questions). Use as a quality benchmark for generated bites.",
+  "note": "Reference sample toolkits written to the app's exact format and rules (5-8 tools with theory, steps, what to say and a case study; 5 scenario quiz questions; a coached practice scenario). Use as a quality benchmark for generated bites.",
   "samples": [
     {
-      "topic": "Negotiation Fundamentals",
+      "topic": "Executive Presence",
       "heading": "Influence, Negotiation and Sales",
-      "learner": [
-        "Manager",
-        "Technology",
-        "Main goal: Get promoted",
-        "10 min a day"
-      ],
-      "books": [
-        "Getting to Yes",
-        "Negotiation Genius",
-        "Bargaining for Advantage"
-      ],
+      "learner": ["Senior executive", "Consulting", "Main goal: Communicate and influence with impact", "15 min a day"],
+      "profile": { "persona": "senior_executive", "industry": "Consulting", "goal": "Communicate and influence with impact" },
+      "books": ["Executive Presence", "The Charisma Myth", "Compelling People"],
       "bite": {
-        "title": "Walk in with more options than they expect",
-        "framework": "The Needs–Walk-away–Opening prep: uncover what both sides need, strengthen your fallback, then open with an ask you can justify.",
-        "cards": [
+        "title": "Be the calmest, clearest person in the room",
+        "framework": "The Weight–Warmth–Focus model: six tools to show judgment under pressure, signal you're on their side, and hold attention when it counts. Use the first three to prepare, the last three in the moment.",
+        "tools": [
           {
-            "source": "Getting to Yes",
-            "concept": "Separate the position (what someone demands) from the interest (why they want it). Two people can want the same thing for different reasons, and once you see the reasons, more solutions appear.",
-            "application": "Your VP says “no new headcount.” The interest may be protecting this quarter's margin. A six-month contractor or reallocating an open role could meet both needs.",
-            "tryThis": "For your next ask, write the other side's likely position and three interests behind it."
+            "name": "Answer First",
+            "source": "Executive Presence",
+            "idea": "Senior audiences judge in minutes. Lead with your conclusion or recommendation, then give the few reasons that support it. Starting with background makes you sound unsure; starting with the answer signals command. It also lets busy leaders decide quickly whether they need more detail.",
+            "steps": ["Write your recommendation in one sentence before the meeting.", "Pick the three strongest reasons, no more.", "Open with the answer; offer detail only when asked."],
+            "say": ["My recommendation is to pause phase two for six weeks. Three reasons.", "Short answer: yes, with one condition. Let me explain the condition."],
+            "caseStudy": {
+              "situation": "A consulting partner had ten minutes with a client CEO to win approval for a revised programme budget.",
+              "action": "She opened: “I'm asking you to approve a 12% budget increase today, because it brings go-live forward by a quarter.” Then she gave three reasons and stopped talking.",
+              "result": "The CEO approved it in eight minutes and asked her to present to the board."
+            },
+            "tryThis": "Rewrite the opening of your next update so the first sentence is your recommendation."
           },
           {
-            "source": "Getting to Yes",
-            "concept": "Your real power is your best alternative if no deal happens. Improve it before you negotiate, and never accept a deal worse than it.",
-            "application": "Before a promotion conversation, know your genuine options: an internal move, an outside offer, or a larger scope at the same level next cycle.",
-            "tryThis": "Write your walk-away in one sentence, plus one action that would make it stronger this month."
+            "name": "Calm Under Fire",
+            "source": "Executive Presence",
+            "idea": "Gravitas shows most when things go wrong. Leaders who stay composed, own the problem and move to next steps are trusted more than those who defend or deflect. Acknowledge the issue plainly, separate what you know from what you don't, and commit to a time for the next update.",
+            "steps": ["Acknowledge the problem and its impact in one sentence.", "Say what you know, what you don't, and what you're doing.", "Commit to a specific time for the next update."],
+            "say": ["You're right to be concerned. Here's what we know, what we don't yet, and when you'll hear from me next.", "That's on us. By Thursday noon you'll have the root cause and the recovery plan."],
+            "caseStudy": {
+              "situation": "After a failed system launch, a client's COO interrupted a steering committee, angry and accusing the team of hiding problems.",
+              "action": "The programme director paused, said “You're right, the launch failed and that's on us,” listed the known facts, and promised a recovery plan by Thursday noon.",
+              "result": "The tone shifted at once; the COO later said that call rebuilt trust."
+            },
+            "tryThis": "Write a three-sentence holding statement you'd use if your current project hit a crisis today."
           },
           {
-            "source": "Negotiation Genius",
-            "concept": "Grow the pie before you split it. Put several issues on the table at once so you can trade: give on what matters little to you, gain on what matters most.",
-            "application": "Don't negotiate pay alone. Bundle title, scope, review date, learning budget and remote days so there is room to trade.",
-            "tryThis": "List five issues you could negotiate, ranked by how much each matters to you."
+            "name": "Strength Plus Warmth",
+            "source": "Compelling People",
+            "idea": "People size you up on two questions at once: can you make things happen (strength) and are you on my side (warmth)? Strength alone reads as cold; warmth alone reads as soft. Influential leaders signal both in the same conversation, often in the same sentence.",
+            "steps": ["Name the other person's pressure or goal first.", "Then state your view clearly, without hedging.", "Close with a shared next step."],
+            "say": ["I know your board needs a win this quarter, so I'd stop this workstream and redeploy the team.", "I'm with you on the goal. I disagree on the route, and here's why."],
+            "caseStudy": {
+              "situation": "A new senior partner was respected for her expertise, but clients described her as intimidating and hard to approach.",
+              "action": "Before each firm recommendation she named the client's constraint, such as “Given your hiring freeze, I'd do it this way,” and asked one personal question per meeting.",
+              "result": "Within a quarter her client feedback moved from “sharp but distant” to “trusted adviser”."
+            },
+            "tryThis": "In your next tough message, add one sentence that shows you understand their pressures."
           },
           {
-            "source": "Bargaining for Advantage",
-            "concept": "Set a specific, ambitious target and back it with a standard the other side respects. Clear, high goals consistently beat vague hopes of “a fair outcome”.",
-            "application": "Anchor your case in market data and the scope you already carry, not in tenure or hours worked.",
-            "tryThis": "Find one external benchmark, such as a salary survey or comparable role, that supports your target."
+            "name": "Full Attention",
+            "source": "The Charisma Myth",
+            "idea": "Charisma is mostly learnable behaviour, and its foundation is presence: complete attention on the person in front of you. People sense within seconds when your mind is elsewhere, and it quietly erodes trust. Undivided attention makes others feel important and makes you seem more powerful, not less.",
+            "steps": ["Put devices away and close the laptop first.", "Listen to the end; pause two seconds before replying.", "Sum up what you heard before giving your view."],
+            "say": ["Let me check I've got this: your real worry is the timeline, not the cost?", "Take me through it. I'm not looking at anything else."],
+            "caseStudy": {
+              "situation": "A managing director noticed that junior client staff had stopped raising issues with him in meetings.",
+              "action": "He started closing his laptop, letting silences sit, and summing up each person's point before responding: “So the risk you see is…”",
+              "result": "Clients began bringing him problems early, and two flagged a scope risk before it became costly."
+            },
+            "tryThis": "In one conversation today, check no device and sum up what they said before you answer."
           },
           {
-            "source": "Negotiation Genius",
-            "concept": "First numbers pull outcomes toward them. When you are well informed, open first and explain your number. When you are not, ask questions before any figure is set.",
-            "application": "If HR opens low, don't counter straight away. Ask how the figure was set, restate your justified range, then propose.",
-            "tryThis": "Draft your opening number and the single sentence that justifies it."
-          }
-        ],
-        "examples": [
-          {
-            "person": "An engineering manager asking for a promotion",
-            "situation": "Her director said promotions were frozen until next year, although she had taken over a second team.",
-            "approach": "She asked what the freeze was protecting, learned the issue was salary cost this year, and proposed the title now with the pay change at mid-year review.",
-            "outcome": "She got the title within a month and a written date for the raise."
+            "name": "Reset Your State",
+            "source": "The Charisma Myth",
+            "idea": "Your inner state leaks into your body language. Anxiety shows as fidgeting, rushed speech and a higher voice, and audiences read it as low confidence. A short physical reset before high-stakes moments changes how you come across: slow breathing, relaxed shoulders, and treating nerves as readiness rather than threat.",
+            "steps": ["Two minutes before, take six slow breaths with long exhales.", "Drop your shoulders, plant your feet, relax your hands.", "Pause and make eye contact before your first word."],
+            "say": ["Good morning. (Pause.) I'll start with what we recommend.", "Let me take a moment to answer that properly."],
+            "caseStudy": {
+              "situation": "A technical director dreaded board presentations; her voice sped up and she apologised for minor slide issues.",
+              "action": "She built a two-minute reset: slow breathing in the corridor, a deliberate pause at the lectern, and a scripted first sentence she knew by heart.",
+              "result": "Board members described her next presentation as calm and authoritative."
+            },
+            "tryThis": "Before your next big meeting, take six slow breaths and script your first sentence word for word."
           },
           {
-            "person": "A procurement lead renewing a software contract",
-            "situation": "The vendor wanted a 15% price rise and said there was no flexibility.",
-            "approach": "He priced a credible alternative vendor first, then offered a three-year term in exchange for holding the price and adding support hours.",
-            "outcome": "Price stayed flat for three years and support improved at no extra cost."
-          },
-          {
-            "person": "A product manager negotiating a deadline with sales",
-            "situation": "Sales had promised a client a feature in four weeks; engineering needed ten.",
-            "approach": "She separated the client's real need, a demo for their board, from the position, the full feature, and offered a working prototype in four weeks.",
-            "outcome": "The client got their board demo, and the full release shipped on the team's plan."
+            "name": "Own Your Style",
+            "source": "Executive Presence",
+            "idea": "Presence is not one personality type. Quiet leaders project gravitas through clarity, preparation and well-placed silence; energetic leaders through focus and pace control. The common thread is composure, a clear point of view and reading the room. Adapt your delivery to the audience without abandoning who you are.",
+            "steps": ["Name your natural style: quiet, analytical, energetic or warm.", "Keep its strengths; fix the one habit that undercuts you.", "Ask a trusted colleague for one piece of presence feedback."],
+            "say": ["I'll be brief: here's my view and why.", "Let me slow down here, because this is the part that matters."],
+            "caseStudy": {
+              "situation": "A quiet technical partner was told he lacked presence and was advised to “speak up more”.",
+              "action": "Instead of talking more, he opened each meeting with a one-line recommendation, paused, and spoke only when he had a clear point. He kept his calm, measured style.",
+              "result": "Clients started asking for his view first; his reserve now read as gravitas."
+            },
+            "tryThis": "Ask one colleague: “What one thing would make me more convincing in meetings?”"
           }
         ],
         "quiz": [
+          { "q": "You have ten minutes with a client CEO. How should you open?", "options": ["With background on how the team got here", "With your recommendation and what you need from them", "With a joke to build rapport", "With a detailed agenda"], "answer": 1, "why": "Answer First: busy leaders want the conclusion first; detail can follow." },
+          { "q": "On a call, the client's COO says your team is hiding problems. Best first response?", "options": ["Explain why it wasn't your team's fault", "Promise it will never happen again", "Acknowledge the issue, share what you know, and set a time for the next update", "Ask to discuss it offline"], "answer": 2, "why": "Calm Under Fire: composure and ownership build trust in a crisis." },
+          { "q": "A client finds you competent but intimidating. Which tool helps most?", "options": ["Strength Plus Warmth", "Answer First", "Reset Your State", "Talking more about your experience"], "answer": 0, "why": "You already signal strength; visible warmth makes it influential." },
+          { "q": "A naturally quiet leader wants more presence. Best advice?", "options": ["Become more extroverted", "Speak first and longest in every meeting", "Keep their style, but lead with a clear view and use pauses", "Avoid large meetings"], "answer": 2, "why": "Own Your Style: presence comes from clarity and composure, not volume." },
+          { "q": "Five minutes before a board presentation, your heart is racing. What should you do?", "options": ["Review your slides once more", "Breathe slowly, relax your posture and plan your first sentence", "Drink a strong coffee", "Tell the board you're nervous"], "answer": 1, "why": "Reset Your State: a short physical reset changes how calm you appear." }
+        ],
+        "scenario": "Mid-update in a steering committee, the client's COO cuts in: “This programme is three weeks late and I'm hearing different stories from your team.” The CEO is watching. Write exactly what you say in the next 30 seconds."
+      }
+    },
+    {
+      "topic": "Negotiation Fundamentals",
+      "heading": "Influence, Negotiation and Sales",
+      "learner": ["Manager", "Technology", "Main goal: Get promoted", "10 min a day"],
+      "profile": { "persona": "manager", "industry": "Technology", "goal": "Get promoted" },
+      "books": ["Getting to Yes", "Negotiation Genius", "Bargaining for Advantage"],
+      "bite": {
+        "title": "Walk in with more options than they expect",
+        "framework": "The Needs–Walk-away–Opening prep: six tools to uncover what both sides need, strengthen your fallback, and open with an ask you can justify. The first three prepare you; the last three work in the room.",
+        "tools": [
           {
-            "q": "Your director says, “There's no budget for a raise this year.” Which reply best uses interest-based thinking?",
-            "options": [
-              "Accept it and ask again next year",
-              "Ask what's constraining the budget and what would make a change possible",
-              "Mention you've had an outside offer",
-              "Ask for a smaller raise instead"
-            ],
-            "answer": 1,
-            "why": "“No budget” is a position. Asking about the constraint uncovers interests you can work with."
+            "name": "Find the Why",
+            "source": "Getting to Yes",
+            "idea": "Positions are what people demand; interests are why they want it. Deals stall when both sides argue positions and move when someone uncovers the interests underneath. One interest can often be met in several ways, which opens options neither side had considered. Your first job is to find the need behind the number.",
+            "steps": ["Write down their stated position.", "List three interests that might sit behind it.", "Ask open questions to find out which interest is real."],
+            "say": ["Help me understand what's driving the freeze this year.", "What would need to be true for this to work for you?"],
+            "caseStudy": {
+              "situation": "An engineering manager's VP said “no new headcount” when she asked for two more engineers.",
+              "action": "She asked, “What's behind the freeze?” and learned the issue was this quarter's operating margin. She proposed two six-month contractors funded from an unused software budget.",
+              "result": "She had the extra capacity within three weeks, without adding headcount."
+            },
+            "tryThis": "For your next ask, write the other side's position and three interests that could be behind it."
           },
           {
-            "q": "What raises your leverage most before a negotiation starts?",
-            "options": [
-              "Strengthening your best alternative if there's no deal",
-              "Practising a firmer tone",
-              "Preparing a longer list of demands",
-              "Deciding to always make the first offer"
-            ],
-            "answer": 0,
-            "why": "The better your fallback, the less you need this particular deal, and the other side can sense it."
+            "name": "Strengthen Your Walk-away",
+            "source": "Getting to Yes",
+            "idea": "Your real power in a negotiation is your best alternative if talks fail. The stronger it is, the less you need this particular deal, and the other side senses it. Improve your alternative before you negotiate, set a walk-away point, and never accept a deal worse than that alternative.",
+            "steps": ["Write your best alternative if there's no deal.", "Take one action to make it stronger before you meet.", "Set your walk-away point in writing."],
+            "say": ["I'd like to make this work here. I'm also weighing other options.", "If we can't get there, I'll understand, and I'll need to consider alternatives."],
+            "caseStudy": {
+              "situation": "A senior engineer wanted a promotion but felt she had no leverage with her manager.",
+              "action": "She explored an internal transfer and had an informal chat with another team lead, then went into her review calm, knowing she had a real option.",
+              "result": "Her manager matched the scope she wanted and fast-tracked her promotion case."
+            },
+            "tryThis": "Write your walk-away in one sentence, plus one action that would make it stronger this month."
           },
           {
-            "q": "Why negotiate several issues together rather than one at a time?",
-            "options": [
-              "It makes the meeting feel more serious",
-              "It hides what you really want",
-              "It creates trades where both sides gain",
-              "It avoids talking about money"
-            ],
-            "answer": 2,
-            "why": "Multiple issues let you swap low-cost concessions for high-value gains, so both sides end up better off."
+            "name": "Trade Across Issues",
+            "source": "Negotiation Genius",
+            "idea": "Single-issue negotiations become a tug-of-war: whatever one side gains, the other loses. Putting several issues on the table lets you trade, giving on what matters little to you and gaining on what matters most. This creates value for both sides before anyone has to split it.",
+            "steps": ["List every issue that could be negotiated.", "Rank each by how much it matters to you, and guess for them.", "Propose packages, not single concessions."],
+            "say": ["If base salary is fixed, can we look at title, review date and learning budget together?", "I can be flexible on the start date if we can agree on scope."],
+            "caseStudy": {
+              "situation": "A product manager was offered a promotion with no pay increase because of budget limits.",
+              "action": "She proposed a package: the title now, a written pay review in six months, a conference budget, and leading the new AI product.",
+              "result": "She got three of the four, and the pay rise came at the six-month review."
+            },
+            "tryThis": "List five issues you could negotiate, ranked by how much each matters to you."
           },
           {
-            "q": "When should you make the first offer?",
-            "options": [
-              "Always, to take control",
-              "Never; always let them go first",
-              "When you're well informed about the value",
-              "Only when you're short of time"
-            ],
-            "answer": 2,
-            "why": "A well-researched first number anchors in your favour; an uninformed one can anchor against you."
+            "name": "Aim High, With Reasons",
+            "source": "Bargaining for Advantage",
+            "idea": "People with specific, ambitious targets consistently get better outcomes than those who aim to “do well”. The key is justification: anchor your target in a standard the other side respects, such as market data, scope or results. A high goal without reasons feels greedy; with reasons it feels fair.",
+            "steps": ["Set a specific target above your minimum.", "Find one external standard that supports it.", "Prepare the one-sentence rationale you'll say aloud."],
+            "say": ["Based on the market range for this role and the two teams I now lead, I'm asking for this level.", "This is in line with what comparable roles pay in our industry."],
+            "caseStudy": {
+              "situation": "A data lead planned to ask for “whatever is fair” in her promotion conversation.",
+              "action": "She researched salary surveys, listed the scope she had taken on, and asked for a figure at the top of the band: “Because I now own both pipelines, I'm asking for this.”",
+              "result": "She got 90% of her ask, well above what she would have accepted."
+            },
+            "tryThis": "Find one external benchmark, such as a salary survey or comparable role, that supports your target."
           },
           {
-            "q": "HR offers a salary below your target. Best next move?",
-            "options": [
-              "Accept and ask for more next year",
-              "Ask how the figure was set before you counter",
-              "Counter at once with a higher number",
-              "Say you'll leave"
-            ],
-            "answer": 1,
-            "why": "Understanding their reasoning shows you what to trade on and stops their number setting the range."
+            "name": "Anchor or Ask",
+            "source": "Negotiation Genius",
+            "idea": "The first number on the table pulls the outcome toward it. When you know the value well, make the first offer and explain it. When you don't, ask questions first and don't let their number set the range. If they anchor first and low, don't counter straight away; question the basis.",
+            "steps": ["Decide: am I well informed? If yes, open first.", "If they open first, ask how the number was set.", "Restate your justified range before you counter."],
+            "say": ["Can you walk me through how you arrived at that figure?", "Before we talk numbers, I'd like to understand how the band was set."],
+            "caseStudy": {
+              "situation": "A newly promoted manager received an offer from HR well below his research.",
+              "action": "Instead of countering, he asked, “How was this figure set?”, learned it was based on his old grade, and shared the market data for the new role.",
+              "result": "HR raised the offer by 14% in the same call."
+            },
+            "tryThis": "Draft your opening number and the single sentence that justifies it."
+          },
+          {
+            "name": "Make Yes Easy",
+            "source": "Getting to Yes",
+            "idea": "Your counterpart usually has to sell the deal to someone else: their boss, HR or finance. Help them by framing your proposal around their interests and giving them a simple story to tell. Proposals that make the other person look good get approved faster.",
+            "steps": ["Ask who else has to approve the deal.", "Frame your proposal around their goals and constraints.", "Offer a short written summary they can forward."],
+            "say": ["What will you need to take this to finance?", "I'll send you a one-page summary you can share with HR."],
+            "caseStudy": {
+              "situation": "A team lead's director supported her promotion but warned that HR would push back.",
+              "action": "She wrote a one-page case linking her promotion to retention risk and the team's delivery results, and gave it to her director to forward.",
+              "result": "HR approved the promotion in the next cycle with no changes."
+            },
+            "tryThis": "Ask the person you're negotiating with what they'll need to get approval."
           }
+        ],
+        "quiz": [
+          { "q": "Your director says, “There's no budget for a raise this year.” Which reply uses Find the Why?", "options": ["Accept it and ask again next year", "“Help me understand what's driving the budget limit this year.”", "Mention you've had an outside offer", "Ask for a smaller raise"], "answer": 1, "why": "“No budget” is a position. Asking about the constraint uncovers interests you can work with." },
+          { "q": "What most increases your leverage before a negotiation starts?", "options": ["Strengthening your best alternative if there's no deal", "Practising a firmer tone", "Preparing a longer list of demands", "Always making the first offer"], "answer": 0, "why": "The better your fallback, the less you need this deal, and the other side can sense it." },
+          { "q": "The salary is fixed. Which tool helps most?", "options": ["Anchor or Ask", "Strengthen Your Walk-away", "Aim High, With Reasons", "Trade Across Issues"], "answer": 3, "why": "Bringing in title, timing and budget creates room to trade when one issue is stuck." },
+          { "q": "HR opens with a figure well below your research. Best first move?", "options": ["Accept to keep goodwill", "Counter at once with a higher number", "Ask how the figure was set", "Say you'll leave"], "answer": 2, "why": "Anchor or Ask: questioning the basis stops their number setting the range." },
+          { "q": "Your manager supports you but has to convince HR. What should you do?", "options": ["Wait for HR to decide", "Give your manager a one-page case framed around the company's goals", "Email HR directly", "Ask colleagues to lobby for you"], "answer": 1, "why": "Make Yes Easy: give your champion a simple story to sell." }
         ],
         "scenario": "Your manager tells you the promotion you expected is delayed six months because of a hiring freeze, although you have led a second team since spring. You meet tomorrow for 15 minutes. Write the opening two or three sentences you will say."
       },
       "exampleGrade": {
         "answer": "I understand the freeze isn't your call. Since April I've run both the platform and data teams and cut release time by 30%. If the title has to wait, can we agree today on the scope, a written date and an interim pay adjustment?",
         "score": 86,
-        "feedback": "Strong opening. You acknowledged their constraint, anchored on concrete results and put several issues on the table instead of one demand. To make it even stronger, ask one question about their interests before proposing, so your offer fits what they actually need.",
+        "feedback": "Strong opening. You acknowledged their constraint, anchored on concrete results and put several issues on the table instead of one demand. To make it stronger, ask one question about their interests before proposing, so your offer fits what they actually need.",
         "strength": "Bundled title, timing and pay instead of a single demand.",
-        "improve": "Before proposing, ask: “What would need to be true to do this before six months?”"
-      }
-    },
-    {
-      "topic": "Executive Presence",
-      "heading": "Influence, Negotiation and Sales",
-      "learner": [
-        "Senior executive",
-        "Consulting",
-        "Main goal: Communicate and influence with impact",
-        "15 min a day"
-      ],
-      "books": [
-        "Executive Presence",
-        "The Charisma Myth",
-        "Compelling People"
-      ],
-      "bite": {
-        "title": "Be the calmest, clearest person in the room",
-        "framework": "The Weight–Warmth–Focus model: show judgment under pressure, signal you're on their side, and give people your full attention.",
-        "cards": [
-          {
-            "source": "Executive Presence",
-            "concept": "Presence rests mostly on gravitas: composure under pressure, decisiveness and a clear point of view. How you speak and look amplifies substance; it never replaces it.",
-            "application": "When a programme slips in a steering committee, gravitas means naming the problem first, giving your recommendation, and taking hard questions calmly.",
-            "tryThis": "Before your next senior meeting, write the decision you want and your recommendation in one sentence."
-          },
-          {
-            "source": "Compelling People",
-            "concept": "People judge you on two things at once: strength (can you make things happen?) and warmth (are you on my side?). Strength alone reads as cold; warmth alone reads as soft.",
-            "application": "With a client CEO, pair a firm view (“I'd stop this workstream”) with visible care for their constraints (“given your board's timetable”).",
-            "tryThis": "In your next tough message, include one sentence that shows strength and one that shows warmth."
-          },
-          {
-            "source": "The Charisma Myth",
-            "concept": "Charisma is a set of learnable behaviours, not a trait. Its base is presence: complete attention on the person in front of you. People notice within seconds when your mind is elsewhere.",
-            "application": "In client one-to-ones, close the laptop, put the phone away, and let a silence sit for two seconds before you reply.",
-            "tryThis": "In one conversation today, check no device and sum up what they said before you respond."
-          },
-          {
-            "source": "The Charisma Myth",
-            "concept": "Your inner state leaks into your body language. Anxiety shows as fidgeting and rushed speech. Reset before high-stakes moments: slow your breathing, relax your posture, and treat nerves as readiness.",
-            "application": "Before a board readout, take two minutes alone to slow your breathing. Open with a pause and eye contact before your first word.",
-            "tryThis": "Before your next big meeting, take six slow breaths and script your first sentence word for word."
-          },
-          {
-            "source": "Executive Presence",
-            "concept": "Senior audiences judge quickly. Speak with economy: lead with the answer, keep to a few points, and read the room. Compressing complexity signals command of the subject.",
-            "application": "Open updates with the answer, give three supporting points, then stop. Offer detail only when asked.",
-            "tryThis": "Cut tomorrow's update to one answer plus three bullets, under 60 seconds spoken."
-          }
-        ],
-        "examples": [
-          {
-            "person": "A quiet technical partner who dislikes the spotlight",
-            "situation": "Clients saw him as brilliant but forgettable in steering committees.",
-            "approach": "Instead of talking more, he opened each meeting with a one-line recommendation, paused, and let the silence work. He kept his calm, measured style.",
-            "outcome": "Clients began asking for his view first; his low-key style now read as gravitas."
-          },
-          {
-            "person": "A high-energy new partner seen as “too much”",
-            "situation": "Her enthusiasm made senior clients doubt her judgment in tense meetings.",
-            "approach": "She slowed her pace, cut updates to three points, and showed warmth by naming the client's constraints before giving her view.",
-            "outcome": "Within a quarter, feedback shifted from “energetic” to “trusted adviser”."
-          },
-          {
-            "person": "A programme director on a crisis call",
-            "situation": "A failed system launch had the client's CEO on the phone, angry and demanding answers.",
-            "approach": "He acknowledged the impact in one sentence, said what was known and unknown, and committed to an update time. No defence, no blame.",
-            "outcome": "The CEO calmed down and later called it the moment trust was rebuilt."
-          }
-        ],
-        "quiz": [
-          {
-            "q": "Which element weighs most in how senior leaders judge presence?",
-            "options": [
-              "Appearance and dress",
-              "Gravitas: composure, decisiveness and vision",
-              "Speaking volume",
-              "Job title"
-            ],
-            "answer": 1,
-            "why": "Appearance and delivery matter, but they amplify substance. Gravitas is the core."
-          },
-          {
-            "q": "A client sees you as highly competent but distant. What should you add?",
-            "options": [
-              "More data in your slides",
-              "A stronger opinion",
-              "A more formal tone",
-              "Visible warmth: show you understand their pressures"
-            ],
-            "answer": 3,
-            "why": "You already signal strength. Influence needs warmth alongside it."
-          },
-          {
-            "q": "What's the quickest way to raise your presence in a one-to-one?",
-            "options": [
-              "Give full attention, with no devices",
-              "Talk more about your experience",
-              "Bring more slides",
-              "Use their name often"
-            ],
-            "answer": 0,
-            "why": "Undivided attention is felt immediately, and it is the foundation of charisma."
-          },
-          {
-            "q": "A naturally quiet leader wants more presence. Best advice?",
-            "options": [
-              "Become more extroverted",
-              "Speak first and longest in every meeting",
-              "Keep their style, but lead with a clear view and use pauses",
-              "Avoid large meetings"
-            ],
-            "answer": 2,
-            "why": "Presence isn't one personality type. Clarity and composure work in any style."
-          },
-          {
-            "q": "On a crisis call with an angry client, what signals gravitas?",
-            "options": [
-              "Calmly saying what you know, what you don't, and when you'll update",
-              "Explaining why it wasn't your team's fault",
-              "Promising it will never happen again",
-              "Letting the most junior person answer"
-            ],
-            "answer": 0,
-            "why": "Composure and ownership under pressure are the heart of gravitas."
-          }
-        ],
-        "scenario": "Mid-update in a steering committee, the client's COO cuts in: “This programme is three weeks late and I'm hearing different stories from your team.” The CEO is watching. Write exactly what you say in the next 30 seconds."
-      }
-    },
-    {
-      "topic": "Giving Feedback",
-      "heading": "Difficult Conversations and Conflict",
-      "learner": [
-        "Manager",
-        "Finance and Banking",
-        "Main goal: Lead and develop my team",
-        "10 min a day"
-      ],
-      "books": [
-        "Radical Candor",
-        "The Feedback Fix",
-        "Crucial Accountability"
-      ],
-      "bite": {
-        "title": "Feedback that lands and gets acted on",
-        "framework": "The Care–Clear–Next method: show you care, describe the gap precisely, then design the next step together.",
-        "cards": [
-          {
-            "source": "Radical Candor",
-            "concept": "Great feedback cares personally and challenges directly, at the same time. Holding back to be nice harms the person; bluntness without care feels like an attack.",
-            "application": "If an analyst's model has errors before credit committee, say it plainly and explain what it means for their credibility, not just yours.",
-            "tryThis": "Pick one piece of feedback you've been avoiding. Write the first sentence you'll use."
-          },
-          {
-            "source": "Crucial Accountability",
-            "concept": "Describe the gap, not the person: what was expected, and what actually happened. Specific facts invite problem-solving; labels like “careless” invite defence.",
-            "application": "“The reconciliation was due Tuesday at 5; it arrived Thursday with two breaks open” beats “you're not detail-oriented.”",
-            "tryThis": "Rewrite one judgment you hold about a team member as a fact-based gap."
-          },
-          {
-            "source": "Crucial Accountability",
-            "concept": "Match the conversation to the level. A first miss is about the content. A repeat is about the pattern. A pattern that erodes trust is about the relationship.",
-            "application": "If late reports keep recurring, stop discussing each one. Discuss the pattern and what it does to your ability to rely on them.",
-            "tryThis": "For one recurring issue, decide: is it content, pattern or relationship? Name it."
-          },
-          {
-            "source": "The Feedback Fix",
-            "concept": "Look forward more than back. Spend less time on what went wrong and more on what to do next time, and let the person help design it.",
-            "application": "After a weak client presentation, spend one minute on what happened and five on how they will prepare for the next one.",
-            "tryThis": "End your next feedback conversation by asking: “What will you try differently next time?”"
-          },
-          {
-            "source": "Radical Candor",
-            "concept": "Keep feedback small, frequent and timely. Give it soon after the moment; criticise in private, praise specifically and in public. Regular feedback stops any one talk feeling like a verdict.",
-            "application": "Replace saving everything for year-end with a two-minute debrief after each client call or close.",
-            "tryThis": "Give one specific piece of praise today, naming exactly what the person did."
-          }
-        ],
-        "examples": [
-          {
-            "person": "A new team lead giving feedback to a former peer",
-            "situation": "A colleague she used to sit beside kept sending sloppy client decks now that she managed him.",
-            "approach": "She said she cared about his promotion case, pointed to two specific slides with errors, and asked what was getting in the way.",
-            "outcome": "He admitted he was rushing three deals; they rebalanced his load and the decks improved."
-          },
-          {
-            "person": "A risk manager whose star analyst keeps missing reviews",
-            "situation": "After two conversations about late reviews, the delays continued.",
-            "approach": "He moved from the content to the pattern: “This is the third time, and I'm starting to double-check your work. Let's fix that together.”",
-            "outcome": "The analyst asked for help with prioritising, and deadlines held from then on."
-          },
-          {
-            "person": "A director whose team only heard from him when things went wrong",
-            "situation": "Morale was low and people avoided bringing him problems early.",
-            "approach": "He began naming specific wins in the Monday team call and kept corrections to short, private chats soon after the moment.",
-            "outcome": "Engagement scores rose and people started asking him for feedback."
-          }
-        ],
-        "quiz": [
-          {
-            "q": "A team member has missed deadlines again after two conversations. What should the next talk focus on?",
-            "options": [
-              "The latest missed deadline",
-              "The pattern and its effect on trust",
-              "Their personality",
-              "Starting a formal warning"
-            ],
-            "answer": 1,
-            "why": "Repeating content-level talks hasn't worked. The issue is now the pattern."
-          },
-          {
-            "q": "Which opening is most likely to land?",
-            "options": [
-              "“You're careless with numbers.”",
-              "“Everyone has noticed problems with your work.”",
-              "“The report had three errors in the cash figures, and here's why that matters before committee.”",
-              "“It's not a big deal, but…”"
-            ],
-            "answer": 2,
-            "why": "It is specific, factual and explains the impact, without labels or softening that hides the message."
-          },
-          {
-            "q": "Holding back criticism to protect someone's feelings, at the cost of their growth, is called:",
-            "options": [
-              "Ruinous empathy",
-              "Psychological safety",
-              "Feedforward",
-              "Active listening"
-            ],
-            "answer": 0,
-            "why": "It feels kind in the moment but leaves the person without what they need to improve."
-          },
-          {
-            "q": "When is feedback most effective?",
-            "options": [
-              "At the annual review",
-              "Soon after the moment, in small doses",
-              "Only when problems are serious",
-              "In front of the whole team"
-            ],
-            "answer": 1,
-            "why": "Timely, small and frequent feedback is easier to hear and act on."
-          },
-          {
-            "q": "How should you close a feedback conversation?",
-            "options": [
-              "With a warning",
-              "By listing everything else that's wrong",
-              "By asking what they'll try differently next time",
-              "By changing the subject quickly"
-            ],
-            "answer": 2,
-            "why": "A forward-looking question turns feedback into a plan the person owns."
-          }
-        ],
-        "scenario": "A strong associate on your team has missed two internal deadlines this month, and the second delayed a client report. They are well liked, and you suspect they are overloaded. Write how you will open your one-to-one."
-      }
-    },
-    {
-      "topic": "Prioritization",
-      "heading": "Personal Effectiveness",
-      "learner": [
-        "Early-stage employee",
-        "Technology",
-        "Main goal: Perform better in my role",
-        "5 min a day"
-      ],
-      "books": [
-        "Essentialism",
-        "The ONE Thing",
-        "First Things First"
-      ],
-      "bite": {
-        "title": "Do fewer things, and the right ones",
-        "framework": "The Filter–Focus–Fence routine: filter requests on purpose, focus on the task that moves everything else, and fence time for it.",
-        "cards": [
-          {
-            "source": "Essentialism",
-            "concept": "You can't do everything, so trade-offs are unavoidable. The only question is whether you make them deliberately. Doing fewer things well beats spreading yourself thin.",
-            "application": "When three teams ask for “quick help”, choose the one tied to your sprint goal and decline the others with a reason.",
-            "tryThis": "List everything on your plate this week and cross out one item to drop or hand back."
-          },
-          {
-            "source": "First Things First",
-            "concept": "Sort work by urgency and importance. The trap is living in urgent-but-unimportant tasks. The biggest gains come from important, non-urgent work: planning, learning, relationships.",
-            "application": "Chat pings feel urgent; the design doc that prevents next month's rework is important. Book time for the doc.",
-            "tryThis": "Label each task today: urgent, important, both or neither. Do one important-only task first."
-          },
-          {
-            "source": "The ONE Thing",
-            "concept": "Ask one focusing question: which single task would make everything else easier or unnecessary? Progress compounds when you knock over the right first domino.",
-            "application": "Instead of fixing five small bugs, finish the test setup that will catch all of them.",
-            "tryThis": "Before you log off, write tomorrow's one key task on a sticky note."
-          },
-          {
-            "source": "The ONE Thing",
-            "concept": "Protect your priority with a time block: schedule it like a meeting and defend it. Focus fades through the day, so put your most important work early.",
-            "application": "Block 9 to 11 for deep work, set your status to busy, and batch chat replies afterwards.",
-            "tryThis": "Put a two-hour block in tomorrow morning's calendar, named after your key task."
-          },
-          {
-            "source": "Essentialism",
-            "concept": "Say no gracefully. Separate the decision from the relationship: a clear, kind no earns more respect than a reluctant yes delivered badly.",
-            "application": "“I'd like to help, but I'm committed to the release this week. Could I look on Monday, or could Priya help sooner?”",
-            "tryThis": "Use one polite no, with an alternative, on a request today."
-          }
-        ],
-        "examples": [
-          {
-            "person": "A junior developer pulled in four directions",
-            "situation": "Three teams kept asking her for “quick” help, and her sprint work slipped.",
-            "approach": "She asked her lead which work mattered most this sprint, then politely declined the other requests and offered help the following week.",
-            "outcome": "Her sprint tasks shipped on time, and her lead began shielding her from ad-hoc asks."
-          },
-          {
-            "person": "A new analyst drowning in messages",
-            "situation": "He spent mornings on chat and email and did his real analysis late at night.",
-            "approach": "He blocked 9 to 11 every day for his key task, set his status to busy, and answered messages twice a day.",
-            "outcome": "He finished his first model a week early and stopped working evenings."
-          },
-          {
-            "person": "A graduate asked to “just help out” by a senior colleague",
-            "situation": "A senior colleague asked her to format his slides while her own deliverable was due.",
-            "approach": "She said she was committed to her deliverable by Thursday and offered Friday morning, or a template he could use straight away.",
-            "outcome": "He used the template and later praised her reliability to her manager."
-          }
-        ],
-        "quiz": [
-          {
-            "q": "Your lead asks for a “quick favour” while you're on a deadline. Best response?",
-            "options": [
-              "Say yes and work late",
-              "Explain your current priority and offer another time or person",
-              "Ignore the message",
-              "Say yes and rush it"
-            ],
-            "answer": 1,
-            "why": "It respects the relationship while protecting the priority, and gives your lead a real choice."
-          },
-          {
-            "q": "Which task is important but not urgent?",
-            "options": [
-              "Replying to a chat ping",
-              "Joining a meeting you were copied into",
-              "Fixing a typo in a slide",
-              "Writing the design doc that prevents rework"
-            ],
-            "answer": 3,
-            "why": "It won't shout for attention, but it saves far more time than it takes."
-          },
-          {
-            "q": "Why schedule your most important work early in the day?",
-            "options": [
-              "Focus and willpower fade as the day goes on",
-              "Meetings are cheaper in the afternoon",
-              "Managers check calendars in the morning",
-              "It looks more committed"
-            ],
-            "answer": 0,
-            "why": "Your best attention is usually early. Spend it on the work that matters most."
-          },
-          {
-            "q": "What's the focusing question for choosing your key task?",
-            "options": [
-              "Which task is quickest?",
-              "Which task would make the rest easier or unnecessary?",
-              "Which task does my manager mention most?",
-              "Which task do I enjoy most?"
-            ],
-            "answer": 1,
-            "why": "One well-chosen task can remove or simplify many others."
-          },
-          {
-            "q": "Which is the best way to say no to a colleague?",
-            "options": [
-              "Ignore the request",
-              "Say yes and deliver late",
-              "Explain your priority and offer an alternative",
-              "Say you're too busy, with no reason"
-            ],
-            "answer": 2,
-            "why": "A clear no with an alternative protects both your work and the relationship."
-          }
-        ],
-        "scenario": "It's Monday. Your manager wants a bug fix by Wednesday, a product manager asks you to estimate a new feature today, and a colleague needs your review on a pull request. Write the message you'll send your manager explaining how you'll prioritise."
-      }
-    },
-    {
-      "topic": "Business Strategy",
-      "heading": "Business Strategy and Growth",
-      "learner": [
-        "Senior executive",
-        "Retail and Consumer",
-        "Main goal: Grow my business",
-        "15 min a day"
-      ],
-      "books": [
-        "Good Strategy Bad Strategy",
-        "Playing to Win",
-        "Blue Ocean Strategy"
-      ],
-      "bite": {
-        "title": "Turn a growth target into a real strategy",
-        "framework": "The Diagnose–Choose–Commit chain: name the real challenge, choose where to play and how to win, then put a few coherent actions behind it.",
-        "cards": [
-          {
-            "source": "Good Strategy Bad Strategy",
-            "concept": "A goal is not a strategy. Real strategy starts with an honest diagnosis of the critical challenge, then a guiding policy, then coherent actions. Ambitious slogans without a diagnosis are bad strategy.",
-            "application": "“Grow 15%” isn't a plan. “We're losing younger shoppers to online rivals on convenience” is a diagnosis you can act on.",
-            "tryThis": "Write one sentence naming the single biggest obstacle to your growth target."
-          },
-          {
-            "source": "Playing to Win",
-            "concept": "Strategy is a set of linked choices: where to play (customers, channels, categories, regions) and how to win there. If the opposite choice would also be sensible, you've made a real choice.",
-            "application": "Decide whether you'll win with value-seeking families in secondary cities or premium urban shoppers; one format rarely wins both.",
-            "tryThis": "Name one market you will deliberately not chase this year, and why."
-          },
-          {
-            "source": "Blue Ocean Strategy",
-            "concept": "Escape head-to-head competition by redesigning the value you offer. Decide which industry factors to eliminate, reduce, raise and create, so cost falls while value rises.",
-            "application": "A grocer might drop slow-moving brands, shrink store size, raise freshness, and create 20-minute delivery from each store.",
-            "tryThis": "Fill the four boxes (eliminate, reduce, raise, create) for one of your formats."
-          },
-          {
-            "source": "Playing to Win",
-            "concept": "Choices only work if you have the capabilities and management systems to deliver them. Identify the few capabilities that make your “how to win” real, and fund those first.",
-            "application": "Winning on convenience needs last-mile logistics and live inventory data. Those deserve budget before another loyalty campaign.",
-            "tryThis": "List the three capabilities your strategy depends on and score each from 1 to 5."
-          },
-          {
-            "source": "Good Strategy Bad Strategy",
-            "concept": "Concentrate resources. Good strategy focuses energy on a pivotal point instead of spreading it across every initiative. A long list of priorities usually means none.",
-            "application": "Cut twelve initiatives to the three that directly attack your diagnosis, and visibly pause the rest.",
-            "tryThis": "Mark which current initiatives address your diagnosis. Pause one that doesn't."
-          }
-        ],
-        "examples": [
-          {
-            "person": "A supermarket chain CEO facing online grocers",
-            "situation": "Sales were flat while app-based grocers won over young urban shoppers.",
-            "approach": "She diagnosed convenience as the gap, chose busy urban families as the target, and turned 40 stores into delivery hubs instead of opening new ones.",
-            "outcome": "Online orders reached 12% of sales within a year, at lower cost than new stores."
-          },
-          {
-            "person": "A fashion retailer's head of strategy with twelve initiatives",
-            "situation": "Every department had its own priority and none was properly funded.",
-            "approach": "He tested each initiative against one diagnosis, losing relevance with under-30s, kept three, and publicly paused the rest.",
-            "outcome": "The three funded initiatives delivered, and staff finally knew what mattered."
-          },
-          {
-            "person": "A family-owned electronics retailer",
-            "situation": "Price wars with big-box rivals squeezed margins every quarter.",
-            "approach": "They dropped low-margin commodity lines, reduced floor space, raised expert advice and created paid home-installation services.",
-            "outcome": "Margins recovered, and installation became their fastest-growing revenue line."
-          }
-        ],
-        "quiz": [
-          {
-            "q": "Which of these is a strategy rather than a goal?",
-            "options": [
-              "Become the region's number-one retailer",
-              "Grow revenue 15% next year",
-              "Win time-pressed urban shoppers with 20-minute delivery from existing stores",
-              "Delight every customer"
-            ],
-            "answer": 2,
-            "why": "It names who you'll serve and how you'll win. The others are aspirations."
-          },
-          {
-            "q": "What's the purpose of the eliminate–reduce–raise–create grid?",
-            "options": [
-              "Benchmark every competitor factor",
-              "Lower cost and raise buyer value at the same time",
-              "Plan marketing campaigns",
-              "Set prices"
-            ],
-            "answer": 1,
-            "why": "It reshapes the offer so you stop competing on the same terms as everyone else."
-          },
-          {
-            "q": "Your plan has twelve priorities. What's the main risk?",
-            "options": [
-              "Resources spread so thin that nothing pivotal gets done",
-              "Staff will get bored",
-              "It won't fit on one slide",
-              "Competitors will copy it"
-            ],
-            "answer": 0,
-            "why": "Strategy is about focus. Twelve priorities means no real priority."
-          },
-          {
-            "q": "What comes first in a good strategy?",
-            "options": [
-              "An ambitious revenue target",
-              "A list of initiatives",
-              "An honest diagnosis of the critical challenge",
-              "A new brand campaign"
-            ],
-            "answer": 2,
-            "why": "Without a clear diagnosis, actions can't be coherent."
-          },
-          {
-            "q": "A “where to play” choice is real when:",
-            "options": [
-              "The opposite choice would also be sensible",
-              "Everyone already agrees with it",
-              "It includes every customer segment",
-              "It copies the market leader"
-            ],
-            "answer": 0,
-            "why": "If no sensible company would choose the opposite, it isn't really a choice."
-          }
-        ],
-        "scenario": "Your board asks why like-for-like sales are flat while a digital-first competitor is growing 30% a year. You have five minutes at the next board meeting. Write your opening: the diagnosis and the one strategic choice you'll propose."
-      }
-    },
-    {
-      "topic": "Preventing Burnout",
-      "heading": "Wellbeing and Resilience",
-      "learner": [
-        "Manager",
-        "Consulting",
-        "Main goal: Manage stress and balance",
-        "10 min a day"
-      ],
-      "books": [
-        "The Burnout Epidemic",
-        "Rest",
-        "The Power of Full Engagement"
-      ],
-      "bite": {
-        "title": "Manage your energy before it manages you",
-        "framework": "The Spot–Recover–Redesign plan: notice the early signs, build recovery into your days, and fix the causes at work, not just the symptoms.",
-        "cards": [
-          {
-            "source": "The Burnout Epidemic",
-            "concept": "Burnout is chronic workplace stress, not personal weakness. It traces to six drivers: workload, lack of control, too little reward, weak community, unfairness and values mismatch. Self-care alone can't fix a broken system.",
-            "application": "If your team's exhaustion comes from constant scope creep on one engagement, a wellness webinar won't help; resetting scope will.",
-            "tryThis": "Rate your current work on the six drivers and circle the worst one."
-          },
-          {
-            "source": "The Power of Full Engagement",
-            "concept": "Manage energy, not just time. Performance depends on cycling between effort and recovery, like an athlete's intervals. Long stretches without recovery drain you, even if your hours look fine.",
-            "application": "After a three-hour client workshop, take a real break before the next call instead of stacking meetings back to back.",
-            "tryThis": "Add three ten-minute recovery breaks to tomorrow's calendar, and keep them."
-          },
-          {
-            "source": "Rest",
-            "concept": "Rest is a skill, not idleness. Deliberate rest, such as walks, exercise, hobbies and full detachment from work, restores focus and creativity better than passive scrolling.",
-            "application": "Take your next problem-solving session as a walking meeting, or walk for 20 minutes before drafting the storyline.",
-            "tryThis": "Take a 20-minute walk today, without your phone."
-          },
-          {
-            "source": "The Power of Full Engagement",
-            "concept": "Rituals beat willpower. Small, fixed routines, like an end-of-day shutdown, protect recovery without needing a fresh decision every day.",
-            "application": "End each day by writing tomorrow's top three tasks and closing email. On travel days, protect sleep before anything else.",
-            "tryThis": "Write a three-step shutdown ritual and use it tonight."
-          },
-          {
-            "source": "The Burnout Epidemic",
-            "concept": "As a manager, you shape your team's burnout risk. Ask how people are really doing, model healthy boundaries yourself, and remove work rather than only adding support.",
-            "application": "In one-to-ones, ask “What's draining you most this week?” and act on one answer, such as dropping a low-value report.",
-            "tryThis": "Ask one team member this week what you could take off their plate."
-          }
-        ],
-        "examples": [
-          {
-            "person": "A consulting manager on her third back-to-back project",
-            "situation": "She was sleeping five hours, snapping at her team and dreading Mondays.",
-            "approach": "She named workload as the driver, asked the partner to move one deliverable, and protected two evenings a week with a firm shutdown ritual.",
-            "outcome": "Within a month her energy returned, and her team noticed the difference."
-          },
-          {
-            "person": "A manager whose team was quietly exhausted",
-            "situation": "Engagement scores dropped and two strong consultants asked to switch teams.",
-            "approach": "He asked each person what drained them most, cut a weekly status report nobody read, and started ending meetings ten minutes early.",
-            "outcome": "Both consultants stayed, and the team said they felt more in control."
-          },
-          {
-            "person": "A senior associate who rested by scrolling",
-            "situation": "Weekends off didn't help; Mondays felt just as tiring.",
-            "approach": "She swapped phone time for a long Saturday walk and a weekly hobby class, and kept her phone out of the bedroom.",
-            "outcome": "She felt genuinely recharged for the first time in months."
-          }
-        ],
-        "quiz": [
-          {
-            "q": "Your team is worn out by repeated scope creep. Most effective first move?",
-            "options": [
-              "Offer a meditation app",
-              "Raise the workload with the client and reset scope",
-              "Tell everyone to take a day off",
-              "Ask them to work smarter"
-            ],
-            "answer": 1,
-            "why": "Workload is the driver here. Fix the cause, not only the symptoms."
-          },
-          {
-            "q": "“Managing energy, not just time” means:",
-            "options": [
-              "Working longer on days you feel good",
-              "Drinking more coffee",
-              "Avoiding hard work",
-              "Alternating focused effort with genuine recovery"
-            ],
-            "answer": 3,
-            "why": "Recovery is what lets effort be sustained. Without it, performance drops."
-          },
-          {
-            "q": "Which of these counts as deliberate rest?",
-            "options": [
-              "A walk without your phone",
-              "Scrolling social media",
-              "Clearing email on the sofa",
-              "Watching the news"
-            ],
-            "answer": 0,
-            "why": "Deliberate rest is active and fully detached from work and screens."
-          },
-          {
-            "q": "Which of these is one of the six drivers of burnout?",
-            "options": [
-              "Lack of control over your work",
-              "An open-plan office",
-              "A long commute",
-              "Your manager's personal style"
-            ],
-            "answer": 0,
-            "why": "Lack of control is a core driver, alongside workload, reward, community, fairness and values."
-          },
-          {
-            "q": "As a manager, what most reduces your team's burnout risk?",
-            "options": [
-              "Offering yoga sessions",
-              "Removing low-value work and asking what drains people",
-              "Telling people to set boundaries",
-              "Adding more team socials"
-            ],
-            "answer": 1,
-            "why": "Fixing the work itself beats adding support on top of it."
-          }
-        ],
-        "scenario": "You've worked late for five weeks on a demanding engagement, you're snapping at your team, and the partner has just asked you to lead a new pitch next week. Write what you'll say to the partner."
+        "improve": "Before proposing, ask: “What would need to be true to do this sooner?”",
+        "toolsUsed": ["Trade Across Issues", "Aim High, With Reasons"],
+        "modelAnswer": "I understand the freeze isn't your call. Since April I've led both teams and cut release time by 30%. What would need to be true to move this before six months? If the title can't wait, could we agree today on the scope, a written review date and an interim adjustment?"
       }
     }
   ]

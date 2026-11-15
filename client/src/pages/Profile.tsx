@@ -45,9 +45,10 @@ export default function Profile() {
       <section className="card flex items-center gap-4 p-5">
         <div className="flex-1">
           <p className="eyebrow">Your plan</p>
-          <p className="mt-1 font-display text-lg font-semibold">{m.plan === 'premium' ? 'Insight Premium' : 'Free'}{m.planSource === 'test' && <span className="ml-2 inline-block whitespace-nowrap align-middle rounded-full border border-[#f5b971]/40 px-2 py-0.5 font-sans text-[11px] font-semibold text-[#f5b971]">Test mode</span>}</p>
+          <p className="mt-1 font-display text-lg font-semibold">{m.planSource === 'beta' ? 'Free beta' : m.plan === 'premium' ? 'Insight Premium' : 'Free'}{m.planSource === 'test' && <span className="ml-2 inline-block whitespace-nowrap align-middle rounded-full border border-[#f5b971]/40 px-2 py-0.5 font-sans text-[11px] font-semibold text-[#f5b971]">Test mode</span>}</p>
           <p className="text-sm text-muted">
-            {m.plan === 'free' ? 'Learn one topic free. Upgrade for every topic and practice.'
+            {m.planSource === 'beta' ? 'Everything is unlocked while we test Insight. Thanks for your feedback!'
+              : m.plan === 'free' ? 'Learn one topic free. Upgrade for every topic and practice.'
               : (m.planSource === 'subscription' || m.planSource === 'test') && m.premiumUntil ? `Every topic unlocked · ${m.planSource === 'test' ? 'test plan ends' : 'renews or ends'} ${new Date(m.premiumUntil).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`
               : 'Every topic unlocked.'}
           </p>

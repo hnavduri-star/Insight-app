@@ -5,8 +5,14 @@ import { HttpError } from './errors.js';
 
 const active = () => and(or(isNull(entitlements.expiresAt), gt(entitlements.expiresAt, new Date())));
 
-/** What the user can open: everything (premium), or a set of topic ids. */
+/** Free beta: OPEN_ACCESS=true unlocks every topic and practice for everyone. Turn it off to restore the paywall. */
+export const openAccess = () => process.env.OPEN_ACCESS === 'true';
+
+/** What the user can open: everything (premium or free beta), or a set of topic ids. */
 export async function accessFor(userId: string) {
+  if (openAccess()) {
+    return { plan: 'premium' as const, allAccess: true, freeTopicId: null, topicIds: new Set<string>(), planSource: 'beta' as const, premiumUntil: null };
+  }
   const rows = await db.select().from(entitlements).where(and(eq(entitlements.userId, userId), active()));
   const allAccess = rows.some((r) => r.kind === 'all_access');
   const freeTopicId = rows.find((r) => r.source === 'free_trial')?.topicId ?? null;

@@ -10,6 +10,7 @@ import {
   applySubscription, confirmCheckout, testUpgrade, testCancel, createCheckout, createPortal, linkCustomer, listPlans, webhookVerifier,
 } from '../lib/billing.js';
 import { loadMe } from './me.js';
+import { openAccess } from '../lib/access.js';
 
 export const billing = Router();
 
@@ -17,6 +18,7 @@ billing.get('/plans', requireAuth, async (_req, res) => { res.json(await listPla
 
 billing.post('/checkout', requireAuth, async (req, res) => {
   const { interval } = z.object({ interval: z.enum(['month', 'year']) }).parse(req.body);
+  if (openAccess()) throw new HttpError(409, 'Insight is free during the beta.', 'free_beta');
   const me = await loadMe(req.userId!);
   if (me.planSource === 'subscription') throw new HttpError(409, 'You already have Premium. Manage it from your Profile.', 'already_premium');
   res.json({ url: await createCheckout(req.userId!, interval, config.appUrl) });

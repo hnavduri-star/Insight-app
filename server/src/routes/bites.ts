@@ -102,7 +102,7 @@ biteRoutes.post('/:id/progress', async (req, res) => {
 
 /** Helpful / not helpful on a card: used to improve bites. */
 biteRoutes.post('/:id/feedback', async (req, res) => {
-  const body = z.object({ cardIndex: z.number().int().min(0).max(4), helpful: z.boolean() }).parse(req.body);
+  const body = z.object({ cardIndex: z.number().int().min(0).max(7), helpful: z.boolean() }).parse(req.body);
   const l = await lessonFor(req.userId!, req.params.id);
   await db.insert(cardFeedback).values({ userId: req.userId!, lessonId: l.id, ...body })
     .onConflictDoUpdate({ target: [cardFeedback.userId, cardFeedback.lessonId, cardFeedback.cardIndex], set: { helpful: body.helpful } });
@@ -116,7 +116,9 @@ biteRoutes.post('/:id/scenario', async (req, res) => {
   const l = await lessonFor(userId, req.params.id);
   await checkLimit(userId, 'grade');
   const bite = l.contentJson as Bite;
-  const grade = await gradeScenario(userId, { framework: bite.framework, cards: bite.cards.map((c) => c.concept), scenario: bite.scenario, response });
+  const grade = await gradeScenario(userId, { framework: bite.framework, tools: bite.tools.map((t) => ({ name: t.name, idea: t.idea })), scenario: bite.scenario, response });
+  const names = new Set(bite.tools.map((t) => t.name));
+  grade.toolsUsed = grade.toolsUsed.filter((n) => names.has(n)); // only tools that exist in this bite
   await db.insert(scenarios).values({ userId, topicId: l.topicId, lessonId: l.id, responseText: response, score: grade.score, feedbackJson: grade });
   await db.insert(topicProgress).values({ userId, topicId: l.topicId, bestScenarioScore: grade.score })
     .onConflictDoUpdate({ target: [topicProgress.userId, topicProgress.topicId],

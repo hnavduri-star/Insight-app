@@ -34,7 +34,8 @@ export default function Home() {
             <p className="font-display text-[22px] leading-tight">{me!.name.split(' ')[0]}</p>
           </div>
         </Link>
-        {me!.plan === 'premium' && <span className="rounded-full bg-[#f5b971]/15 px-3 py-1 text-xs font-bold text-[#f5b971]">Premium</span>}
+        {me!.planSource === 'beta' ? <span className="rounded-full bg-accent/15 px-3 py-1 text-xs font-bold text-accent">Free beta</span>
+          : me!.plan === 'premium' && <span className="rounded-full bg-[#f5b971]/15 px-3 py-1 text-xs font-bold text-[#f5b971]">Premium</span>}
       </div>
 
       {!me!.emailVerified && <VerifyBanner />}

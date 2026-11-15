@@ -20,6 +20,9 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      # Free beta: everything unlocked for everyone. Set to "false" to bring back the free topic and paywall.
+      - key: OPEN_ACCESS
+        value: "true"
       # Try Premium with no payment. Switches off automatically once Stripe keys are added.
       - key: BILLING_TEST_MODE
         value: "true"

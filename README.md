@@ -53,6 +53,10 @@ The catalogue lives in **[`data/insight-topics-and-books.xlsx`](data/insight-top
 - Problems are reported with line numbers, such as a missing column, a topic under two headings, or a bad book type.
 - Topics removed from the file are deleted on the next load, unless a learner has history on them (those are kept and listed). `-- --prune` deletes them anyway.
 
+## Free beta
+
+`OPEN_ACCESS=true` (set in `render.yaml` and the local `.env`) unlocks every topic and practice for everyone, and hides the paywall. Set it to `false` to restore the free-topic-then-pay model below.
+
 ## Free taste, then pay
 
 | | Free | Premium (monthly or annual) |
@@ -74,7 +78,12 @@ A **People** tab where learners add the real people in their life (boss, colleag
 
 ## Bites (milestone 2)
 
-A bite is 5 swipeable cards (the idea, in your work, try this today), 2–3 real-life examples of different people applying the skill in their own way (situation, what they did, what happened), a 5-question quiz with instant feedback, and a written scenario graded by AI. Bites saved in an older format are rebuilt automatically the next time someone opens them.
+A bite is a practical toolkit in three steps:
+1. **Learn:** 5–8 tools drawn from the topic's books. Each has the theory (what it is and why it works), 2–4 steps for using it, 1–3 example phrases of **what to say**, a **case study** (situation, what they did, result) and a try-this-today action.
+2. **Check:** 5 scenario-based quiz questions where you pick the right tool or the right words.
+3. **Practise with your coach:** a realistic scenario that needs several tools. The coach scores the written answer, shows **which tools were used**, gives one strength and one next step, and writes **a stronger way to say it**.
+
+Bites saved in an older format are rebuilt automatically the next time someone opens them. `data/sample-bites.json` holds reference toolkits as a quality benchmark.
 
 - **Model:** Claude Sonnet 5.5 (`claude-sonnet-5-5`), called only from the server (`server/src/lib/ai.ts`). Output is schema-validated JSON, with a retry if the shape is wrong. Refusals fall back automatically to another model (server-side `fallbacks: "default"`).
 - **Cache:** one bite per topic, career stage, industry, main goal and rating band (`cached_lessons`), shared by every learner with the same key. Concurrent first requests share one AI call.
@@ -96,7 +105,7 @@ Wio-style vivid design: each heading has its own bright two-colour fill (`client
 - Home: avatar and greeting (tap for Profile), verify-email banner, all 8 headings as collapsible lists, and a topic sheet that shows its 3 source books.
 - Profile: details, Edit profile, switch coach, log out, delete account (asks for the password and removes all of the user's data), privacy notice.
 - Access control: every user query is scoped to the session's user id (the brief's "equivalent check" to RLS). Auth endpoints are rate-limited, inputs are validated and size-limited, and writes must be JSON.
-- 39 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
+- 41 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
 
 ## Decisions made inside the brief's options
 
