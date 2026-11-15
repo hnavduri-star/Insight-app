@@ -1,0 +1,534 @@
+{
+  "note": "Reference sample bites written to the app's exact format and rules. Use as a quality benchmark for generated bites.",
+  "samples": [
+    {
+      "topic": "Negotiation Fundamentals",
+      "heading": "Influence, Negotiation and Sales",
+      "learner": [
+        "Manager",
+        "Technology",
+        "Main goal: Get promoted",
+        "10 min a day"
+      ],
+      "books": [
+        "Getting to Yes",
+        "Negotiation Genius",
+        "Bargaining for Advantage"
+      ],
+      "bite": {
+        "title": "Walk in with more options than they expect",
+        "framework": "The Needs–Walk-away–Opening prep: uncover what both sides need, strengthen your fallback, then open with an ask you can justify.",
+        "cards": [
+          {
+            "source": "Getting to Yes",
+            "concept": "Separate the position (what someone demands) from the interest (why they want it). Two people can want the same thing for different reasons, and once you see the reasons, more solutions appear.",
+            "application": "Your VP says “no new headcount.” The interest may be protecting this quarter's margin. A six-month contractor or reallocating an open role could meet both needs.",
+            "tryThis": "For your next ask, write the other side's likely position and three interests behind it."
+          },
+          {
+            "source": "Getting to Yes",
+            "concept": "Your real power is your best alternative if no deal happens. Improve it before you negotiate, and never accept a deal worse than it.",
+            "application": "Before a promotion conversation, know your genuine options: an internal move, an outside offer, or a larger scope at the same level next cycle.",
+            "tryThis": "Write your walk-away in one sentence, plus one action that would make it stronger this month."
+          },
+          {
+            "source": "Negotiation Genius",
+            "concept": "Grow the pie before you split it. Put several issues on the table at once so you can trade: give on what matters little to you, gain on what matters most.",
+            "application": "Don't negotiate pay alone. Bundle title, scope, review date, learning budget and remote days so there is room to trade.",
+            "tryThis": "List five issues you could negotiate, ranked by how much each matters to you."
+          },
+          {
+            "source": "Bargaining for Advantage",
+            "concept": "Set a specific, ambitious target and back it with a standard the other side respects. Clear, high goals consistently beat vague hopes of “a fair outcome”.",
+            "application": "Anchor your case in market data and the scope you already carry, not in tenure or hours worked.",
+            "tryThis": "Find one external benchmark, such as a salary survey or comparable role, that supports your target."
+          },
+          {
+            "source": "Negotiation Genius",
+            "concept": "First numbers pull outcomes toward them. When you are well informed, open first and explain your number. When you are not, ask questions before any figure is set.",
+            "application": "If HR opens low, don't counter straight away. Ask how the figure was set, restate your justified range, then propose.",
+            "tryThis": "Draft your opening number and the single sentence that justifies it."
+          }
+        ],
+        "quiz": [
+          {
+            "q": "Your director says, “There's no budget for a raise this year.” Which reply best uses interest-based thinking?",
+            "options": [
+              "Accept it and ask again next year",
+              "Ask what's constraining the budget and what would make a change possible",
+              "Mention you've had an outside offer",
+              "Ask for a smaller raise instead"
+            ],
+            "answer": 1,
+            "why": "“No budget” is a position. Asking about the constraint uncovers interests you can work with."
+          },
+          {
+            "q": "What raises your leverage most before a negotiation starts?",
+            "options": [
+              "Strengthening your best alternative if there's no deal",
+              "Practising a firmer tone",
+              "Preparing a longer list of demands",
+              "Deciding to always make the first offer"
+            ],
+            "answer": 0,
+            "why": "The better your fallback, the less you need this particular deal, and the other side can sense it."
+          },
+          {
+            "q": "Why negotiate several issues together rather than one at a time?",
+            "options": [
+              "It makes the meeting feel more serious",
+              "It hides what you really want",
+              "It creates trades where both sides gain",
+              "It avoids talking about money"
+            ],
+            "answer": 2,
+            "why": "Multiple issues let you swap low-cost concessions for high-value gains, so both sides end up better off."
+          }
+        ],
+        "scenario": "Your manager tells you the promotion you expected is delayed six months because of a hiring freeze, although you have led a second team since spring. You meet tomorrow for 15 minutes. Write the opening two or three sentences you will say."
+      },
+      "exampleGrade": {
+        "answer": "I understand the freeze isn't your call. Since April I've run both the platform and data teams and cut release time by 30%. If the title has to wait, can we agree today on the scope, a written date and an interim pay adjustment?",
+        "score": 86,
+        "feedback": "Strong opening. You acknowledged their constraint, anchored on concrete results and put several issues on the table instead of one demand. To make it even stronger, ask one question about their interests before proposing, so your offer fits what they actually need.",
+        "strength": "Bundled title, timing and pay instead of a single demand.",
+        "improve": "Before proposing, ask: “What would need to be true to do this before six months?”"
+      }
+    },
+    {
+      "topic": "Executive Presence",
+      "heading": "Influence, Negotiation and Sales",
+      "learner": [
+        "Senior executive",
+        "Consulting",
+        "Main goal: Communicate and influence with impact",
+        "15 min a day"
+      ],
+      "books": [
+        "Executive Presence",
+        "The Charisma Myth",
+        "Compelling People"
+      ],
+      "bite": {
+        "title": "Be the calmest, clearest person in the room",
+        "framework": "The Weight–Warmth–Focus model: show judgment under pressure, signal you're on their side, and give people your full attention.",
+        "cards": [
+          {
+            "source": "Executive Presence",
+            "concept": "Presence rests mostly on gravitas: composure under pressure, decisiveness and a clear point of view. How you speak and look amplifies substance; it never replaces it.",
+            "application": "When a programme slips in a steering committee, gravitas means naming the problem first, giving your recommendation, and taking hard questions calmly.",
+            "tryThis": "Before your next senior meeting, write the decision you want and your recommendation in one sentence."
+          },
+          {
+            "source": "Compelling People",
+            "concept": "People judge you on two things at once: strength (can you make things happen?) and warmth (are you on my side?). Strength alone reads as cold; warmth alone reads as soft.",
+            "application": "With a client CEO, pair a firm view (“I'd stop this workstream”) with visible care for their constraints (“given your board's timetable”).",
+            "tryThis": "In your next tough message, include one sentence that shows strength and one that shows warmth."
+          },
+          {
+            "source": "The Charisma Myth",
+            "concept": "Charisma is a set of learnable behaviours, not a trait. Its base is presence: complete attention on the person in front of you. People notice within seconds when your mind is elsewhere.",
+            "application": "In client one-to-ones, close the laptop, put the phone away, and let a silence sit for two seconds before you reply.",
+            "tryThis": "In one conversation today, check no device and sum up what they said before you respond."
+          },
+          {
+            "source": "The Charisma Myth",
+            "concept": "Your inner state leaks into your body language. Anxiety shows as fidgeting and rushed speech. Reset before high-stakes moments: slow your breathing, relax your posture, and treat nerves as readiness.",
+            "application": "Before a board readout, take two minutes alone to slow your breathing. Open with a pause and eye contact before your first word.",
+            "tryThis": "Before your next big meeting, take six slow breaths and script your first sentence word for word."
+          },
+          {
+            "source": "Executive Presence",
+            "concept": "Senior audiences judge quickly. Speak with economy: lead with the answer, keep to a few points, and read the room. Compressing complexity signals command of the subject.",
+            "application": "Open updates with the answer, give three supporting points, then stop. Offer detail only when asked.",
+            "tryThis": "Cut tomorrow's update to one answer plus three bullets, under 60 seconds spoken."
+          }
+        ],
+        "quiz": [
+          {
+            "q": "Which element weighs most in how senior leaders judge presence?",
+            "options": [
+              "Appearance and dress",
+              "Gravitas: composure, decisiveness and vision",
+              "Speaking volume",
+              "Job title"
+            ],
+            "answer": 1,
+            "why": "Appearance and delivery matter, but they amplify substance. Gravitas is the core."
+          },
+          {
+            "q": "A client sees you as highly competent but distant. What should you add?",
+            "options": [
+              "More data in your slides",
+              "A stronger opinion",
+              "A more formal tone",
+              "Visible warmth: show you understand their pressures"
+            ],
+            "answer": 3,
+            "why": "You already signal strength. Influence needs warmth alongside it."
+          },
+          {
+            "q": "What's the quickest way to raise your presence in a one-to-one?",
+            "options": [
+              "Give full attention, with no devices",
+              "Talk more about your experience",
+              "Bring more slides",
+              "Use their name often"
+            ],
+            "answer": 0,
+            "why": "Undivided attention is felt immediately, and it is the foundation of charisma."
+          }
+        ],
+        "scenario": "Mid-update in a steering committee, the client's COO cuts in: “This programme is three weeks late and I'm hearing different stories from your team.” The CEO is watching. Write exactly what you say in the next 30 seconds."
+      }
+    },
+    {
+      "topic": "Giving Feedback",
+      "heading": "Difficult Conversations and Conflict",
+      "learner": [
+        "Manager",
+        "Finance and Banking",
+        "Main goal: Lead and develop my team",
+        "10 min a day"
+      ],
+      "books": [
+        "Radical Candor",
+        "The Feedback Fix",
+        "Crucial Accountability"
+      ],
+      "bite": {
+        "title": "Feedback that lands and gets acted on",
+        "framework": "The Care–Clear–Next method: show you care, describe the gap precisely, then design the next step together.",
+        "cards": [
+          {
+            "source": "Radical Candor",
+            "concept": "Great feedback cares personally and challenges directly, at the same time. Holding back to be nice harms the person; bluntness without care feels like an attack.",
+            "application": "If an analyst's model has errors before credit committee, say it plainly and explain what it means for their credibility, not just yours.",
+            "tryThis": "Pick one piece of feedback you've been avoiding. Write the first sentence you'll use."
+          },
+          {
+            "source": "Crucial Accountability",
+            "concept": "Describe the gap, not the person: what was expected, and what actually happened. Specific facts invite problem-solving; labels like “careless” invite defence.",
+            "application": "“The reconciliation was due Tuesday at 5; it arrived Thursday with two breaks open” beats “you're not detail-oriented.”",
+            "tryThis": "Rewrite one judgment you hold about a team member as a fact-based gap."
+          },
+          {
+            "source": "Crucial Accountability",
+            "concept": "Match the conversation to the level. A first miss is about the content. A repeat is about the pattern. A pattern that erodes trust is about the relationship.",
+            "application": "If late reports keep recurring, stop discussing each one. Discuss the pattern and what it does to your ability to rely on them.",
+            "tryThis": "For one recurring issue, decide: is it content, pattern or relationship? Name it."
+          },
+          {
+            "source": "The Feedback Fix",
+            "concept": "Look forward more than back. Spend less time on what went wrong and more on what to do next time, and let the person help design it.",
+            "application": "After a weak client presentation, spend one minute on what happened and five on how they will prepare for the next one.",
+            "tryThis": "End your next feedback conversation by asking: “What will you try differently next time?”"
+          },
+          {
+            "source": "Radical Candor",
+            "concept": "Keep feedback small, frequent and timely. Give it soon after the moment; criticise in private, praise specifically and in public. Regular feedback stops any one talk feeling like a verdict.",
+            "application": "Replace saving everything for year-end with a two-minute debrief after each client call or close.",
+            "tryThis": "Give one specific piece of praise today, naming exactly what the person did."
+          }
+        ],
+        "quiz": [
+          {
+            "q": "A team member has missed deadlines again after two conversations. What should the next talk focus on?",
+            "options": [
+              "The latest missed deadline",
+              "The pattern and its effect on trust",
+              "Their personality",
+              "Starting a formal warning"
+            ],
+            "answer": 1,
+            "why": "Repeating content-level talks hasn't worked. The issue is now the pattern."
+          },
+          {
+            "q": "Which opening is most likely to land?",
+            "options": [
+              "“You're careless with numbers.”",
+              "“Everyone has noticed problems with your work.”",
+              "“The report had three errors in the cash figures, and here's why that matters before committee.”",
+              "“It's not a big deal, but…”"
+            ],
+            "answer": 2,
+            "why": "It is specific, factual and explains the impact, without labels or softening that hides the message."
+          },
+          {
+            "q": "Holding back criticism to protect someone's feelings, at the cost of their growth, is called:",
+            "options": [
+              "Ruinous empathy",
+              "Psychological safety",
+              "Feedforward",
+              "Active listening"
+            ],
+            "answer": 0,
+            "why": "It feels kind in the moment but leaves the person without what they need to improve."
+          }
+        ],
+        "scenario": "A strong associate on your team has missed two internal deadlines this month, and the second delayed a client report. They are well liked, and you suspect they are overloaded. Write how you will open your one-to-one."
+      }
+    },
+    {
+      "topic": "Prioritization",
+      "heading": "Personal Effectiveness",
+      "learner": [
+        "Early-stage employee",
+        "Technology",
+        "Main goal: Perform better in my role",
+        "5 min a day"
+      ],
+      "books": [
+        "Essentialism",
+        "The ONE Thing",
+        "First Things First"
+      ],
+      "bite": {
+        "title": "Do fewer things, and the right ones",
+        "framework": "The Filter–Focus–Fence routine: filter requests on purpose, focus on the task that moves everything else, and fence time for it.",
+        "cards": [
+          {
+            "source": "Essentialism",
+            "concept": "You can't do everything, so trade-offs are unavoidable. The only question is whether you make them deliberately. Doing fewer things well beats spreading yourself thin.",
+            "application": "When three teams ask for “quick help”, choose the one tied to your sprint goal and decline the others with a reason.",
+            "tryThis": "List everything on your plate this week and cross out one item to drop or hand back."
+          },
+          {
+            "source": "First Things First",
+            "concept": "Sort work by urgency and importance. The trap is living in urgent-but-unimportant tasks. The biggest gains come from important, non-urgent work: planning, learning, relationships.",
+            "application": "Chat pings feel urgent; the design doc that prevents next month's rework is important. Book time for the doc.",
+            "tryThis": "Label each task today: urgent, important, both or neither. Do one important-only task first."
+          },
+          {
+            "source": "The ONE Thing",
+            "concept": "Ask one focusing question: which single task would make everything else easier or unnecessary? Progress compounds when you knock over the right first domino.",
+            "application": "Instead of fixing five small bugs, finish the test setup that will catch all of them.",
+            "tryThis": "Before you log off, write tomorrow's one key task on a sticky note."
+          },
+          {
+            "source": "The ONE Thing",
+            "concept": "Protect your priority with a time block: schedule it like a meeting and defend it. Focus fades through the day, so put your most important work early.",
+            "application": "Block 9 to 11 for deep work, set your status to busy, and batch chat replies afterwards.",
+            "tryThis": "Put a two-hour block in tomorrow morning's calendar, named after your key task."
+          },
+          {
+            "source": "Essentialism",
+            "concept": "Say no gracefully. Separate the decision from the relationship: a clear, kind no earns more respect than a reluctant yes delivered badly.",
+            "application": "“I'd like to help, but I'm committed to the release this week. Could I look on Monday, or could Priya help sooner?”",
+            "tryThis": "Use one polite no, with an alternative, on a request today."
+          }
+        ],
+        "quiz": [
+          {
+            "q": "Your lead asks for a “quick favour” while you're on a deadline. Best response?",
+            "options": [
+              "Say yes and work late",
+              "Explain your current priority and offer another time or person",
+              "Ignore the message",
+              "Say yes and rush it"
+            ],
+            "answer": 1,
+            "why": "It respects the relationship while protecting the priority, and gives your lead a real choice."
+          },
+          {
+            "q": "Which task is important but not urgent?",
+            "options": [
+              "Replying to a chat ping",
+              "Joining a meeting you were copied into",
+              "Fixing a typo in a slide",
+              "Writing the design doc that prevents rework"
+            ],
+            "answer": 3,
+            "why": "It won't shout for attention, but it saves far more time than it takes."
+          },
+          {
+            "q": "Why schedule your most important work early in the day?",
+            "options": [
+              "Focus and willpower fade as the day goes on",
+              "Meetings are cheaper in the afternoon",
+              "Managers check calendars in the morning",
+              "It looks more committed"
+            ],
+            "answer": 0,
+            "why": "Your best attention is usually early. Spend it on the work that matters most."
+          }
+        ],
+        "scenario": "It's Monday. Your manager wants a bug fix by Wednesday, a product manager asks you to estimate a new feature today, and a colleague needs your review on a pull request. Write the message you'll send your manager explaining how you'll prioritise."
+      }
+    },
+    {
+      "topic": "Business Strategy",
+      "heading": "Business Strategy and Growth",
+      "learner": [
+        "Senior executive",
+        "Retail and Consumer",
+        "Main goal: Grow my business",
+        "15 min a day"
+      ],
+      "books": [
+        "Good Strategy Bad Strategy",
+        "Playing to Win",
+        "Blue Ocean Strategy"
+      ],
+      "bite": {
+        "title": "Turn a growth target into a real strategy",
+        "framework": "The Diagnose–Choose–Commit chain: name the real challenge, choose where to play and how to win, then put a few coherent actions behind it.",
+        "cards": [
+          {
+            "source": "Good Strategy Bad Strategy",
+            "concept": "A goal is not a strategy. Real strategy starts with an honest diagnosis of the critical challenge, then a guiding policy, then coherent actions. Ambitious slogans without a diagnosis are bad strategy.",
+            "application": "“Grow 15%” isn't a plan. “We're losing younger shoppers to online rivals on convenience” is a diagnosis you can act on.",
+            "tryThis": "Write one sentence naming the single biggest obstacle to your growth target."
+          },
+          {
+            "source": "Playing to Win",
+            "concept": "Strategy is a set of linked choices: where to play (customers, channels, categories, regions) and how to win there. If the opposite choice would also be sensible, you've made a real choice.",
+            "application": "Decide whether you'll win with value-seeking families in secondary cities or premium urban shoppers; one format rarely wins both.",
+            "tryThis": "Name one market you will deliberately not chase this year, and why."
+          },
+          {
+            "source": "Blue Ocean Strategy",
+            "concept": "Escape head-to-head competition by redesigning the value you offer. Decide which industry factors to eliminate, reduce, raise and create, so cost falls while value rises.",
+            "application": "A grocer might drop slow-moving brands, shrink store size, raise freshness, and create 20-minute delivery from each store.",
+            "tryThis": "Fill the four boxes (eliminate, reduce, raise, create) for one of your formats."
+          },
+          {
+            "source": "Playing to Win",
+            "concept": "Choices only work if you have the capabilities and management systems to deliver them. Identify the few capabilities that make your “how to win” real, and fund those first.",
+            "application": "Winning on convenience needs last-mile logistics and live inventory data. Those deserve budget before another loyalty campaign.",
+            "tryThis": "List the three capabilities your strategy depends on and score each from 1 to 5."
+          },
+          {
+            "source": "Good Strategy Bad Strategy",
+            "concept": "Concentrate resources. Good strategy focuses energy on a pivotal point instead of spreading it across every initiative. A long list of priorities usually means none.",
+            "application": "Cut twelve initiatives to the three that directly attack your diagnosis, and visibly pause the rest.",
+            "tryThis": "Mark which current initiatives address your diagnosis. Pause one that doesn't."
+          }
+        ],
+        "quiz": [
+          {
+            "q": "Which of these is a strategy rather than a goal?",
+            "options": [
+              "Become the region's number-one retailer",
+              "Grow revenue 15% next year",
+              "Win time-pressed urban shoppers with 20-minute delivery from existing stores",
+              "Delight every customer"
+            ],
+            "answer": 2,
+            "why": "It names who you'll serve and how you'll win. The others are aspirations."
+          },
+          {
+            "q": "What's the purpose of the eliminate–reduce–raise–create grid?",
+            "options": [
+              "Benchmark every competitor factor",
+              "Lower cost and raise buyer value at the same time",
+              "Plan marketing campaigns",
+              "Set prices"
+            ],
+            "answer": 1,
+            "why": "It reshapes the offer so you stop competing on the same terms as everyone else."
+          },
+          {
+            "q": "Your plan has twelve priorities. What's the main risk?",
+            "options": [
+              "Resources spread so thin that nothing pivotal gets done",
+              "Staff will get bored",
+              "It won't fit on one slide",
+              "Competitors will copy it"
+            ],
+            "answer": 0,
+            "why": "Strategy is about focus. Twelve priorities means no real priority."
+          }
+        ],
+        "scenario": "Your board asks why like-for-like sales are flat while a digital-first competitor is growing 30% a year. You have five minutes at the next board meeting. Write your opening: the diagnosis and the one strategic choice you'll propose."
+      }
+    },
+    {
+      "topic": "Preventing Burnout",
+      "heading": "Wellbeing and Resilience",
+      "learner": [
+        "Manager",
+        "Consulting",
+        "Main goal: Manage stress and balance",
+        "10 min a day"
+      ],
+      "books": [
+        "The Burnout Epidemic",
+        "Rest",
+        "The Power of Full Engagement"
+      ],
+      "bite": {
+        "title": "Manage your energy before it manages you",
+        "framework": "The Spot–Recover–Redesign plan: notice the early signs, build recovery into your days, and fix the causes at work, not just the symptoms.",
+        "cards": [
+          {
+            "source": "The Burnout Epidemic",
+            "concept": "Burnout is chronic workplace stress, not personal weakness. It traces to six drivers: workload, lack of control, too little reward, weak community, unfairness and values mismatch. Self-care alone can't fix a broken system.",
+            "application": "If your team's exhaustion comes from constant scope creep on one engagement, a wellness webinar won't help; resetting scope will.",
+            "tryThis": "Rate your current work on the six drivers and circle the worst one."
+          },
+          {
+            "source": "The Power of Full Engagement",
+            "concept": "Manage energy, not just time. Performance depends on cycling between effort and recovery, like an athlete's intervals. Long stretches without recovery drain you, even if your hours look fine.",
+            "application": "After a three-hour client workshop, take a real break before the next call instead of stacking meetings back to back.",
+            "tryThis": "Add three ten-minute recovery breaks to tomorrow's calendar, and keep them."
+          },
+          {
+            "source": "Rest",
+            "concept": "Rest is a skill, not idleness. Deliberate rest, such as walks, exercise, hobbies and full detachment from work, restores focus and creativity better than passive scrolling.",
+            "application": "Take your next problem-solving session as a walking meeting, or walk for 20 minutes before drafting the storyline.",
+            "tryThis": "Take a 20-minute walk today, without your phone."
+          },
+          {
+            "source": "The Power of Full Engagement",
+            "concept": "Rituals beat willpower. Small, fixed routines, like an end-of-day shutdown, protect recovery without needing a fresh decision every day.",
+            "application": "End each day by writing tomorrow's top three tasks and closing email. On travel days, protect sleep before anything else.",
+            "tryThis": "Write a three-step shutdown ritual and use it tonight."
+          },
+          {
+            "source": "The Burnout Epidemic",
+            "concept": "As a manager, you shape your team's burnout risk. Ask how people are really doing, model healthy boundaries yourself, and remove work rather than only adding support.",
+            "application": "In one-to-ones, ask “What's draining you most this week?” and act on one answer, such as dropping a low-value report.",
+            "tryThis": "Ask one team member this week what you could take off their plate."
+          }
+        ],
+        "quiz": [
+          {
+            "q": "Your team is worn out by repeated scope creep. Most effective first move?",
+            "options": [
+              "Offer a meditation app",
+              "Raise the workload with the client and reset scope",
+              "Tell everyone to take a day off",
+              "Ask them to work smarter"
+            ],
+            "answer": 1,
+            "why": "Workload is the driver here. Fix the cause, not only the symptoms."
+          },
+          {
+            "q": "“Managing energy, not just time” means:",
+            "options": [
+              "Working longer on days you feel good",
+              "Drinking more coffee",
+              "Avoiding hard work",
+              "Alternating focused effort with genuine recovery"
+            ],
+            "answer": 3,
+            "why": "Recovery is what lets effort be sustained. Without it, performance drops."
+          },
+          {
+            "q": "Which of these counts as deliberate rest?",
+            "options": [
+              "A walk without your phone",
+              "Scrolling social media",
+              "Clearing email on the sofa",
+              "Watching the news"
+            ],
+            "answer": 0,
+            "why": "Deliberate rest is active and fully detached from work and screens."
+          }
+        ],
+        "scenario": "You've worked late for five weeks on a demanding engagement, you're snapping at your team, and the partner has just asked you to lead a new pitch next week. Write what you'll say to the partner."
+      }
+    }
+  ]
+}
