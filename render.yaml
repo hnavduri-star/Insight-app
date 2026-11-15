@@ -1,0 +1,37 @@
+# Render Blueprint: one web service (API + app) and a Postgres database.
+# Render dashboard → New → Blueprint → pick this repository and branch.
+services:
+  - type: web
+    name: insight
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run db:migrate && npm run db:seed && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: insight-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      # Try Premium with no payment. Switches off automatically once Stripe keys are added.
+      - key: BILLING_TEST_MODE
+        value: "true"
+      - key: TEST_PRICE_MONTHLY_USD
+        sync: false
+      - key: TEST_PRICE_ANNUAL_USD
+        sync: false
+
+databases:
+  - name: insight-db
+    plan: free
+    region: frankfurt
+    databaseName: insight
+    user: insight
+    ipAllowList: [] # only reachable from the Insight service

@@ -26,7 +26,18 @@ npm test                                  # API tests against insight_test DB
 
 Email verification and password-reset links are **printed to the server log** until an email provider is chosen.
 
-Production: `npm run build && NODE_ENV=production npm start`. Express serves the built client, so it deploys as one service on Render, Railway or Fly.io.
+Production: `npm run build && NODE_ENV=production npm start`. Express serves the built client, so it deploys as one service.
+
+### Deploy to Render (test mode)
+
+`render.yaml` is a Render Blueprint. It creates the web service and a free Postgres database, generates `JWT_SECRET`, and runs migrations and the topic seed on every start.
+
+1. Render dashboard → **New → Blueprint** (not Static Site or Web Service).
+2. Connect GitHub and pick the `Insight-app` repository and its branch.
+3. Optionally fill in `TEST_PRICE_MONTHLY_USD` and `TEST_PRICE_ANNUAL_USD`, then **Deploy Blueprint**.
+4. The app is at `https://insight-<something>.onrender.com`. Verification and reset emails appear in the service's **Logs** until an email provider is added.
+
+Free-tier notes: the service sleeps when idle (about 30 seconds to wake), and the free database is time-limited. Upgrade both before real users arrive.
 
 ## Topic and book catalogue
 
