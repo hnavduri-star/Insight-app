@@ -43,6 +43,13 @@
       "when": 1794739436517,
       "tag": "0005_depth_reps_situations",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794752812138,
+      "tag": "0006_quiz_completed",
+      "breakpoints": true
     }
   ]
 }

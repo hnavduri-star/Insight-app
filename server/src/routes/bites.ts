@@ -56,6 +56,15 @@ export async function learnerKey(userId: string, topicId: string, level: Level =
 }
 
 /** The learner's ready toolkit (level 1) for a topic, or null if it hasn't been built yet. */
+/** Practice needs Foundations done: every tool viewed and the quiz finished. Enforced on the server. */
+export async function requireFoundations(userId: string, topicId: string) {
+  const t = await trackFor(userId, topicId);
+  if (t.toolkit.done) return;
+  throw new HttpError(409, !t.toolkit.toolsDone
+    ? 'Practice opens after you finish Foundations. Go through all the tools first, then take the quiz.'
+    : 'Practice opens after you finish Foundations. Take the 5-question quiz first.', 'foundations_first');
+}
+
 export async function readyToolkit(userId: string, topicId: string) {
   const { where } = await learnerKey(userId, topicId, 'toolkit');
   const [l] = await db.select().from(cachedLessons).where(where);
@@ -67,10 +76,13 @@ export async function trackFor(userId: string, topicId: string) {
   const [tp] = await db.select().from(topicProgress).where(and(eq(topicProgress.userId, userId), eq(topicProgress.topicId, topicId)));
   const [r] = await db.select({ done: count(), avg: avg(practiceReps.score) }).from(practiceReps)
     .where(and(eq(practiceReps.userId, userId), eq(practiceReps.topicId, topicId), isNotNull(practiceReps.answeredAt)));
-  const toolkitDone = !!tp?.cardsCompletedAt;
+  // Foundations are complete only when the learner has gone through every tool AND finished the quiz.
+  const toolsDone = !!tp?.cardsCompletedAt;
+  const quizDone = !!tp?.quizCompletedAt;
+  const toolkitDone = toolsDone && quizDone;
   const repsDone = Number(r?.done ?? 0);
   return {
-    toolkit: { done: toolkitDone, quizCorrect: tp?.quizCorrect ?? 0, bestScenario: tp?.bestScenarioScore ?? null },
+    toolkit: { done: toolkitDone, toolsDone, quizDone, quizCorrect: tp?.quizCorrect ?? 0, bestScenario: tp?.bestScenarioScore ?? null },
     reps: { done: repsDone, goal: REPS_GOAL, avgScore: r?.avg == null ? null : Math.round(Number(r.avg)) },
     roleplay: { available: false },
     mastery: {
@@ -95,7 +107,7 @@ biteRoutes.post('/', async (req, res) => {
   if (level === 'mastery') {
     const t = await trackFor(userId, topicId);
     if (!t.mastery.unlocked) {
-      throw new HttpError(403, t.mastery.needsToolkit ? 'Finish the toolkit first to unlock Mastery.'
+      throw new HttpError(403, t.mastery.needsToolkit ? 'Finish the tools and the quiz first to unlock Mastery.'
         : `Complete ${t.mastery.needsReps} more practice rep${t.mastery.needsReps === 1 ? '' : 's'} to unlock Mastery.`, 'locked');
     }
   }
@@ -152,8 +164,11 @@ biteRoutes.post('/:id/progress', async (req, res) => {
         set: mastery ? { masteryCompletedAt: sql`coalesce(${topicProgress.masteryCompletedAt}, now())` }
           : { cardsCompletedAt: sql`coalesce(${topicProgress.cardsCompletedAt}, now())` } });
   } else if (!mastery) {
-    await db.insert(topicProgress).values({ userId: req.userId!, topicId: l.topicId, quizCorrect: body.correct })
-      .onConflictDoUpdate({ target: [topicProgress.userId, topicProgress.topicId], set: { quizCorrect: sql`greatest(${topicProgress.quizCorrect}, ${body.correct})` } });
+    await db.insert(topicProgress).values({ userId: req.userId!, topicId: l.topicId, quizCorrect: body.correct, quizCompletedAt: new Date() })
+      .onConflictDoUpdate({ target: [topicProgress.userId, topicProgress.topicId], set: {
+        quizCorrect: sql`greatest(${topicProgress.quizCorrect}, ${body.correct})`,
+        quizCompletedAt: sql`coalesce(${topicProgress.quizCompletedAt}, now())`,
+      } });
   }
   res.json({ ok: true });
 });

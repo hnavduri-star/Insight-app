@@ -88,8 +88,10 @@ export default function Practice() {
         {phase === 'error' && error && (
           <motion.section key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-1 flex-col justify-center gap-4">
             <Alert>{error.message}</Alert>
-            {error.code === 'toolkit_first'
-              ? <button className="btn-primary" onClick={() => nav(`/bite/${topicId}`, { replace: true })}>Open the toolkit</button>
+            {error.code === 'foundations_first'
+              ? <button className="btn-primary" onClick={() => nav(`/bite/${topicId}${/quiz first/.test(error.message) ? '?start=quiz' : ''}`, { replace: true })}>
+                  {/quiz first/.test(error.message) ? 'Take the quiz' : 'Go to Foundations'}
+                </button>
               : error.code !== 'daily_limit' && <button className="btn-primary" onClick={next}>Try again</button>}
             <button className="btn-ghost w-full" onClick={() => nav(-1)}>Back</button>
           </motion.section>

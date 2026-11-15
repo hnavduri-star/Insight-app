@@ -51,6 +51,14 @@ beforeEach(async () => {
 });
 afterAll(async () => { delete process.env.ANTHROPIC_API_KEY; await pool.end(); });
 
+/** Builds the toolkit and completes Foundations (all tools viewed + quiz finished). */
+async function foundations(a: any, topicId: string) {
+  const { lessonId } = (await a.post('/api/bites').send({ topicId })).body;
+  await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
+  await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 3 });
+  return lessonId as string;
+}
+
 async function learner(email = 'deep@example.com') {
   const a = request.agent(app);
   const r = await a.post('/api/auth/signup').send({ name: 'L', email, password: 'secret1' });
@@ -62,10 +70,31 @@ async function learner(email = 'deep@example.com') {
 }
 
 describe('topic track and practice reps', () => {
-  it('requires the toolkit first, then serves reps from a batch of 5 with one AI call', async () => {
+  it('keeps practice locked until every tool is viewed AND the quiz is finished', async () => {
     const { a, topic } = await learner();
-    expect((await a.post('/api/practice/next').send({ topicId: topic.id })).status).toBe(409);
-    await a.post('/api/bites').send({ topicId: topic.id });
+    const noToolkit = await a.post('/api/practice/next').send({ topicId: topic.id });
+    expect(noToolkit.status).toBe(409);
+    expect(noToolkit.body.code).toBe('foundations_first');
+    const { lessonId } = (await a.post('/api/bites').send({ topicId: topic.id })).body;
+    const notViewed = await a.post('/api/practice/next').send({ topicId: topic.id }); // toolkit built but not gone through
+    expect(notViewed.status).toBe(409);
+    expect(notViewed.body.error).toMatch(/Go through all the tools first/);
+    await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
+    const noQuiz = await a.post('/api/practice/next').send({ topicId: topic.id });
+    expect(noQuiz.status).toBe(409);
+    expect(noQuiz.body.error).toMatch(/Take the 5-question quiz first/);
+    let t = (await a.get(`/api/bites/track/${topic.id}`)).body;
+    expect(t.toolkit).toMatchObject({ done: false, toolsDone: true, quizDone: false });
+    await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 0 }); // any score counts as taken
+    t = (await a.get(`/api/bites/track/${topic.id}`)).body;
+    expect(t.toolkit).toMatchObject({ done: true, quizDone: true });
+    expect((await a.post('/api/practice/next').send({ topicId: topic.id })).status).toBe(200);
+    expect(ai.mock.calls.filter((c) => c[0].system.includes('practice designer'))).toHaveLength(1); // no AI spent while locked
+  });
+
+  it('serves reps from a batch of 5 with one AI call', async () => {
+    const { a, topic } = await learner();
+    await foundations(a, topic.id);
     const r1 = await a.post('/api/practice/next').send({ topicId: topic.id });
     expect(r1.status).toBe(200);
     expect(r1.body.rep).toMatchObject({ ask: 'Say what?', tools: ['Tool 1'], with: 'Raj' }); // unknown tool names dropped
@@ -87,7 +116,7 @@ describe('topic track and practice reps', () => {
 
   it('asks for fresh situations when a batch runs out, avoiding earlier ones', async () => {
     const { a, topic } = await learner();
-    await a.post('/api/bites').send({ topicId: topic.id });
+    await foundations(a, topic.id);
     for (let i = 0; i < 5; i++) {
       const rep = (await a.post('/api/practice/next').send({ topicId: topic.id })).body.rep;
       await a.post(`/api/practice/${rep.id}/answer`).send({ response: 'A reasonable reply that uses the tool.' });
@@ -101,7 +130,7 @@ describe('topic track and practice reps', () => {
   it("can't answer someone else's rep", async () => {
     const one = await learner('one@example.com');
     const two = await learner('two@example.com');
-    await one.a.post('/api/bites').send({ topicId: one.topic.id });
+    await foundations(one.a, one.topic.id);
     const rep = (await one.a.post('/api/practice/next').send({ topicId: one.topic.id })).body.rep;
     expect((await two.a.post(`/api/practice/${rep.id}/answer`).send({ response: 'Trying to answer another user rep.' })).status).toBe(404);
   });
@@ -111,8 +140,7 @@ describe('topic track and practice reps', () => {
     let t = (await a.get(`/api/bites/track/${topic.id}`)).body;
     expect(t).toMatchObject({ toolkit: { done: false }, reps: { done: 0, goal: 10 }, roleplay: { available: false }, mastery: { unlocked: false, needsToolkit: true } });
     expect((await a.post('/api/bites').send({ topicId: topic.id, level: 'mastery' })).status).toBe(403);
-    const { lessonId } = (await a.post('/api/bites').send({ topicId: topic.id })).body;
-    await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
+    const lessonId = await foundations(a, topic.id);
     for (let i = 0; i < 5; i++) {
       const rep = (await a.post('/api/practice/next').send({ topicId: topic.id })).body.rep;
       await a.post(`/api/practice/${rep.id}/answer`).send({ response: 'A reasonable reply that uses the tool.' });

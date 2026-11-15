@@ -142,6 +142,7 @@ export const topicProgress = pgTable('topic_progress', {
   cardsCompletedAt: ts('cards_completed_at'),
   quizCorrect: integer('quiz_correct').notNull().default(0),
   bestScenarioScore: integer('best_scenario_score'),
+  quizCompletedAt: ts('quiz_completed_at'), // set when the 5-question quiz is finished (any score)
   masteryCompletedAt: ts('mastery_completed_at'),
 }, (t) => [primaryKey({ columns: [t.userId, t.topicId] })]);
 

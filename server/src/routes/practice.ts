@@ -8,7 +8,7 @@ import { requireTopicAccess } from '../lib/access.js';
 import { generateReps, gradeScenario, type Bite, type Rep } from '../lib/ai.js';
 import { runJob } from '../lib/jobs.js';
 import { RELATIONSHIPS, PERSONAS } from '../../../shared/options.js';
-import { checkLimit, learnerKey, readyToolkit, responseInput, trackFor, uuid } from './bites.js';
+import { checkLimit, learnerKey, readyToolkit, requireFoundations, responseInput, trackFor, uuid } from './bites.js';
 
 /** Level 2: practice reps. Short coached drills, generated 5 at a time, answered one at a time. */
 export const practiceRoutes = Router();
@@ -22,7 +22,8 @@ practiceRoutes.post('/next', async (req, res) => {
   const userId = req.userId!;
   await requireTopicAccess(userId, topicId);
   const toolkit = await readyToolkit(userId, topicId);
-  if (!toolkit) throw new HttpError(409, 'Open the toolkit for this topic first; practice reps use its tools.', 'toolkit_first');
+  if (!toolkit) throw new HttpError(409, 'Practice opens after you finish Foundations. Open the toolkit first.', 'foundations_first');
+  await requireFoundations(userId, topicId);
 
   const nextRep = async () => (await db.select().from(practiceReps)
     .where(and(eq(practiceReps.userId, userId), eq(practiceReps.topicId, topicId), isNull(practiceReps.answeredAt)))
@@ -62,6 +63,7 @@ practiceRoutes.post('/:repId/answer', async (req, res) => {
   const [rep] = await db.select().from(practiceReps).where(and(eq(practiceReps.id, uuid(req.params.repId, 'Rep')), eq(practiceReps.userId, userId)));
   if (!rep) throw new HttpError(404, 'Rep not found');
   await requireTopicAccess(userId, rep.topicId);
+  await requireFoundations(userId, rep.topicId);
   const toolkit = await readyToolkit(userId, rep.topicId);
   const bite = toolkit?.contentJson as Bite | undefined;
   const tools = bite?.tools.map((t) => ({ name: t.name, idea: t.idea })) ?? (rep.repJson as Rep).tools.map((n) => ({ name: n, idea: n }));

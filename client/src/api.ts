@@ -39,7 +39,7 @@ export type Plans = { enabled: boolean; testMode?: boolean; plans: { interval: '
 
 export type Grade = { score: number; feedback: string; strength: string; improve: string; toolsUsed: string[]; modelAnswer: string };
 export type Track = {
-  toolkit: { done: boolean; quizCorrect: number; bestScenario: number | null };
+  toolkit: { done: boolean; toolsDone: boolean; quizDone: boolean; quizCorrect: number; bestScenario: number | null };
   reps: { done: number; goal: number; avgScore: number | null };
   roleplay: { available: boolean };
   mastery: { unlocked: boolean; done: boolean; needsToolkit: boolean; needsReps: number };

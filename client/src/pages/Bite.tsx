@@ -37,6 +37,7 @@ export default function Bite() {
   const { topicId } = useParams();
   const [params] = useSearchParams();
   const level = params.get('level') === 'mastery' ? 'mastery' : 'toolkit';
+  const startAtQuiz = params.get('start') === 'quiz'; // tools already done: go straight to the quiz
   const nav = useNavigate();
   const { me } = useAuth();
   const coach = me?.coach ?? 'maya';
@@ -89,7 +90,7 @@ export default function Bite() {
           continue;
         }
         if (!alive.current) return;
-        setData(d); setPhase('intro');
+        setData(d); setPhase(startAtQuiz && level === 'toolkit' ? 'quiz' : 'intro');
         return;
       }
     } catch (e) {
@@ -132,10 +133,14 @@ export default function Bite() {
     setPicked(i);
     if (i === bite.quiz[qi].answer) setCorrect((c) => c + 1);
   };
-  const nextQuestion = () => {
+  const nextQuestion = async () => {
     if (!bite) return;
     if (qi + 1 >= nQ) {
-      api(`/bites/${data!.lessonId}/progress`, { body: { stage: 'quiz', correct } }).catch(() => {});
+      // Wait for the quiz result to be saved: it is what opens Practice for this topic.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try { await api(`/bites/${data!.lessonId}/progress`, { body: { stage: 'quiz', correct } }); break; }
+        catch { await new Promise((r) => setTimeout(r, 1500)); }
+      }
       setPhase('scenario'); return;
     }
     setQi(qi + 1); setPicked(null);

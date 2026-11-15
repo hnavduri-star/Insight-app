@@ -118,7 +118,8 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
 
 /** The single best next step on this topic's track. */
 function NextStep({ t, track, go }: { t: TopicDetail; track: Track | null; go: (path: string) => void }) {
-  if (!track || !track.toolkit.done) return <button className="btn-primary" onClick={() => go(`/bite/${t.id}`)}>{track ? 'Open your toolkit' : 'Open your toolkit'}</button>;
+  if (track?.toolkit.toolsDone && !track.toolkit.quizDone) return <button className="btn-primary" onClick={() => go(`/bite/${t.id}?start=quiz`)}>Take the quiz to finish Foundations</button>;
+  if (!track || !track.toolkit.done) return <button className="btn-primary" onClick={() => go(`/bite/${t.id}`)}>Open your toolkit</button>;
   if (track.mastery.unlocked && !track.mastery.done && track.reps.done >= track.reps.goal) {
     return <button className="btn-primary" onClick={() => go(`/bite/${t.id}?level=mastery`)}>Open Mastery</button>;
   }
@@ -132,14 +133,17 @@ function TrackLevels({ t, track, tint, go }: { t: TopicDetail; track: Track | nu
     {
       n: 1, title: 'Foundations', sub: '5–8 tools with theory, what to say and case studies, a 5-question quiz and a coached scenario',
       status: track?.toolkit.done ? 'done' : 'open', progress: track?.toolkit.done ? 1 : 0,
-      note: track?.toolkit.done ? `Quiz ${track.toolkit.quizCorrect}/5${track.toolkit.bestScenario != null ? ` · scenario ${track.toolkit.bestScenario}/100` : ''}` : 'About 15 minutes',
-      action: unlocked ? { label: track?.toolkit.done ? 'Review' : 'Start', path: `/bite/${t.id}` } : null,
+      note: track?.toolkit.done ? `Quiz ${track.toolkit.quizCorrect}/5${track.toolkit.bestScenario != null ? ` · scenario ${track.toolkit.bestScenario}/100` : ''}`
+        : track?.toolkit.toolsDone ? 'Tools ✓ · take the quiz to finish' : 'Go through the tools, then the quiz · about 15 minutes',
+      action: unlocked ? (track?.toolkit.toolsDone && !track.toolkit.quizDone
+        ? { label: 'Take quiz', path: `/bite/${t.id}?start=quiz` }
+        : { label: track?.toolkit.done ? 'Review' : 'Start', path: `/bite/${t.id}` }) : null,
     },
     {
       n: 2, title: 'Practice reps', sub: '2-minute drills set in your world, some with your own people, each coached',
       status: !track?.toolkit.done ? 'locked' : (track.reps.done >= track.reps.goal ? 'done' : 'open'),
       progress: track ? Math.min(1, track.reps.done / track.reps.goal) : 0,
-      note: !track?.toolkit.done ? 'Opens after Foundations' : `${track.reps.done}/${track.reps.goal} reps${track.reps.avgScore != null ? ` · average ${track.reps.avgScore}/100` : ''}`,
+      note: !track?.toolkit.done ? 'Opens after you finish the tools and the quiz' : `${track.reps.done}/${track.reps.goal} reps${track.reps.avgScore != null ? ` · average ${track.reps.avgScore}/100` : ''}`,
       action: unlocked && track?.toolkit.done ? { label: track.reps.done ? 'Continue' : 'Start', path: `/practice/${t.id}` } : null,
     },
     {
@@ -149,7 +153,7 @@ function TrackLevels({ t, track, tint, go }: { t: TopicDetail; track: Track | nu
     {
       n: 4, title: 'Mastery', sub: 'Advanced tools: edge cases, difficult people, combining tools, and when they fail',
       status: track?.mastery.done ? 'done' : track?.mastery.unlocked ? 'open' : 'locked', progress: track?.mastery.done ? 1 : 0,
-      note: track?.mastery.done ? 'Completed' : track?.mastery.unlocked ? 'Unlocked' : track?.mastery.needsToolkit !== false ? 'Opens after Foundations and 5 practice reps' : `${track.mastery.needsReps} more rep${track.mastery.needsReps === 1 ? '' : 's'} to unlock`,
+      note: track?.mastery.done ? 'Completed' : track?.mastery.unlocked ? 'Unlocked' : track?.mastery.needsToolkit !== false ? 'Opens after Foundations (tools and quiz) and 5 practice reps' : `${track.mastery.needsReps} more rep${track.mastery.needsReps === 1 ? '' : 's'} to unlock`,
       action: unlocked && track?.mastery.unlocked ? { label: track.mastery.done ? 'Review' : 'Start', path: `/bite/${t.id}?level=mastery` } : null,
     },
   ] as const;

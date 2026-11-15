@@ -101,6 +101,8 @@ Each topic is a track with 4 levels (`GET /api/bites/track/:topicId`):
 3. **Real conversations:** role-play (coming next).
 4. **Mastery:** an advanced toolkit (edge cases, difficult people, combining tools, when tools fail), saved per profile like level 1. It unlocks after Foundations plus 5 reps.
 
+Foundations count as complete only when every tool has been viewed **and** the 5-question quiz is finished (any score). Practice reps stay locked until then, enforced on the server (`requireFoundations`), so a direct link to practice is refused with a "Take the quiz" route back. The closing coached scenario stays optional.
+
 **I have a situation** (`/api/situations`): the learner describes a real upcoming moment and gets a plan. The plan has a goal, an opening line, tool-based steps, phrases, likely pushback with replies, what to avoid, and links to the relevant topics. A coached rehearsal follows. The learner's text is treated as data, not instructions.
 
 Slow AI work runs as background jobs (`server/src/lib/jobs.ts`): a request waits up to 8 seconds, then answers "generating", and the app polls through brief hosting errors. Daily limits: 20 toolkits, 15 rep batches, 10 situations and 40 gradings per learner.
