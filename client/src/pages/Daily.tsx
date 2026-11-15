@@ -7,6 +7,7 @@ import { Alert, Spinner } from '../components/ui';
 import { CoachAvatar } from '../components/Coach';
 import { categoryTint, tileBackground } from '../components/CategoryIcon';
 import { COACHES } from '../options';
+import { ShareWeek } from '../components/ShareWeek';
 
 const FLAME = 'linear-gradient(155deg, #ff9f43 0%, #f0506e 100%)';
 
@@ -139,6 +140,7 @@ export default function Daily() {
 /** The weekly summary: days active, what was done, scores and a focus for next week. */
 export function Week() {
   const nav = useNavigate();
+  const { me } = useAuth();
   const [w, setW] = useState<WeekT | null>(null);
   const [error, setError] = useState('');
   useEffect(() => { api<WeekT>('/daily/week').then(setW).catch((e) => setError(e.message)); }, []);
@@ -198,6 +200,8 @@ export function Week() {
             <p className="mt-1 text-[15px] leading-relaxed">{w.focus}</p>
           </section>
           <Link to="/daily" className="btn-primary mt-5 flex items-center justify-center">Do today's 5 minutes</Link>
+          <div className="mt-3"><ShareWeek week={w} firstName={me?.name.split(' ')[0] ?? ''} /></div>
+          <Link to="/progress" className="mt-2 flex min-h-[44px] items-center justify-center text-sm font-semibold text-primary">See your progress and badges</Link>
         </>
       )}
     </main>

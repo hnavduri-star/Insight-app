@@ -15,6 +15,7 @@ import { roleplayRoutes } from './routes/roleplay.js';
 import { dailyRoutes } from './routes/daily.js';
 import { homeRoutes } from './routes/home.js';
 import { checkinRoutes } from './routes/checkins.js';
+import { progressRoutes } from './routes/progress.js';
 import { aiEnabled, findApiKey } from './lib/ai.js';
 import { errorHandler, HttpError } from './lib/errors.js';
 import { PERSONAS, INDUSTRIES, GOALS, DAILY_MINUTES, COACHES, RELATIONSHIPS, TRAITS } from '../../shared/options.js';
@@ -54,6 +55,7 @@ export function createApp() {
   app.use('/api/daily', dailyRoutes);
   app.use('/api/home', homeRoutes);
   app.use('/api/checkins', checkinRoutes);
+  app.use('/api/progress', progressRoutes);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found')));
 
   // In production the API also serves the built client.

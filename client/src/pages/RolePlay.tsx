@@ -9,6 +9,7 @@ import { categoryTint, tileBackground } from '../components/CategoryIcon';
 import { ScoreRing } from '../components/GradeResult';
 import { appendSpoken, MicButton, speechSupported } from '../components/Mic';
 import { COACHES } from '../options';
+import { ConfidenceNow } from './Progress';
 
 type Phase = 'choose' | 'setting-up' | 'brief' | 'chat' | 'debriefing' | 'debrief' | 'error';
 const quoted = (s: string) => `“${s.trim().replace(/^["“']+|["”']+$/g, '')}”`;
@@ -276,7 +277,7 @@ export default function RolePlay() {
 
         {phase === 'debrief' && rp?.debrief && (
           <motion.section key="debrief" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-1 flex-col pt-5">
-            <DebriefView rp={rp} tint={tint} coach={coach} coachName={coachName} name={name} />
+            <DebriefView rp={rp} tint={tint} coach={coach} coachName={coachName} name={name} topicName={topic?.name ?? 'this skill'} />
             <div className="mt-6 space-y-2">
               <button className="btn-primary" onClick={() => start({ replayOf: rp.id })}>Replay with a better move</button>
               <button className="btn-ghost w-full" onClick={() => { setRp(null); setSearch({}, { replace: true }); setWho(null); setPhase('choose'); api<RoleplayOptions>(`/roleplay/options/${topicId}`).then(setOpts).catch(() => {}); }}>
@@ -309,7 +310,7 @@ function TypingDots() {
   );
 }
 
-function DebriefView({ rp, tint, coach, coachName, name }: { rp: Roleplay; tint: string; coach: 'maya' | 'alex'; coachName: string; name: string }) {
+function DebriefView({ rp, tint, coach, coachName, name, topicName }: { rp: Roleplay; tint: string; coach: 'maya' | 'alex'; coachName: string; name: string; topicName: string }) {
   const d = rp.debrief!;
   const rubric = [['Clarity', d.rubric.clarity], ['Empathy', d.rubric.empathy], ['Structure', d.rubric.structure], ['Use of tools', d.rubric.tools]] as const;
   return (
@@ -336,6 +337,7 @@ function DebriefView({ rp, tint, coach, coachName, name }: { rp: Roleplay; tint:
           <p className="mt-1.5 text-sm text-[#0b1640]/70">You said {quoted(d.betterMove.yourLine)}</p>
           <p className="mt-1 text-[15px] font-semibold leading-relaxed">Try: {quoted(d.betterMove.tryInstead)}</p>
         </div>
+        <div className="card p-4"><ConfidenceNow topicId={rp.topicId} topicName={topicName} /></div>
         <div className="flex items-start gap-3 pt-1">
           <CoachAvatar coach={coach} size={40} />
           <p className="card px-4 py-3 text-sm leading-relaxed"><span className="font-bold">{coachName}:</span> What {name} wanted: {d.revealed}</p>

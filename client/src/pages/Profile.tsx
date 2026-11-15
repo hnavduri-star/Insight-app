@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api, type Me } from '../api';
 import { useAuth } from '../auth';
 import { Alert, Avatar, Field, Submit } from '../components/ui';
@@ -40,6 +40,11 @@ export default function Profile() {
         <h1 className="mt-3 text-2xl font-semibold">{m.name}</h1>
         <p className="text-sm text-muted">{m.email}</p>
         {!m.emailVerified && <p className="mt-1 text-xs text-error">Email not verified</p>}
+      </section>
+
+      <section className="grid grid-cols-2 gap-3">
+        <Link to="/progress" className="card p-4"><span className="text-xl" aria-hidden>🏅</span><span className="mt-1 block font-bold">Your progress</span><span className="text-xs text-muted">Level, skills, badges</span></Link>
+        <Link to="/week" className="card p-4"><span className="text-xl" aria-hidden>📈</span><span className="mt-1 block font-bold">Your week</span><span className="text-xs text-muted">Days active and focus</span></Link>
       </section>
 
       <section className="card flex items-center gap-4 p-5">
@@ -83,7 +88,7 @@ export default function Profile() {
         <button className="btn-ghost w-full" onClick={async () => { await logout(); nav('/login', { replace: true }); }}>Log out</button>
         <button className="min-h-[44px] w-full text-sm text-error/90 hover:text-error" onClick={() => setDeleting(true)}>Delete account</button>
         <p className="px-2 text-center text-xs leading-relaxed text-muted">
-          Privacy: your learning profile, written answers and the details of people you add are sent to an AI provider (Anthropic) to personalize your learning and give you feedback. Your name, email and password are never sent.
+          Privacy: your learning profile, written answers and the details of people you add are sent to an AI provider (Anthropic) to personalize your learning and give you feedback. Your name, email and password are never sent. Insight is practice coaching, not therapy or professional advice.
         </p>
       </section>
 

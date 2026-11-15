@@ -15,6 +15,7 @@ function greeting() {
 }
 
 type HomeData = {
+  level: { n: number; name: string; xp: number };
   next: { topic: { id: string; name: string; category: string }; label: string; sub: string; minutes: number; path: string; started: boolean } | null;
   picks: { id: string; name: string; description: string | null; category: string; unlocked: boolean }[];
   fiction: { id: string; name: string; category: string; book: string; author: string | null; unlocked: boolean }[];
@@ -45,6 +46,7 @@ export default function Home() {
             <p className="font-display text-[22px] leading-tight">{me!.name.split(' ')[0]}</p>
           </div>
         </Link>
+        {home && <Link to="/progress" className="ml-auto mr-2 rounded-full bg-white/[0.07] px-3 py-1 text-xs font-bold" aria-label={`Level ${home.level.n}, ${home.level.name}, ${home.level.xp} XP. Open your progress`}>Lv {home.level.n} · {home.level.xp} XP</Link>}
         {me!.planSource === 'beta' ? <span className="rounded-full bg-accent/15 px-3 py-1 text-xs font-bold text-accent">Free beta</span>
           : me!.plan === 'premium' && <span className="rounded-full bg-[#f5b971]/15 px-3 py-1 text-xs font-bold text-[#f5b971]">Premium</span>}
       </div>
