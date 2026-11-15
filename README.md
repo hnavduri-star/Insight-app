@@ -93,6 +93,18 @@ Bites saved in an older format are rebuilt automatically the next time someone o
 - **Quality signals:** a helpful / not helpful tap on every card (`feedback` table), plus quiz scores and scenario scores in `topic_progress`.
 - **Switch it on:** set `ANTHROPIC_API_KEY` on the server (Render → insight → Environment). Without it, bites show "not switched on yet".
 
+## Depth: the 4-level track, practice reps and situations
+
+Each topic is a track with 4 levels (`GET /api/bites/track/:topicId`):
+1. **Foundations:** the toolkit described above.
+2. **Practice reps** (`/api/practice`): 2-minute coached drills that use the toolkit's tools. They're generated 5 at a time in one low-effort AI call, set in the learner's world, and some feature their saved people. A new batch avoids earlier situations. The goal is 10 reps per topic.
+3. **Real conversations:** role-play (coming next).
+4. **Mastery:** an advanced toolkit (edge cases, difficult people, combining tools, when tools fail), saved per profile like level 1. It unlocks after Foundations plus 5 reps.
+
+**I have a situation** (`/api/situations`): the learner describes a real upcoming moment and gets a plan. The plan has a goal, an opening line, tool-based steps, phrases, likely pushback with replies, what to avoid, and links to the relevant topics. A coached rehearsal follows. The learner's text is treated as data, not instructions.
+
+Slow AI work runs as background jobs (`server/src/lib/jobs.ts`): a request waits up to 8 seconds, then answers "generating", and the app polls through brief hosting errors. Daily limits: 20 toolkits, 15 rep batches, 10 situations and 40 gradings per learner.
+
 ## Look and feel
 
 Wio-style vivid design: each heading has its own bright two-colour fill (`client/src/components/CategoryIcon.tsx`), shown as colour tiles on Home, a colour header on each heading page, and full-colour bite cards. There's a vivid gradient hero card for the learner's journey, a floating pill navigation, bold Plus Jakarta Sans type and a fine film grain over everything.

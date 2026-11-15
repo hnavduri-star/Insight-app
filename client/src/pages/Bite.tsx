@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { api, ApiError, type TopicDetail } from '../api';
 import { useAuth } from '../auth';
@@ -35,6 +35,8 @@ function Section({ label, color, children }: { label: string; color: string; chi
 
 export default function Bite() {
   const { topicId } = useParams();
+  const [params] = useSearchParams();
+  const level = params.get('level') === 'mastery' ? 'mastery' : 'toolkit';
   const nav = useNavigate();
   const { me } = useAuth();
   const coach = me?.coach ?? 'maya';
@@ -68,7 +70,7 @@ export default function Bite() {
       while (alive.current) {
         let d: Started | { status: 'generating' };
         try {
-          d = await api<Started | { status: 'generating' }>('/bites', { body: { topicId } });
+          d = await api<Started | { status: 'generating' }>('/bites', { body: { topicId, level } });
           blips = 0;
         } catch (e) {
           // A brief network or hosting hiccup (no connection, 502/503/504) shouldn't end the wait:
@@ -163,7 +165,7 @@ export default function Bite() {
       <AnimatePresence mode="wait">
         {phase === 'loading' && (
           <motion.section key="loading" exit={{ opacity: 0 }} className="flex flex-1 flex-col items-center justify-center text-center">
-            <Loading topic={topic} coach={coach} persona={personaLabel(me?.persona ?? null)} tint={tint} />
+            <Loading topic={topic} coach={coach} persona={personaLabel(me?.persona ?? null)} tint={tint} mastery={level === 'mastery'} />
           </motion.section>
         )}
 
@@ -184,7 +186,7 @@ export default function Bite() {
             <div className="tile mt-3 p-6" style={{ background: tileBackground(tint) }}>
               <CategoryGlyph name={category} size={200} className="absolute -right-10 -top-6 text-white/15" />
               <div className="relative">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">{data!.topic.name} · your toolkit</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">{data!.topic.name} · {level === 'mastery' ? 'mastery toolkit' : 'your toolkit'}</p>
                 <h1 className="mt-3 text-[30px] leading-[1.08] text-white">{bite.title}</h1>
                 <div className="mt-5 rounded-2xl bg-black/20 p-4 backdrop-blur-sm">
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">Your Insight Framework</p>
@@ -387,7 +389,16 @@ export default function Bite() {
                 ))}
               </ul>
             </div>
-            <button className="btn-primary mt-6" onClick={() => nav('/', { replace: true })}>Back to Home</button>
+            {level === 'toolkit' ? (
+              <>
+                <div className="mt-6 w-full rounded-2xl p-4 text-left text-white" style={{ background: tileBackground(tint) }}>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">Next: level 2</p>
+                  <p className="mt-1 font-bold">Practice reps: 2-minute drills from your world, coached one at a time. Five unlock Mastery.</p>
+                </div>
+                <button className="btn-primary mt-4" onClick={() => nav(`/practice/${topicId}`, { replace: true })}>Start practice reps</button>
+              </>
+            ) : <p className="mt-6 text-sm font-semibold text-success">Mastery complete for {data!.topic.name}. Keep practising to stay sharp.</p>}
+            <button className="btn-ghost mt-3 w-full" onClick={() => nav('/', { replace: true })}>Back to Home</button>
           </motion.section>
         )}
       </AnimatePresence>
@@ -395,7 +406,7 @@ export default function Bite() {
   );
 }
 
-function Loading({ topic, coach, persona, tint }: { topic: TopicDetail | null; coach: 'maya' | 'alex'; persona: string; tint: string }) {
+function Loading({ topic, coach, persona, tint, mastery = false }: { topic: TopicDetail | null; coach: 'maya' | 'alex'; persona: string; tint: string; mastery?: boolean }) {
   const lines = [
     ...(topic?.books.map((b) => `Reading “${b.title}”…`) ?? ['Opening the books…']),
     'Pulling out the tools that matter most…',
@@ -410,7 +421,7 @@ function Loading({ topic, coach, persona, tint }: { topic: TopicDetail | null; c
         <motion.div className="absolute -inset-6 rounded-full blur-2xl" style={{ background: tint }} animate={{ opacity: [0.25, 0.5, 0.25] }} transition={{ duration: 2.4, repeat: Infinity }} />
         <div className="relative"><CoachAvatar coach={coach} size={96} /></div>
       </div>
-      <h1 className="mt-7 text-[24px]">Building your toolkit</h1>
+      <h1 className="mt-7 text-[24px]">{mastery ? 'Building your mastery toolkit' : 'Building your toolkit'}</h1>
       <p className="mt-1 text-sm text-muted">{topic?.name ?? ''}</p>
       <AnimatePresence mode="wait">
         <motion.p key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="mt-6 h-6 text-[15px] font-semibold" style={{ color: tint }}>

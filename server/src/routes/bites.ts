@@ -1,22 +1,27 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { and, asc, eq, gt, sql } from 'drizzle-orm';
+import { and, asc, avg, count, eq, gt, isNotNull, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
-  aiCalls, assessments, books, cachedLessons, cardFeedback, categories, profiles, scenarios, topicBooks, topicProgress, topics,
+  aiCalls, assessments, books, cachedLessons, cardFeedback, categories, practiceReps, profiles, scenarios, topicBooks, topicProgress, topics,
 } from '../db/schema.js';
 import { requireAuth } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { requireTopicAccess } from '../lib/access.js';
 import { checkBite, generateBite, gradeScenario, type Bite } from '../lib/ai.js';
+import { runJob, WAIT_MS } from '../lib/jobs.js';
 import { PERSONAS } from '../../../shared/options.js';
 
+export { WAIT_MS };
 export const biteRoutes = Router();
 biteRoutes.use(requireAuth);
 
-export const LIMITS = { bite: 20, grade: 30 }; // AI calls per user per rolling 24 hours
+/** AI calls per user per rolling 24 hours. */
+export const LIMITS: Record<string, number> = { bite: 20, grade: 40, reps: 15, situation: 10 };
+export const REPS_GOAL = 10;          // practice reps that complete level 2
+export const MASTERY_AFTER_REPS = 5;  // reps needed (with the toolkit done) to unlock mastery
 
-async function checkLimit(userId: string, endpoint: 'bite' | 'grade') {
+export async function checkLimit(userId: string, endpoint: keyof typeof LIMITS) {
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(aiCalls)
     .where(and(eq(aiCalls.userId, userId), eq(aiCalls.endpoint, endpoint), gt(aiCalls.createdAt, sql`now() - interval '1 day'`)));
   if (n >= LIMITS[endpoint]) throw new HttpError(429, "You've reached today's limit. Come back tomorrow for more.", 'daily_limit');
@@ -25,79 +30,104 @@ async function checkLimit(userId: string, endpoint: 'bite' | 'grade') {
 export const ratingBand = (score?: number | null) =>
   score == null ? 'core' : score <= 4 ? 'foundation' : score >= 8 ? 'advanced' : 'core';
 
-const uuid = (v: unknown, what = 'Bite') => {
+export const uuid = (v: unknown, what = 'Bite') => {
   const r = z.string().uuid().safeParse(v);
   if (!r.success) throw new HttpError(404, `${what} not found`);
   return r.data;
 };
 
-/**
- * Toolkits are built in the background so no single request has to stay open for minutes.
- * Learners asking for the same new toolkit share one job (and one AI call). A failed job
- * keeps its error for a few minutes so the next poll can report it.
- */
-type Job = { promise: Promise<void>; error?: unknown };
-const jobs = new Map<string, Job>();
-export const WAIT_MS = { value: 8_000 }; // how long one request waits before answering "still building" (kept short for hosting proxies)
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+export type Level = 'toolkit' | 'mastery';
 
-/** Start a bite: returns the shared cached version for this learner's profile, generating it once if needed. */
-biteRoutes.post('/', async (req, res) => {
-  const topicId = uuid(req.body?.topicId, 'Topic');
-  const userId = req.userId!;
-  await requireTopicAccess(userId, topicId);
-
+/** The learner's profile and the shared cache key for their toolkit on a topic. */
+export async function learnerKey(userId: string, topicId: string, level: Level = 'toolkit') {
   const [p] = await db.select().from(profiles).where(eq(profiles.userId, userId));
   const goals = (p?.goals as string[]) ?? [];
   if (!p?.persona || !p.industry || !goals.length || !p.dailyMinutes) throw new HttpError(409, 'Finish setting up your profile first.', 'profile_incomplete');
-  const [a] = await db.select().from(assessments)
-    .where(and(eq(assessments.userId, userId), eq(assessments.topicId, topicId), eq(assessments.phase, 'baseline')));
-  const key = { topicId, persona: p.persona, industry: p.industry, goal: goals[0], ratingBand: ratingBand(a?.score) } as const;
+  let band: 'foundation' | 'core' | 'advanced' | 'mastery' = 'mastery';
+  if (level === 'toolkit') {
+    const [a] = await db.select().from(assessments)
+      .where(and(eq(assessments.userId, userId), eq(assessments.topicId, topicId), eq(assessments.phase, 'baseline')));
+    band = ratingBand(a?.score);
+  }
+  const key = { topicId, persona: p.persona, industry: p.industry, goal: goals[0], ratingBand: band } as const;
   const where = and(eq(cachedLessons.topicId, key.topicId), eq(cachedLessons.persona, key.persona), eq(cachedLessons.industry, key.industry),
     eq(cachedLessons.goal, key.goal), eq(cachedLessons.ratingBand, key.ratingBand));
+  return { profile: p, goals, key, where };
+}
+
+/** The learner's ready toolkit (level 1) for a topic, or null if it hasn't been built yet. */
+export async function readyToolkit(userId: string, topicId: string) {
+  const { where } = await learnerKey(userId, topicId, 'toolkit');
+  const [l] = await db.select().from(cachedLessons).where(where);
+  return l && checkBite(l.contentJson as Bite) === null ? l : null;
+}
+
+/** Where the learner is on a topic's 4-level track. */
+export async function trackFor(userId: string, topicId: string) {
+  const [tp] = await db.select().from(topicProgress).where(and(eq(topicProgress.userId, userId), eq(topicProgress.topicId, topicId)));
+  const [r] = await db.select({ done: count(), avg: avg(practiceReps.score) }).from(practiceReps)
+    .where(and(eq(practiceReps.userId, userId), eq(practiceReps.topicId, topicId), isNotNull(practiceReps.answeredAt)));
+  const toolkitDone = !!tp?.cardsCompletedAt;
+  const repsDone = Number(r?.done ?? 0);
+  return {
+    toolkit: { done: toolkitDone, quizCorrect: tp?.quizCorrect ?? 0, bestScenario: tp?.bestScenarioScore ?? null },
+    reps: { done: repsDone, goal: REPS_GOAL, avgScore: r?.avg == null ? null : Math.round(Number(r.avg)) },
+    roleplay: { available: false },
+    mastery: {
+      unlocked: toolkitDone && repsDone >= MASTERY_AFTER_REPS, done: !!tp?.masteryCompletedAt,
+      needsToolkit: !toolkitDone, needsReps: Math.max(0, MASTERY_AFTER_REPS - repsDone),
+    },
+  };
+}
+
+biteRoutes.get('/track/:topicId', async (req, res) => {
+  const topicId = uuid(req.params.topicId, 'Topic');
+  await requireTopicAccess(req.userId!, topicId);
+  res.json(await trackFor(req.userId!, topicId));
+});
+
+/** Start a toolkit (level 1) or mastery toolkit (level 4): shared cached version, generated once in the background. */
+biteRoutes.post('/', async (req, res) => {
+  const topicId = uuid(req.body?.topicId, 'Topic');
+  const level: Level = req.body?.level === 'mastery' ? 'mastery' : 'toolkit';
+  const userId = req.userId!;
+  await requireTopicAccess(userId, topicId);
+  if (level === 'mastery') {
+    const t = await trackFor(userId, topicId);
+    if (!t.mastery.unlocked) {
+      throw new HttpError(403, t.mastery.needsToolkit ? 'Finish the toolkit first to unlock Mastery.'
+        : `Complete ${t.mastery.needsReps} more practice rep${t.mastery.needsReps === 1 ? '' : 's'} to unlock Mastery.`, 'locked');
+    }
+  }
+  const { profile: p, goals, key, where } = await learnerKey(userId, topicId, level);
 
   let [lesson] = await db.select().from(cachedLessons).where(where);
   // A bite saved in an older format is rebuilt once and replaced.
   const ready = (l?: typeof lesson) => !!l && checkBite(l.contentJson as Bite) === null;
   const cached = ready(lesson);
   if (!cached) {
-    const k = JSON.stringify(key);
-    let job = jobs.get(k);
-    if (job?.error) { jobs.delete(k); throw job.error; }
-    if (!job) {
-      await checkLimit(userId, 'bite');
-      const j: Job = {
-        promise: (async () => {
-          const [t] = await db.select({ name: topics.name, description: topics.description }).from(topics).where(eq(topics.id, topicId));
-          const bookRows = await db.select({ title: books.title, author: books.author }).from(topicBooks)
-            .innerJoin(books, eq(books.id, topicBooks.bookId)).where(eq(topicBooks.topicId, topicId)).orderBy(asc(topicBooks.sortOrder));
-          const { bite, model } = await generateBite(userId, {
-            topic: t.name, scope: t.description, books: bookRows,
-            persona: PERSONAS.find((x) => x.value === key.persona)!.label, industry: key.industry, goals, minutes: p.dailyMinutes!, band: key.ratingBand,
-          });
-          await db.insert(cachedLessons).values({ ...key, contentJson: bite, model })
-            .onConflictDoUpdate({ target: [cachedLessons.topicId, cachedLessons.persona, cachedLessons.industry, cachedLessons.goal, cachedLessons.ratingBand],
-              set: { contentJson: bite, model, createdAt: new Date() } });
-        })(),
-      };
-      j.promise.then(() => { if (jobs.get(k) === j) jobs.delete(k); }, (err) => {
-        console.error('[bites] toolkit job failed:', err instanceof Error ? err.message : err);
-        j.error = err;
-        setTimeout(() => { if (jobs.get(k) === j) jobs.delete(k); }, 5 * 60_000).unref?.();
+    const build = () => runJob(`bite:${JSON.stringify(key)}`, async () => {
+      const [t] = await db.select({ name: topics.name, description: topics.description }).from(topics).where(eq(topics.id, topicId));
+      const bookRows = await db.select({ title: books.title, author: books.author }).from(topicBooks)
+        .innerJoin(books, eq(books.id, topicBooks.bookId)).where(eq(topicBooks.topicId, topicId)).orderBy(asc(topicBooks.sortOrder));
+      const { bite, model } = await generateBite(userId, {
+        topic: t.name, scope: t.description, books: bookRows,
+        persona: PERSONAS.find((x) => x.value === key.persona)!.label, industry: key.industry, goals, minutes: p.dailyMinutes!, band: key.ratingBand,
       });
-      jobs.set(k, j);
-      job = j;
-    }
-    await Promise.race([job.promise.catch(() => {}), sleep(WAIT_MS.value)]);
+      await db.insert(cachedLessons).values({ ...key, contentJson: bite, model })
+        .onConflictDoUpdate({ target: [cachedLessons.topicId, cachedLessons.persona, cachedLessons.industry, cachedLessons.goal, cachedLessons.ratingBand],
+          set: { contentJson: bite, model, createdAt: new Date() } });
+    }, () => checkLimit(userId, 'bite'));
+    let r = await build();
     [lesson] = await db.select().from(cachedLessons).where(where);
-    if (!ready(lesson)) {
-      if (job.error) { jobs.delete(k); throw job.error; }
-      return void res.status(202).json({ status: 'generating' });
-    }
+    // A job that finished earlier but whose result no longer applies (e.g. the saved toolkit was
+    // since removed or needs rebuilding): it has now been collected, so start a fresh one.
+    if (r.done && !ready(lesson)) { r = await build(); [lesson] = await db.select().from(cachedLessons).where(where); }
+    if (!r.done || !ready(lesson)) return void res.status(202).json({ status: 'generating' });
   }
   const [meta] = await db.select({ name: topics.name, category: categories.name }).from(topics)
     .innerJoin(categories, eq(categories.id, topics.categoryId)).where(eq(topics.id, topicId));
-  res.json({ lessonId: lesson.id, topic: { id: topicId, ...meta }, bite: lesson.contentJson as Bite, cached });
+  res.json({ lessonId: lesson.id, level, topic: { id: topicId, ...meta }, bite: lesson.contentJson as Bite, cached });
 });
 
 async function lessonFor(userId: string, lessonId: string) {
@@ -107,18 +137,24 @@ async function lessonFor(userId: string, lessonId: string) {
   return l;
 }
 
-/** Records progress through a bite. (XP and streaks arrive in milestone 3.) */
+/** Records progress through a toolkit (or mastery toolkit). */
 biteRoutes.post('/:id/progress', async (req, res) => {
   const body = z.discriminatedUnion('stage', [
     z.object({ stage: z.literal('cards') }),
     z.object({ stage: z.literal('quiz'), correct: z.number().int().min(0).max(5) }),
   ]).parse(req.body);
   const l = await lessonFor(req.userId!, req.params.id);
-  const set = body.stage === 'cards' ? { cardsCompletedAt: new Date() } : { quizCorrect: body.correct };
-  await db.insert(topicProgress).values({ userId: req.userId!, topicId: l.topicId, ...set })
-    .onConflictDoUpdate({ target: [topicProgress.userId, topicProgress.topicId],
-      set: body.stage === 'cards' ? { cardsCompletedAt: sql`coalesce(${topicProgress.cardsCompletedAt}, now())` }
-        : { quizCorrect: sql`greatest(${topicProgress.quizCorrect}, ${body.correct})` } });
+  const mastery = l.ratingBand === 'mastery';
+  if (body.stage === 'cards') {
+    const col = mastery ? { masteryCompletedAt: new Date() } : { cardsCompletedAt: new Date() };
+    await db.insert(topicProgress).values({ userId: req.userId!, topicId: l.topicId, ...col })
+      .onConflictDoUpdate({ target: [topicProgress.userId, topicProgress.topicId],
+        set: mastery ? { masteryCompletedAt: sql`coalesce(${topicProgress.masteryCompletedAt}, now())` }
+          : { cardsCompletedAt: sql`coalesce(${topicProgress.cardsCompletedAt}, now())` } });
+  } else if (!mastery) {
+    await db.insert(topicProgress).values({ userId: req.userId!, topicId: l.topicId, quizCorrect: body.correct })
+      .onConflictDoUpdate({ target: [topicProgress.userId, topicProgress.topicId], set: { quizCorrect: sql`greatest(${topicProgress.quizCorrect}, ${body.correct})` } });
+  }
   res.json({ ok: true });
 });
 
@@ -131,9 +167,11 @@ biteRoutes.post('/:id/feedback', async (req, res) => {
   res.json({ ok: true });
 });
 
+export const responseInput = z.object({ response: z.string().trim().min(20, 'Write at least a couple of sentences').max(1500, 'Keep it under 1,500 characters') });
+
 /** Grades a written scenario answer with AI. */
 biteRoutes.post('/:id/scenario', async (req, res) => {
-  const { response } = z.object({ response: z.string().trim().min(20, 'Write at least a couple of sentences').max(1500, 'Keep it under 1,500 characters') }).parse(req.body);
+  const { response } = responseInput.parse(req.body);
   const userId = req.userId!;
   const l = await lessonFor(userId, req.params.id);
   await checkLimit(userId, 'grade');

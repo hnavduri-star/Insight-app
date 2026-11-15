@@ -17,7 +17,7 @@ import {
 // ---------- Enums ----------
 export const personaEnum = pgEnum('persona', ['early_career', 'manager', 'senior_executive']);
 export const coachEnum = pgEnum('coach', ['maya', 'alex']);
-export const ratingBandEnum = pgEnum('rating_band', ['foundation', 'core', 'advanced']);
+export const ratingBandEnum = pgEnum('rating_band', ['foundation', 'core', 'advanced', 'mastery']); // mastery = level 4 toolkit
 export const difficultyEnum = pgEnum('difficulty', ['friendly', 'realistic', 'tough']);
 export const tokenPurposeEnum = pgEnum('token_purpose', ['verify_email', 'reset_password']);
 export const bookKindEnum = pgEnum('book_kind', ['nonfiction', 'fiction']);
@@ -142,6 +142,7 @@ export const topicProgress = pgTable('topic_progress', {
   cardsCompletedAt: ts('cards_completed_at'),
   quizCorrect: integer('quiz_correct').notNull().default(0),
   bestScenarioScore: integer('best_scenario_score'),
+  masteryCompletedAt: ts('mastery_completed_at'),
 }, (t) => [primaryKey({ columns: [t.userId, t.topicId] })]);
 
 export const scenarios = pgTable('scenarios', {
@@ -372,3 +373,29 @@ export const stripeEvents = pgTable('stripe_events', {
   type: text('type').notNull(),
   receivedAt: ts('received_at').notNull().defaultNow(),
 });
+
+// ---------- Practice reps (level 2) ----------
+// Short coached drills, generated in batches of 5 per learner and topic, answered one at a time.
+export const practiceReps = pgTable('practice_reps', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  topicId: uuid('topic_id').notNull().references(() => topics.id, { onDelete: 'cascade' }),
+  lessonId: uuid('lesson_id').references(() => cachedLessons.id, { onDelete: 'set null' }),
+  personId: uuid('person_id').references(() => people.id, { onDelete: 'set null' }),
+  repJson: jsonb('rep_json').notNull(), // { situation, ask, tools[], with }
+  responseText: text('response_text'),
+  gradeJson: jsonb('grade_json'),
+  score: integer('score'),
+  createdAt: createdAt(),
+  answeredAt: ts('answered_at'),
+}, (t) => [index('practice_reps_user_topic_idx').on(t.userId, t.topicId)]);
+
+// ---------- "I have a situation" ----------
+export const situations = pgTable('situations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  inputText: text('input_text').notNull(),
+  planJson: jsonb('plan_json').notNull(),
+  bestScore: integer('best_score'),
+  createdAt: createdAt(),
+}, (t) => [index('situations_user_idx').on(t.userId)]);

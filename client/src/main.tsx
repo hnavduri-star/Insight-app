@@ -15,6 +15,8 @@ import Profile from './pages/Profile';
 import People from './pages/People';
 import Skills from './pages/Skills';
 import Bite from './pages/Bite';
+import Practice from './pages/Practice';
+import { NewSituation, SituationPlan } from './pages/Situation';
 
 /** Signed-out only. */
 function Public() {
@@ -80,6 +82,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           </Route>
           <Route element={<Private />}>
             <Route path="/bite/:topicId" element={<Bite />} />
+            <Route path="/practice/:topicId" element={<Practice />} />
+            <Route path="/situation" element={<NewSituation />} />
+            <Route path="/situation/:id" element={<SituationPlan />} />
             <Route element={<WithNav />}>
               <Route path="/skills/:id" element={<Skills />} />
               <Route path="/" element={<Home />} />

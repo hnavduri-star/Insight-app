@@ -42,6 +42,16 @@ export default function Home() {
 
       <JourneyCard cats={cats} onOpenTopic={setTopicId} />
 
+      <Link to="/situation" className="tile mt-4 flex items-center gap-4 p-4 transition active:scale-[0.99]"
+        style={{ background: 'radial-gradient(90% 70% at 100% 0%, rgba(255,255,255,0.22) 0%, transparent 60%), linear-gradient(155deg, #f05a7e 0%, #7c3aed 100%)' }}>
+        <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl" aria-hidden>⚡</span>
+        <span className="relative flex-1">
+          <span className="block text-[17px] font-extrabold">I have a situation</span>
+          <span className="block text-sm text-white/85">A tough talk coming up? Get a plan, the words, and a rehearsal.</span>
+        </span>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" className="relative shrink-0" aria-hidden><path d="m9 6 6 6-6 6" /></svg>
+      </Link>
+
       <div className="mb-3 mt-8 flex items-end justify-between">
         <h2 className="text-[22px]">Skills to build</h2>
         {cats && <span className="text-xs font-medium text-muted">{total} topics</span>}

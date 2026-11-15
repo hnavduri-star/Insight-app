@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, type Me, type TopicDetail } from '../api';
+import { api, type Me, type TopicDetail, type Track } from '../api';
 import { useAuth } from '../auth';
 import { Alert, Spinner } from './ui';
 import { Sheet } from './Sheet';
@@ -33,9 +33,13 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
   const [error, setError] = useState('');
   const [paywall, setPaywall] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [track, setTrack] = useState<Track | null>(null);
   useEffect(() => {
-    setT(null); setError('');
-    if (id) api<TopicDetail>(`/topics/${id}`).then(setT).catch((e) => setError(e.message));
+    setT(null); setError(''); setTrack(null);
+    if (id) api<TopicDetail>(`/topics/${id}`).then((d) => {
+      setT(d);
+      if (d.unlocked) api<Track>(`/bites/track/${id}`).then(setTrack).catch(() => {});
+    }).catch((e) => setError(e.message));
   }, [id]);
   const chooseFree = async () => {
     if (!t) return;
@@ -65,14 +69,7 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
               shaped for {me?.persona ? personaPhrase(me.persona) : 'you'}{me?.industry && me.industry !== 'Other' ? ` in ${me.industry.toLowerCase()}` : ''}
               {me?.goals?.[0] ? <> and your goal: <span className="text-ink/90">{me.goals[0].toLowerCase()}</span></> : null}.
             </p>
-            <ul className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-              {[['Learn', '5–8 tools'], ['Check', '5 questions'], ['Practise', 'with your coach']].map(([a, b]) => (
-                <li key={a} className="surface rounded-2xl px-2 py-3">
-                  <span className="block text-sm font-bold" style={{ color: tint }}>{a}</span>
-                  <span className="text-muted">{b}</span>
-                </li>
-              ))}
-            </ul>
+            <TrackLevels t={t} track={track} tint={tint} go={(path) => nav(path)} />
             <p className="eyebrow mt-6">Drawn from</p>
             <ul className="mt-2.5 space-y-2.5">
               {t.books.map((b) => (
@@ -87,9 +84,6 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-xs leading-relaxed text-muted">
-              Each tool comes with the theory, how to use it, what to say, and a real case study.
-            </p>
             <div className="sticky -mx-5 mt-5 space-y-3 px-5 pt-6"
               style={{
                 bottom: 'calc(-1.5rem - env(safe-area-inset-bottom))',
@@ -100,7 +94,7 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
               {t.unlocked ? (
                 <>
                   {t.free && <p className="text-center text-sm font-medium text-accent">This is your free topic.</p>}
-                  <button className="btn-primary" onClick={() => nav(`/bite/${t.id}`)}>Open your toolkit</button>
+                  <NextStep t={t} track={track} go={(path) => nav(path)} />
                 </>
               ) : !me?.freeTopicId ? (
                 <>
@@ -119,5 +113,73 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
       </Sheet>
       <Paywall open={paywall} onClose={() => setPaywall(false)} topicName={t?.name} />
     </>
+  );
+}
+
+/** The single best next step on this topic's track. */
+function NextStep({ t, track, go }: { t: TopicDetail; track: Track | null; go: (path: string) => void }) {
+  if (!track || !track.toolkit.done) return <button className="btn-primary" onClick={() => go(`/bite/${t.id}`)}>{track ? 'Open your toolkit' : 'Open your toolkit'}</button>;
+  if (track.mastery.unlocked && !track.mastery.done && track.reps.done >= track.reps.goal) {
+    return <button className="btn-primary" onClick={() => go(`/bite/${t.id}?level=mastery`)}>Open Mastery</button>;
+  }
+  return <button className="btn-primary" onClick={() => go(`/practice/${t.id}`)}>Practise · rep {Math.min(track.reps.done + 1, 999)}</button>;
+}
+
+/** The topic as a 4-level track: Foundations, Practice reps, Real conversations, Mastery. */
+function TrackLevels({ t, track, tint, go }: { t: TopicDetail; track: Track | null; tint: string; go: (path: string) => void }) {
+  const unlocked = t.unlocked;
+  const levels = [
+    {
+      n: 1, title: 'Foundations', sub: '5–8 tools with theory, what to say and case studies, a 5-question quiz and a coached scenario',
+      status: track?.toolkit.done ? 'done' : 'open', progress: track?.toolkit.done ? 1 : 0,
+      note: track?.toolkit.done ? `Quiz ${track.toolkit.quizCorrect}/5${track.toolkit.bestScenario != null ? ` · scenario ${track.toolkit.bestScenario}/100` : ''}` : 'About 15 minutes',
+      action: unlocked ? { label: track?.toolkit.done ? 'Review' : 'Start', path: `/bite/${t.id}` } : null,
+    },
+    {
+      n: 2, title: 'Practice reps', sub: '2-minute drills set in your world, some with your own people, each coached',
+      status: !track?.toolkit.done ? 'locked' : (track.reps.done >= track.reps.goal ? 'done' : 'open'),
+      progress: track ? Math.min(1, track.reps.done / track.reps.goal) : 0,
+      note: !track?.toolkit.done ? 'Opens after Foundations' : `${track.reps.done}/${track.reps.goal} reps${track.reps.avgScore != null ? ` · average ${track.reps.avgScore}/100` : ''}`,
+      action: unlocked && track?.toolkit.done ? { label: track.reps.done ? 'Continue' : 'Start', path: `/practice/${t.id}` } : null,
+    },
+    {
+      n: 3, title: 'Real conversations', sub: 'Role-play with a character or one of your people, then a debrief',
+      status: 'soon', progress: 0, note: 'Coming next', action: null,
+    },
+    {
+      n: 4, title: 'Mastery', sub: 'Advanced tools: edge cases, difficult people, combining tools, and when they fail',
+      status: track?.mastery.done ? 'done' : track?.mastery.unlocked ? 'open' : 'locked', progress: track?.mastery.done ? 1 : 0,
+      note: track?.mastery.done ? 'Completed' : track?.mastery.unlocked ? 'Unlocked' : track?.mastery.needsToolkit !== false ? 'Opens after Foundations and 5 practice reps' : `${track.mastery.needsReps} more rep${track.mastery.needsReps === 1 ? '' : 's'} to unlock`,
+      action: unlocked && track?.mastery.unlocked ? { label: track.mastery.done ? 'Review' : 'Start', path: `/bite/${t.id}?level=mastery` } : null,
+    },
+  ] as const;
+  return (
+    <section className="mt-5">
+      <p className="eyebrow">Your track · 4 levels</p>
+      <ol className="mt-2.5 space-y-2.5">
+        {levels.map((l) => (
+          <li key={l.n} className={`card p-4 ${l.status === 'locked' || l.status === 'soon' ? 'opacity-70' : ''}`}>
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-extrabold"
+                style={l.status === 'done' ? { background: '#22c55e', color: '#0a1640' } : l.status === 'open' ? { background: tileBackground(tint), color: '#fff' } : { background: 'rgba(255,255,255,0.08)', color: '#9db3dc' }}>
+                {l.status === 'done' ? '✓' : l.status === 'locked' ? <LockIcon className="text-muted" /> : l.n}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-bold">{l.title}</p>
+                  {l.action && <button onClick={() => go(l.action!.path)} className="rounded-full px-3 py-1.5 text-xs font-bold"
+                    style={{ background: `color-mix(in oklab, ${tint} 22%, transparent)`, color: tint }}>{l.action.label}</button>}
+                </div>
+                <p className="mt-0.5 text-[13px] leading-snug text-muted">{l.sub}</p>
+                {l.n === 2 && track?.toolkit.done && (
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full" style={{ width: `${l.progress * 100}%`, background: tint }} /></div>
+                )}
+                <p className="mt-1.5 text-xs font-semibold" style={{ color: l.status === 'done' ? '#22c55e' : undefined }}>{l.note}</p>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
