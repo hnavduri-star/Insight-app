@@ -8,6 +8,7 @@ import { requireAuth } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { generateSituation, gradeScenario, type Plan } from '../lib/ai.js';
 import { runJob } from '../lib/jobs.js';
+import { recordActivity } from '../lib/activity.js';
 import { PERSONAS, RELATIONSHIPS } from '../../../shared/options.js';
 import { checkLimit, learnerKey, responseInput, uuid } from './bites.js';
 
@@ -66,6 +67,7 @@ situationRoutes.post('/:id/rehearse', async (req, res) => {
   const grade = await gradeScenario(userId, { framework: s.plan.goal, tools, scenario: s.plan.rehearsal, response });
   const names = new Set(tools.map((t) => t.name));
   grade.toolsUsed = grade.toolsUsed.filter((n) => names.has(n));
+  await recordActivity(userId, 'situation', { score: grade.score, xp: 20 });
   await db.update(situations).set({ bestScore: sql`greatest(coalesce(${situations.bestScore}, 0), ${grade.score})` }).where(eq(situations.id, s.id));
   res.json(grade);
 });

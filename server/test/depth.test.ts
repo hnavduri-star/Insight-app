@@ -138,7 +138,7 @@ describe('topic track and practice reps', () => {
   it('tracks the 4 levels and unlocks Mastery after the toolkit plus 5 reps', async () => {
     const { a, topic } = await learner();
     let t = (await a.get(`/api/bites/track/${topic.id}`)).body;
-    expect(t).toMatchObject({ toolkit: { done: false }, reps: { done: 0, goal: 10 }, roleplay: { available: false }, mastery: { unlocked: false, needsToolkit: true } });
+    expect(t).toMatchObject({ toolkit: { done: false }, reps: { done: 0, goal: 10 }, roleplay: { available: true, unlocked: false }, mastery: { unlocked: false, needsToolkit: true } });
     expect((await a.post('/api/bites').send({ topicId: topic.id, level: 'mastery' })).status).toBe(403);
     const lessonId = await foundations(a, topic.id);
     for (let i = 0; i < 5; i++) {

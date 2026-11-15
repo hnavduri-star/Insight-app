@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { and, asc, avg, count, eq, gt, isNotNull, sql } from 'drizzle-orm';
+import { and, asc, avg, count, eq, gt, isNotNull, max, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
-  aiCalls, assessments, books, cachedLessons, cardFeedback, categories, practiceReps, profiles, scenarios, topicBooks, topicProgress, topics,
+  aiCalls, assessments, books, cachedLessons, cardFeedback, categories, practiceReps, profiles, reviewItems, roleplaySessions, scenarios, topicBooks, topicProgress, topics,
 } from '../db/schema.js';
 import { requireAuth } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
@@ -11,15 +11,18 @@ import { requireTopicAccess } from '../lib/access.js';
 import { checkBite, generateBite, gradeScenario, type Bite } from '../lib/ai.js';
 import { runJob, WAIT_MS } from '../lib/jobs.js';
 import { PERSONAS } from '../../../shared/options.js';
+import { recordActivity } from '../lib/activity.js';
+import { seedReview } from './daily.js';
 
 export { WAIT_MS };
 export const biteRoutes = Router();
 biteRoutes.use(requireAuth);
 
 /** AI calls per user per rolling 24 hours. */
-export const LIMITS: Record<string, number> = { bite: 20, grade: 40, reps: 15, situation: 10 };
+export const LIMITS: Record<string, number> = { bite: 20, grade: 40, reps: 15, situation: 10, roleplay: 8, roleplay_turn: 80, roleplay_hint: 30, roleplay_debrief: 12 };
 export const REPS_GOAL = 10;          // practice reps that complete level 2
 export const MASTERY_AFTER_REPS = 5;  // reps needed (with the toolkit done) to unlock mastery
+export const ROLEPLAY_AFTER_REPS = 3; // reps needed (with the toolkit done) to unlock level 3 role-play
 
 export async function checkLimit(userId: string, endpoint: keyof typeof LIMITS) {
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(aiCalls)
@@ -81,10 +84,15 @@ export async function trackFor(userId: string, topicId: string) {
   const quizDone = !!tp?.quizCompletedAt;
   const toolkitDone = toolsDone && quizDone;
   const repsDone = Number(r?.done ?? 0);
+  const [rp] = await db.select({ n: count(), best: max(roleplaySessions.score) }).from(roleplaySessions)
+    .where(and(eq(roleplaySessions.userId, userId), eq(roleplaySessions.topicId, topicId), eq(roleplaySessions.status, 'debriefed')));
   return {
     toolkit: { done: toolkitDone, toolsDone, quizDone, quizCorrect: tp?.quizCorrect ?? 0, bestScenario: tp?.bestScenarioScore ?? null },
     reps: { done: repsDone, goal: REPS_GOAL, avgScore: r?.avg == null ? null : Math.round(Number(r.avg)) },
-    roleplay: { available: false },
+    roleplay: {
+      available: true, unlocked: toolkitDone && repsDone >= ROLEPLAY_AFTER_REPS, done: Number(rp?.n ?? 0), best: rp?.best ?? null,
+      needsToolkit: !toolkitDone, needsReps: Math.max(0, ROLEPLAY_AFTER_REPS - repsDone),
+    },
     mastery: {
       unlocked: toolkitDone && repsDone >= MASTERY_AFTER_REPS, done: !!tp?.masteryCompletedAt,
       needsToolkit: !toolkitDone, needsReps: Math.max(0, MASTERY_AFTER_REPS - repsDone),
@@ -170,6 +178,10 @@ biteRoutes.post('/:id/progress', async (req, res) => {
         quizCompletedAt: sql`coalesce(${topicProgress.quizCompletedAt}, now())`,
       } });
   }
+  if (body.stage === 'quiz') await seedReview(req.userId!, l.topicId, l.id, (l.contentJson as Bite).quiz);
+  await recordActivity(req.userId!, body.stage === 'cards' ? 'tools' : 'quiz', {
+    topicId: l.topicId, score: body.stage === 'quiz' ? body.correct * 20 : null, xp: body.stage === 'cards' ? 20 : 10 + body.correct * 2,
+  });
   res.json({ ok: true });
 });
 
@@ -198,5 +210,6 @@ biteRoutes.post('/:id/scenario', async (req, res) => {
   await db.insert(topicProgress).values({ userId, topicId: l.topicId, bestScenarioScore: grade.score })
     .onConflictDoUpdate({ target: [topicProgress.userId, topicProgress.topicId],
       set: { bestScenarioScore: sql`greatest(coalesce(${topicProgress.bestScenarioScore}, 0), ${grade.score})` } });
+  await recordActivity(userId, 'scenario', { topicId: l.topicId, score: grade.score, xp: 20 });
   res.json(grade);
 });

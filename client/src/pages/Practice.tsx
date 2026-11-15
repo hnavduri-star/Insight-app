@@ -58,6 +58,7 @@ export default function Practice() {
   const goal = track?.reps.goal ?? 10;
   const repNumber = done + (phase === 'result' ? 0 : 1);
   const justUnlocked = phase === 'result' && track?.mastery.unlocked && done === 5;
+  const roleplayUnlocked = phase === 'result' && track?.roleplay.unlocked && done === 3;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-app flex-col px-4 pb-6" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
@@ -125,6 +126,13 @@ export default function Practice() {
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-5 rounded-2xl p-4 text-white" style={{ background: tileBackground(tint) }}>
                 <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">Unlocked</p>
                 <p className="mt-1 font-bold">Mastery is open for {topic?.name}: advanced tools, edge cases and harder cases.</p>
+              </motion.div>
+            )}
+            {roleplayUnlocked && (
+              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-5 rounded-2xl p-4 text-white" style={{ background: tileBackground(tint) }}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">Unlocked</p>
+                <p className="mt-1 font-bold">Real conversations: role-play {topic?.name} with a character or one of your people.</p>
+                <button className="mt-3 rounded-full bg-white px-4 py-2 text-sm font-bold text-[#0b1640]" onClick={() => nav(`/roleplay/${topicId}`)}>Try a role-play</button>
               </motion.div>
             )}
             <GradeResult grade={grade} tools={rep.tools.length ? rep.tools : grade.toolsUsed} tint={tint} coach={coach} />

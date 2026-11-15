@@ -11,6 +11,8 @@ import { billing, stripeWebhook } from './routes/billing.js';
 import { biteRoutes } from './routes/bites.js';
 import { practiceRoutes } from './routes/practice.js';
 import { situationRoutes } from './routes/situations.js';
+import { roleplayRoutes } from './routes/roleplay.js';
+import { dailyRoutes } from './routes/daily.js';
 import { aiEnabled, findApiKey } from './lib/ai.js';
 import { errorHandler, HttpError } from './lib/errors.js';
 import { PERSONAS, INDUSTRIES, GOALS, DAILY_MINUTES, COACHES, RELATIONSHIPS, TRAITS } from '../../shared/options.js';
@@ -46,6 +48,8 @@ export function createApp() {
   app.use('/api/bites', biteRoutes);
   app.use('/api/practice', practiceRoutes);
   app.use('/api/situations', situationRoutes);
+  app.use('/api/roleplay', roleplayRoutes);
+  app.use('/api/daily', dailyRoutes);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found')));
 
   // In production the API also serves the built client.

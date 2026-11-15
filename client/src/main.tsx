@@ -17,6 +17,8 @@ import Skills from './pages/Skills';
 import Bite from './pages/Bite';
 import Practice from './pages/Practice';
 import { NewSituation, SituationPlan } from './pages/Situation';
+import RolePlay from './pages/RolePlay';
+import Daily, { Week } from './pages/Daily';
 
 /** Signed-out only. */
 function Public() {
@@ -83,6 +85,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route element={<Private />}>
             <Route path="/bite/:topicId" element={<Bite />} />
             <Route path="/practice/:topicId" element={<Practice />} />
+            <Route path="/roleplay/:topicId" element={<RolePlay />} />
+            <Route path="/daily" element={<Daily />} />
+            <Route path="/week" element={<Week />} />
             <Route path="/situation" element={<NewSituation />} />
             <Route path="/situation/:id" element={<SituationPlan />} />
             <Route element={<WithNav />}>

@@ -195,7 +195,9 @@ export const reviewItems = pgTable('review_items', {
   intervalDays: integer('interval_days').notNull().default(1), // 1 → 3 → 7 → 21
   ease: real('ease').notNull().default(2.5),
   lastResult: boolean('last_result'),
-}, (t) => [index('review_items_user_due_idx').on(t.userId, t.dueAt)]);
+  sourceKey: text('source_key'), // `${lessonId}:${questionIndex}`, so a quiz question is only added once
+  lastReviewedAt: ts('last_reviewed_at'),
+}, (t) => [index('review_items_user_due_idx').on(t.userId, t.dueAt), uniqueIndex('review_items_user_source_unique').on(t.userId, t.sourceKey)]);
 
 export const commitments = pgTable('commitments', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -285,8 +287,14 @@ export const roleplaySessions = pgTable('roleplay_sessions', {
   transcriptJson: jsonb('transcript_json').notNull().default([]),
   score: integer('score'),
   rubricScoresJson: jsonb('rubric_scores_json'),
+  // Level 3: setup (incl. the character's hidden objective, never sent to the client), turn cap, status, debrief.
+  setupJson: jsonb('setup_json'),
+  maxTurns: integer('max_turns').notNull().default(6),
+  status: text('status').notNull().default('active'), // active | finished | debriefed
+  debriefJson: jsonb('debrief_json'),
   createdAt: createdAt(),
-}, (t) => [index('roleplay_sessions_user_idx').on(t.userId)]);
+  endedAt: ts('ended_at'),
+}, (t) => [index('roleplay_sessions_user_idx').on(t.userId), index('roleplay_sessions_user_topic_idx').on(t.userId, t.topicId)]);
 
 // ---------- Reminders (section 18) ----------
 export const reminderSettings = pgTable('reminder_settings', {
@@ -400,3 +408,15 @@ export const situations = pgTable('situations', {
   bestScore: integer('best_score'),
   createdAt: createdAt(),
 }, (t) => [index('situations_user_idx').on(t.userId)]);
+
+// ---------- Activity (streaks and weekly summary) ----------
+// One row per learning action, stamped with the learner's local day (their time zone), not UTC.
+export const activityEvents = pgTable('activity_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  kind: text('kind').notNull(), // tools | quiz | scenario | rep | roleplay | review | situation | daily
+  topicId: uuid('topic_id').references(() => topics.id, { onDelete: 'set null' }),
+  score: integer('score'),
+  localDay: date('local_day').notNull(),
+  createdAt: createdAt(),
+}, (t) => [index('activity_events_user_day_idx').on(t.userId, t.localDay)]);

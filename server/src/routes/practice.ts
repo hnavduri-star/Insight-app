@@ -7,6 +7,7 @@ import { HttpError } from '../lib/errors.js';
 import { requireTopicAccess } from '../lib/access.js';
 import { generateReps, gradeScenario, type Bite, type Rep } from '../lib/ai.js';
 import { runJob } from '../lib/jobs.js';
+import { recordActivity } from '../lib/activity.js';
 import { RELATIONSHIPS, PERSONAS } from '../../../shared/options.js';
 import { checkLimit, learnerKey, readyToolkit, requireFoundations, responseInput, trackFor, uuid } from './bites.js';
 
@@ -73,6 +74,7 @@ practiceRoutes.post('/:repId/answer', async (req, res) => {
   const names = new Set(tools.map((t) => t.name));
   grade.toolsUsed = grade.toolsUsed.filter((n) => names.has(n));
   await db.update(practiceReps).set({ responseText: response, gradeJson: grade, score: grade.score, answeredAt: new Date() }).where(eq(practiceReps.id, rep.id));
+  await recordActivity(userId, 'rep', { topicId: rep.topicId, score: grade.score, xp: 15 });
   res.json({ grade, track: await trackFor(userId, rep.topicId) });
 });
 

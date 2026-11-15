@@ -41,7 +41,7 @@ export type Grade = { score: number; feedback: string; strength: string; improve
 export type Track = {
   toolkit: { done: boolean; toolsDone: boolean; quizDone: boolean; quizCorrect: number; bestScenario: number | null };
   reps: { done: number; goal: number; avgScore: number | null };
-  roleplay: { available: boolean };
+  roleplay: { available: boolean; unlocked: boolean; done: number; best: number | null; needsToolkit: boolean; needsReps: number };
   mastery: { unlocked: boolean; done: boolean; needsToolkit: boolean; needsReps: number };
 };
 export type Rep = { id: string; situation: string; ask: string; tools: string[]; with: string | null };
@@ -49,6 +49,32 @@ export type Plan = {
   title: string; summary: string; goal: string; topics: { name: string; why: string; id: string | null }[];
   steps: { tool: string; how: string }[]; openingLine: string; phrases: string[];
   anticipate: { theySay: string; youSay: string }[]; avoid: string[]; rehearsal: string;
+};
+export type Turn = { who: 'character' | 'learner' | 'coach'; text: string };
+export type Debrief = {
+  score: number; rubric: { clarity: number; empathy: number; structure: number; tools: number };
+  wentWell: string; improve: string; betterMove: { yourLine: string; tryInstead: string }; toolsUsed: string[]; revealed: string;
+};
+export type Roleplay = {
+  id: string; topicId: string; status: 'active' | 'finished' | 'debriefed'; difficulty: 'friendly' | 'realistic' | 'tough';
+  character: string; personId: string | null; personName: string | null; maxTurns: number; turnsUsed: number; canDebrief: boolean;
+  setup: { title: string; characterName: string; characterRole: string; situation: string; yourGoal: string; skills: string[]; opening: string };
+  transcript: Turn[]; debrief: Debrief | null; score: number | null; paused?: boolean;
+};
+export type RoleplayOptions = {
+  characters: { id: string; label: string; notes: string }[]; people: { id: string; name: string; relationship: string }[];
+  difficulties: { value: Roleplay['difficulty']; label: string; hint: string }[]; maxTurns: number;
+  recent: { id: string; title: string; status: Roleplay['status']; score: number | null }[]; track: Track;
+};
+export type Daily = {
+  streak: number; freezes: number; activeToday: boolean; xp: number; today: string; dailyDone: boolean;
+  reviews: { id: string; topicId: string; topic: string; category: string; q: string; options: string[]; answer: number; why: string; intervalDays: number }[];
+  dueTotal: number; reviewItems: number; rep: { topicId: string; topic: string; category: string } | null;
+};
+export type Week = {
+  from: string; to: string; streak: number; freezes: number; daysActive: number; days: { day: string; weekday: string; active: boolean }[];
+  counts: { kind: string; label: string; n: number }[]; total: number; avgRep: number | null; avgRoleplay: number | null;
+  reviewAccuracy: number | null; reviewsDone: number; topics: { id: string; name: string; category: string; avg: number | null }[]; focus: string;
 };
 export type Situation = { id: string; text: string; createdAt: string; bestScore: number | null; plan: Plan };
 

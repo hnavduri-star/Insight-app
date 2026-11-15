@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { api, type Category } from '../api';
+import { api, type Category, type Daily } from '../api';
 import { useAuth } from '../auth';
 import { Alert, Avatar, Spinner } from '../components/ui';
 import { CoachAvatar } from '../components/Coach';
@@ -42,6 +42,8 @@ export default function Home() {
 
       <JourneyCard cats={cats} onOpenTopic={setTopicId} />
 
+      <DailyCard />
+
       <Link to="/situation" className="tile mt-4 flex items-center gap-4 p-4 transition active:scale-[0.99]"
         style={{ background: 'radial-gradient(90% 70% at 100% 0%, rgba(255,255,255,0.22) 0%, transparent 60%), linear-gradient(155deg, #f05a7e 0%, #7c3aed 100%)' }}>
         <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl" aria-hidden>⚡</span>
@@ -81,6 +83,32 @@ export default function Home() {
       </ul>
       <TopicSheet id={topicId} onClose={() => setTopicId(null)} onChanged={load} />
     </main>
+  );
+}
+
+/** Daily return: streak, today's 5 minutes and the week. */
+function DailyCard() {
+  const [d, setD] = useState<Daily | null>(null);
+  useEffect(() => { api<Daily>('/daily').then(setD).catch(() => {}); }, []);
+  if (!d) return null;
+  const due = d.dueTotal;
+  return (
+    <section className="mt-4 grid grid-cols-[1fr_auto] gap-3">
+      <Link to="/daily" className="tile flex items-center gap-3 p-4 transition active:scale-[0.99]" style={{ background: 'linear-gradient(155deg, #ff9f43 0%, #f0506e 100%)' }}>
+        <span className="relative text-3xl" aria-hidden>🔥</span>
+        <span className="relative min-w-0">
+          <span className="block text-[17px] font-extrabold leading-tight">{d.streak} day streak</span>
+          <span className="block truncate text-sm text-white/90">
+            {d.dailyDone ? "Today's 5 minutes done ✓" : due ? `${Math.min(due, 4)} review${due === 1 ? '' : 's'} due today` : d.activeToday ? 'Kept for today' : "Today's 5 minutes"}
+          </span>
+        </span>
+      </Link>
+      <Link to="/week" className="card flex w-[92px] flex-col items-center justify-center p-3 text-center transition active:scale-[0.98]">
+        <span className="text-lg" aria-hidden>📈</span>
+        <span className="mt-0.5 text-xs font-bold">Your week</span>
+        <span className="text-[11px] text-muted">❄️ {d.freezes} freeze{d.freezes === 1 ? '' : 's'}</span>
+      </Link>
+    </section>
   );
 }
 

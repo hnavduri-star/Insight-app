@@ -120,6 +120,7 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
 function NextStep({ t, track, go }: { t: TopicDetail; track: Track | null; go: (path: string) => void }) {
   if (track?.toolkit.toolsDone && !track.toolkit.quizDone) return <button className="btn-primary" onClick={() => go(`/bite/${t.id}?start=quiz`)}>Take the quiz to finish Foundations</button>;
   if (!track || !track.toolkit.done) return <button className="btn-primary" onClick={() => go(`/bite/${t.id}`)}>Open your toolkit</button>;
+  if (track.roleplay.unlocked && track.roleplay.done === 0) return <button className="btn-primary" onClick={() => go(`/roleplay/${t.id}`)}>Try a real conversation</button>;
   if (track.mastery.unlocked && !track.mastery.done && track.reps.done >= track.reps.goal) {
     return <button className="btn-primary" onClick={() => go(`/bite/${t.id}?level=mastery`)}>Open Mastery</button>;
   }
@@ -148,7 +149,11 @@ function TrackLevels({ t, track, tint, go }: { t: TopicDetail; track: Track | nu
     },
     {
       n: 3, title: 'Real conversations', sub: 'Role-play with a character or one of your people, then a debrief',
-      status: 'soon', progress: 0, note: 'Coming next', action: null,
+      status: track?.roleplay.unlocked ? (track.roleplay.done > 0 ? 'done' : 'open') : 'locked', progress: 0,
+      note: !track ? 'Opens after Foundations and 3 practice reps'
+        : track.roleplay.unlocked ? (track.roleplay.done ? `${track.roleplay.done} conversation${track.roleplay.done === 1 ? '' : 's'} · best ${track.roleplay.best}/100` : 'Unlocked · about 5 minutes')
+        : track.roleplay.needsToolkit ? 'Opens after Foundations and 3 practice reps' : `${track.roleplay.needsReps} more rep${track.roleplay.needsReps === 1 ? '' : 's'} to unlock`,
+      action: unlocked && track?.roleplay.unlocked ? { label: track.roleplay.done ? 'Again' : 'Start', path: `/roleplay/${t.id}` } : null,
     },
     {
       n: 4, title: 'Mastery', sub: 'Advanced tools: edge cases, difficult people, combining tools, and when they fail',
@@ -162,7 +167,7 @@ function TrackLevels({ t, track, tint, go }: { t: TopicDetail; track: Track | nu
       <p className="eyebrow">Your track · 4 levels</p>
       <ol className="mt-2.5 space-y-2.5">
         {levels.map((l) => (
-          <li key={l.n} className={`card p-4 ${l.status === 'locked' || l.status === 'soon' ? 'opacity-70' : ''}`}>
+          <li key={l.n} className={`card p-4 ${l.status === 'locked' ? 'opacity-70' : ''}`}>
             <div className="flex items-start gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-extrabold"
                 style={l.status === 'done' ? { background: '#22c55e', color: '#0a1640' } : l.status === 'open' ? { background: tileBackground(tint), color: '#fff' } : { background: 'rgba(255,255,255,0.08)', color: '#9db3dc' }}>

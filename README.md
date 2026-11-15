@@ -98,14 +98,20 @@ Bites saved in an older format are rebuilt automatically the next time someone o
 Each topic is a track with 4 levels (`GET /api/bites/track/:topicId`):
 1. **Foundations:** the toolkit described above.
 2. **Practice reps** (`/api/practice`): 2-minute coached drills that use the toolkit's tools. They're generated 5 at a time in one low-effort AI call, set in the learner's world, and some feature their saved people. A new batch avoids earlier situations. The goal is 10 reps per topic.
-3. **Real conversations:** role-play (coming next).
+3. **Real conversations** (`/api/roleplay`): a multi-turn role-play with a stock character (boss, difficult client, skeptical investor, team member who missed a deadline, interviewer, negotiation counterpart, colleague in conflict) or one of the learner's saved people, at Friendly, Realistic or Tough. A setup card gives the situation, the learner's goal and the tools to use. The character has a hidden objective that stays on the server. It speaks 1–2 sentences per turn and stays in character, up to 6 learner turns. **Hint** has the coach step out with one tip. The **debrief** gives a score, a rubric (clarity, empathy, structure, use of tools), what went well, one improvement, a better move for one of the learner's actual lines, and what the character wanted. **Replay** reuses the same setup. Unlocks after Foundations plus 3 reps, and requires Premium (open to everyone in the free beta). If the learner shows real distress, the character steps out with a caring note and the session pauses. Learner lines are wrapped in tags and treated as data, not instructions. Retries of a turn are idempotent.
 4. **Mastery:** an advanced toolkit (edge cases, difficult people, combining tools, when tools fail), saved per profile like level 1. It unlocks after Foundations plus 5 reps.
 
 Foundations count as complete only when every tool has been viewed **and** the 5-question quiz is finished (any score). Practice reps stay locked until then, enforced on the server (`requireFoundations`), so a direct link to practice is refused with a "Take the quiz" route back. The closing coached scenario stays optional.
 
 **I have a situation** (`/api/situations`): the learner describes a real upcoming moment and gets a plan. The plan has a goal, an opening line, tool-based steps, phrases, likely pushback with replies, what to avoid, and links to the relevant topics. A coached rehearsal follows. The learner's text is treated as data, not instructions.
 
-Slow AI work runs as background jobs (`server/src/lib/jobs.ts`): a request waits up to 8 seconds, then answers "generating", and the app polls through brief hosting errors. Daily limits: 20 toolkits, 15 rep batches, 10 situations and 40 gradings per learner.
+Slow AI work runs as background jobs (`server/src/lib/jobs.ts`): a request waits up to 8 seconds, then answers "generating", and the app polls through brief hosting errors. Daily limits: 20 toolkits, 15 rep batches, 10 situations, 40 gradings and 8 new role-plays per learner.
+
+## Daily return: review, streaks and the week
+
+- **Today's 5 minutes** (`/daily`, `GET /api/daily`): up to 4 spaced-review questions, then one practice rep on the learner's latest topic. Each toolkit quiz adds its 5 questions to review (once each), first due the next day. A right answer moves a question up the 1 → 3 → 7 → 21 day ladder; a wrong one resets it to 1 day.
+- **Streaks** (`server/src/lib/activity.ts`): every learning action is logged with the learner's local date (their time zone). The first action of a day counts. Active yesterday → +1. One missed day with a freeze → the freeze is spent and the streak continues. Otherwise it restarts at 1. Learners start with 1 freeze and earn one at every 7-day milestone.
+- **Your week** (`/week`, `GET /api/daily/week`): days active over the last 7 local days, counts by activity, average rep and role-play scores, review accuracy, topics worked on, and a rule-based focus for next week.
 
 ## Look and feel
 
