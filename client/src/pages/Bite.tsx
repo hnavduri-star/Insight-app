@@ -63,9 +63,24 @@ export default function Bite() {
   const start = async () => {
     setPhase('loading'); setError(null);
     const began = Date.now();
+    let blips = 0;
     try {
       while (alive.current) {
-        const d = await api<Started | { status: 'generating' }>('/bites', { body: { topicId } });
+        let d: Started | { status: 'generating' };
+        try {
+          d = await api<Started | { status: 'generating' }>('/bites', { body: { topicId } });
+          blips = 0;
+        } catch (e) {
+          // A brief network or hosting hiccup (no connection, 502/503/504) shouldn't end the wait:
+          // the toolkit keeps building on the server, so just check again.
+          const s = (e as ApiError).status;
+          if ((s === 0 || (s >= 502 && s <= 504)) && blips < 8 && Date.now() - began < 6 * 60_000) {
+            blips++;
+            await new Promise((r) => setTimeout(r, 4000));
+            continue;
+          }
+          throw e;
+        }
         if ('status' in d) {
           if (Date.now() - began > 6 * 60_000) throw new ApiError(504, 'This is taking longer than usual. Please try again in a minute.');
           await new Promise((r) => setTimeout(r, 3000));

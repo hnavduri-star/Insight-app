@@ -38,7 +38,7 @@ const uuid = (v: unknown, what = 'Bite') => {
  */
 type Job = { promise: Promise<void>; error?: unknown };
 const jobs = new Map<string, Job>();
-export const WAIT_MS = { value: 15_000 }; // how long one request waits before answering "still building"
+export const WAIT_MS = { value: 8_000 }; // how long one request waits before answering "still building" (kept short for hosting proxies)
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Start a bite: returns the shared cached version for this learner's profile, generating it once if needed. */
