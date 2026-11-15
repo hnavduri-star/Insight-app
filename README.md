@@ -41,7 +41,7 @@ Free-tier notes: the service sleeps when idle (about 30 seconds to wake), and th
 
 ## Topic and book catalogue
 
-The catalogue lives in **[`data/insight-topics-and-books.xlsx`](data/insight-topics-and-books.xlsx)**. Edit it in Excel. It is organised MECE: 12 headings and 94 topics, each with a one-line *Scope* shown in the app. Its sheets are *How to use*, *Topics and Books* (one row per book), *Summary* (counts per heading, calculated automatically) and *Changes* (where every earlier topic now sits).
+The catalogue lives in **[`data/insight-topics-and-books.xlsx`](data/insight-topics-and-books.xlsx)**. Edit it in Excel. It has 10 headings grouped by who the skill is about (you, you and others, work, money, your future) and 97 topics, each with a one-line *Scope* shown in the app and a *Suggested For* career stage (for planning; nothing is locked by it). Its sheets are *How to use*, *Topics and Books* (one row per book), *Summary* (counts per heading, calculated automatically) and *Changes* (old heading to new heading for every topic).
 
 | Heading | Heading Icon | Topic | Scope | Book Title | Author | Book Type | Buy URL |
 |---|---|---|---|---|---|---|---|

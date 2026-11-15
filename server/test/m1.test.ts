@@ -28,14 +28,18 @@ describe('Milestone 1 acceptance: sign up, set a persona, see all 8 headings', (
     expect(ob.body).toMatchObject({ persona: 'manager', coach: 'maya', onboarded: true, goals: ['Get promoted', 'Lead and develop my team'] });
 
     const cats = await a.get('/api/topics');
-    expect(cats.body).toHaveLength(12);
-    expect(cats.body.map((c: any) => c.topics.length)).toEqual([6, 7, 7, 7, 11, 8, 13, 6, 10, 7, 7, 5]);
+    expect(cats.body).toHaveLength(10);
+    expect(cats.body.map((c: any) => c.topics.length)).toEqual([6, 5, 6, 14, 11, 11, 19, 11, 7, 7]);
+    expect(cats.body.map((c: any) => c.name)).toEqual([
+      'Thinking & Decision-Making', 'Personal Effectiveness & Habits', 'Wellbeing & Life Balance',
+      'Communication & Presenting', 'Influence, Negotiation & Sales', 'Relationships, EQ & Conflict',
+      'Leading Teams & Execution', 'Business Strategy & Entrepreneurship', 'Money & Finance', 'Career, Purpose & Learning']);
     const names = cats.body.flatMap((c: any) => c.topics.map((t: any) => t.name));
     expect(new Set(names).size).toBe(names.length); // no overlap across headings
 
     const topic = await a.get(`/api/topics/${cats.body[0].topics[0].id}`);
     expect(topic.body.name).toBe('Critical Thinking');
-    expect(topic.body.books).toHaveLength(3);
+    expect(topic.body.books.length).toBeGreaterThanOrEqual(3);
     expect(topic.body.description).toMatch(/evidence/);
   });
 });

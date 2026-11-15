@@ -105,13 +105,14 @@ describe('catalogue CSV import', () => {
     expect(cats[0].topics[0].books.map((b) => b.kind)).toEqual(['nonfiction', 'fiction']);
   });
 
-  it('reads the Excel workbook: 12 headings, 94 topics with scope, 3 books each', async () => {
+  it('reads the Excel workbook: 10 headings, 97 topics with scope, 3+ books each', async () => {
     const x = await loadCatalog();
-    expect(x).toHaveLength(12);
+    expect(x).toHaveLength(10);
     const topics = x.flatMap((h) => h.topics);
-    expect(topics).toHaveLength(94);
+    expect(topics).toHaveLength(97);
     expect(topics.every((t) => t.description && t.description.length > 10)).toBe(true);
-    expect(topics.every((t) => t.books.length === 3)).toBe(true);
+    expect(topics.every((t) => t.books.length >= 3)).toBe(true);
+    expect(topics.map((t) => t.name)).toEqual(expect.arrayContaining(['Balancing My Life', 'Taking Care of Yourself', 'Starting a Business']));
     expect(topics[0].books[0]).toEqual({ title: 'Thinking, Fast and Slow', author: 'Daniel Kahneman', kind: 'nonfiction', buyUrl: null });
   });
 
