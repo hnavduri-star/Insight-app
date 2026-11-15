@@ -20,6 +20,8 @@ import { NewSituation, SituationPlan } from './pages/Situation';
 import RolePlay from './pages/RolePlay';
 import Tools from './pages/Tools';
 import Progress from './pages/Progress';
+import TeamDashboard from './pages/Team';
+import Admin from './pages/Admin';
 import Daily, { Week } from './pages/Daily';
 
 /** Signed-out only. */
@@ -67,6 +69,10 @@ function CheckoutReturn() {
 
 function WithNav() { return <><CheckoutReturn /><Outlet /><BottomNav /></>; }
 
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AuthProvider>
@@ -91,6 +97,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/daily" element={<Daily />} />
             <Route path="/tools/:topicId" element={<Tools />} />
             <Route path="/progress" element={<Progress />} />
+            <Route path="/team" element={<TeamDashboard />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="/week" element={<Week />} />
             <Route path="/situation" element={<NewSituation />} />
             <Route path="/situation/:id" element={<SituationPlan />} />

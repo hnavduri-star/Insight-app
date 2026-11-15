@@ -113,6 +113,20 @@ Slow AI work runs as background jobs (`server/src/lib/jobs.ts`): a request waits
 - **Streaks** (`server/src/lib/activity.ts`): every learning action is logged with the learner's local date (their time zone). The first action of a day counts. Active yesterday → +1. One missed day with a freeze → the freeze is spent and the streak continues. Otherwise it restarts at 1. Learners start with 1 freeze and earn one at every 7-day milestone.
 - **Your week** (`/week`, `GET /api/daily/week`): days active over the last 7 local days, counts by activity, average rep and role-play scores, review accuracy, topics worked on, and a rule-based focus for next week.
 
+## Growth features
+
+- **Home** leads with one vivid card: the single best next step (`GET /api/home`), e.g. "Continue · Executive Presence · Practise rep 4 · 2 min". New learners get the flagship topic for their main goal. Below it: a due real-world check-in, the streak, "I have a situation", **Editor's picks** and **Lessons from fiction**, then the skill tiles.
+- **Faster first toolkit:** after onboarding, the suggested topic's toolkit starts building in the background. Reading a topic for 5 seconds starts its toolkit too (`POST /api/bites/prewarm`). While a toolkit is written, the learner rates their confidence (1–10) and sees the books it draws on.
+- **Content:** the Excel file has an **Editor's Pick** column (12 flagship topics marked Yes) and 18 novels (Book Type "fiction"). When a topic has a novel, its toolkit includes at least one tool drawn from it. Prompts carry a career-stage focus (early-stage, manager, senior executive). **Quick reference** (`/tools/:topicId`) lists every tool with its steps and what to say.
+- **Voice:** a microphone button turns speech into text in role-play, reps, scenarios and situations (browser speech recognition; shown only where supported).
+- **Did you use it?** (`/api/checkins`): 20 hours after a role-play, or 44 hours after a situation plan, Home asks how the real conversation went. "Went well" or "Mixed" logs a real-world win (+25 XP); "Not yet" asks once more two days later.
+- **Progress** (`/progress`): XP levels (Explorer → Master), a skill chart of role-play clarity, empathy, structure and tools (your last 3 against your first 3), each topic's level (Started → Foundations → Practitioner → Advanced → Expert), confidence before and now, and 15 badges computed from real activity. **Share my week** makes a 1080×1350 image with totals only.
+- **Reminders:** Insight is installable (manifest and service worker). Learners pick a time and allow notifications; a reminder is sent once a day only if they haven't learned yet. On iPhone this works after "Add to Home Screen". Keys are generated once and saved (or set `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). On Render's free plan the server sleeps when idle, so reminders can be late or missed; a paid instance keeps them on time.
+- **Beta feedback:** three questions (what you used, what felt generic, would you pay and how much), from Profile or a Home prompt after 3 active days.
+- **Beta metrics** (`/admin`, for emails in `ADMIN_EMAILS` or `npm run admin -w server -- you@example.com`): sign-ups, funnel, next-day and week-later retention, role-play score by week, feedback, least helpful tools and AI use.
+- **Teams** (`/api/teams`): a manager creates a team and shares a 6-character invite code. The owner's dashboard shows totals per member (days active, reps, role-plays, average score, wins); members' answers, conversations, people and notes are never shown.
+- **Privacy notes** on People, and "practice coaching, not therapy" on role-play and Profile.
+
 ## Look and feel
 
 Wio-style vivid design: each heading has its own bright two-colour fill (`client/src/components/CategoryIcon.tsx`), shown as colour tiles on Home, a colour header on each heading page, and full-colour bite cards. There's a vivid gradient hero card for the learner's journey, a floating pill navigation, bold Plus Jakarta Sans type and a fine film grain over everything.

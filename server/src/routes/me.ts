@@ -8,6 +8,7 @@ import { HttpError } from '../lib/errors.js';
 import { profileInput } from '../lib/validate.js';
 import { accessFor, canAccessTopic, chooseFreeTopic } from '../lib/access.js';
 import { suggestedTopic } from './home.js';
+import { isAdmin } from './admin.js';
 import { prewarmToolkit } from './bites.js';
 import { cancelSubscriptionsFor } from '../lib/billing.js';
 import { topics } from '../db/schema.js';
@@ -21,7 +22,7 @@ export async function loadMe(userId: string) {
   }).from(users).innerJoin(profiles, eq(profiles.userId, users.id)).where(eq(users.id, userId));
   if (!row) throw new HttpError(404, 'Account not found');
   const { plan, freeTopicId, planSource, premiumUntil } = await accessFor(userId);
-  return { ...row, plan, freeTopicId, planSource, premiumUntil };
+  return { ...row, plan, freeTopicId, planSource, premiumUntil, isAdmin: await isAdmin(userId) };
 }
 
 export const me = Router();

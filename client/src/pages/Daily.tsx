@@ -8,6 +8,7 @@ import { CoachAvatar } from '../components/Coach';
 import { categoryTint, tileBackground } from '../components/CategoryIcon';
 import { COACHES } from '../options';
 import { ShareWeek } from '../components/ShareWeek';
+import { RemindersCard } from '../components/Reminders';
 
 const FLAME = 'linear-gradient(155deg, #ff9f43 0%, #f0506e 100%)';
 
@@ -126,6 +127,7 @@ export default function Daily() {
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" className="relative" aria-hidden><path d="m9 6 6 6-6 6" /></svg>
               </Link>
             )}
+            <div className="mt-4"><RemindersCard compact /></div>
             <div className="mt-auto space-y-2 pt-6">
               <Link to="/week" className="btn-ghost flex w-full items-center justify-center">See your week</Link>
               <button className="btn-ghost w-full" onClick={() => nav('/')}>Done</button>

@@ -3,6 +3,7 @@ import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { activityEvents, books, categories, profiles, topicBooks, topicProgress, topics, userProgress } from '../db/schema.js';
 import { levelFor } from './progress.js';
+import { shouldAskFeedback } from './admin.js';
 import { requireAuth } from '../lib/auth.js';
 import { accessFor } from '../lib/access.js';
 import { trackFor } from './bites.js';
@@ -75,6 +76,7 @@ homeRoutes.get('/', async (req, res) => {
   const [up] = await db.select({ xp: userProgress.xp }).from(userProgress).where(eq(userProgress.userId, userId));
   res.json({
     level: levelFor(up?.xp ?? 0),
+    askFeedback: await shouldAskFeedback(userId),
     next,
     picks: picks.map((p) => ({ ...p, unlocked: unlocked(p.id) })),
     fiction: fiction.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 12).map((f) => ({ ...f, unlocked: unlocked(f.id) })),

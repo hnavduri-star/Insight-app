@@ -23,6 +23,9 @@ services:
       # Free beta: everything unlocked for everyone. Set to "false" to bring back the free topic and paywall.
       - key: OPEN_ACCESS
         value: "true"
+      # Your email: unlocks Beta metrics (/admin) in the app. Comma-separate several.
+      - key: ADMIN_EMAILS
+        sync: false
       # Try Premium with no payment. Switches off automatically once Stripe keys are added.
       - key: BILLING_TEST_MODE
         value: "true"

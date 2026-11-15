@@ -7,6 +7,9 @@ import { CoachPicker, GoalPicker, IndustryPicker, MinutesPicker, PersonaPicker }
 import { Sheet } from '../components/Sheet';
 import { COACHES, personaLabel } from '../options';
 import { Paywall } from '../components/Paywall';
+import { RemindersCard } from '../components/Reminders';
+import { FeedbackSheet } from '../components/Feedback';
+import { TeamCard } from './Team';
 
 export default function Profile() {
   const { me, setMe, logout } = useAuth();
@@ -15,6 +18,7 @@ export default function Profile() {
   const [deleting, setDeleting] = useState(false);
   const [coachErr, setCoachErr] = useState('');
   const [paywall, setPaywall] = useState(false);
+  const [feedback, setFeedback] = useState(false);
   const [portalBusy, setPortalBusy] = useState(false);
   const endTest = async () => {
     try { setMe(await api<Me>('/billing/test-cancel', { body: {} })); } catch (e) { setCoachErr((e as Error).message); }
@@ -84,6 +88,16 @@ export default function Profile() {
         {m.coach && <p className="mt-3 text-xs text-muted">{COACHES.find((c) => c.value === m.coach)?.name} is your coach.</p>}
       </section>
 
+      <RemindersCard />
+      <TeamCard />
+
+      <section className="card flex items-center gap-4 p-5">
+        <span className="text-2xl" aria-hidden>💬</span>
+        <div className="flex-1"><h2 className="text-lg font-semibold">Give feedback</h2><p className="text-sm text-muted">3 quick questions. They go straight to the person building Insight.</p></div>
+        <button className="btn-ghost px-4 text-sm" onClick={() => setFeedback(true)}>Open</button>
+      </section>
+      {m.isAdmin && <Link to="/admin" className="card flex items-center gap-4 p-5"><span className="text-2xl" aria-hidden>📊</span><span className="flex-1 font-semibold">Beta metrics (admin)</span></Link>}
+
       <section className="space-y-3">
         <button className="btn-ghost w-full" onClick={async () => { await logout(); nav('/login', { replace: true }); }}>Log out</button>
         <button className="min-h-[44px] w-full text-sm text-error/90 hover:text-error" onClick={() => setDeleting(true)}>Delete account</button>
@@ -93,6 +107,7 @@ export default function Profile() {
       </section>
 
       <EditSheet open={editing} onClose={() => setEditing(false)} />
+      <FeedbackSheet open={feedback} onClose={() => setFeedback(false)} />
       <DeleteSheet open={deleting} onClose={() => setDeleting(false)} />
       <Paywall open={paywall} onClose={() => setPaywall(false)} />
     </main>

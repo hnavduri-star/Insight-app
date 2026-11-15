@@ -14,11 +14,11 @@ export type ProgressData = {
   badges: { key: string; name: string; emoji: string; description: string; earned: boolean }[];
 };
 
-const AXES: [keyof Rubric, string][] = [['clarity', 'Clarity'], ['empathy', 'Empathy'], ['structure', 'Structure'], ['tools', 'Use of tools']];
+const AXES: [keyof Rubric, string][] = [['clarity', 'Clarity'], ['empathy', 'Empathy'], ['structure', 'Structure'], ['tools', 'Tools']];
 
 /** A 4-axis skill chart: your latest role-plays against your first ones. */
 export function SkillChart({ current, first, size = 260 }: { current: Rubric; first: Rubric | null; size?: number }) {
-  const c = size / 2, R = size / 2 - 42;
+  const c = size / 2, R = size / 2 - 58;
   const pt = (i: number, v: number) => {
     const a = -Math.PI / 2 + (i * Math.PI) / 2;
     return [c + Math.cos(a) * R * (v / 100), c + Math.sin(a) * R * (v / 100)];
@@ -33,7 +33,7 @@ export function SkillChart({ current, first, size = 260 }: { current: Rubric; fi
       <motion.polygon points={poly(current)} fill="rgba(94,194,255,0.28)" stroke="#5ec2ff" strokeWidth="2.5" strokeLinejoin="round"
         initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} style={{ transformOrigin: `${c}px ${c}px` }} />
       {AXES.map(([k, l], i) => {
-        const [x, y] = pt(i, 128);
+        const [x, y] = pt(i, i % 2 ? 140 : 124);
         return (
           <text key={k} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-current text-[12px] font-bold">
             <tspan x={x} dy="-0.5em">{l}</tspan><tspan x={x} dy="1.25em" fill="#5ec2ff">{current[k]}</tspan>

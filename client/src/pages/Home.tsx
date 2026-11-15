@@ -7,6 +7,7 @@ import { Alert, Avatar, Spinner } from '../components/ui';
 import { CoachAvatar } from '../components/Coach';
 import { CategoryGlyph, categoryTint, tileBackground } from '../components/CategoryIcon';
 import { TopicSheet } from '../components/TopicSheet';
+import { FeedbackSheet } from '../components/Feedback';
 import { COACHES, personaLabel } from '../options';
 
 function greeting() {
@@ -15,6 +16,7 @@ function greeting() {
 }
 
 type HomeData = {
+  askFeedback: boolean;
   level: { n: number; name: string; xp: number };
   next: { topic: { id: string; name: string; category: string }; label: string; sub: string; minutes: number; path: string; started: boolean } | null;
   picks: { id: string; name: string; description: string | null; category: string; unlocked: boolean }[];
@@ -28,6 +30,8 @@ export default function Home() {
   const [home, setHome] = useState<HomeData | null>(null);
   const [error, setError] = useState('');
   const [topicId, setTopicId] = useState<string | null>(null);
+  const [fb, setFb] = useState(false);
+  const [fbDone, setFbDone] = useState(false);
   const load = () => {
     setError('');
     api<Category[]>('/topics').then(setCats).catch((e) => setError(e.message));
@@ -54,6 +58,14 @@ export default function Home() {
       {!me!.emailVerified && <VerifyBanner />}
 
       <NextStepCard home={home} onOpenTopic={setTopicId} />
+      {home?.askFeedback && !fbDone && (
+        <button onClick={() => setFb(true)} className="card mt-3 flex w-full items-center gap-3 p-4 text-left">
+          <span className="text-2xl" aria-hidden>💬</span>
+          <span className="flex-1"><span className="block font-bold">You've been learning for a few days</span><span className="block text-sm text-muted">Tell us what's working: 3 quick questions</span></span>
+          <Chevron />
+        </button>
+      )}
+      <FeedbackSheet open={fb} onClose={() => setFb(false)} onSent={() => setFbDone(true)} />
       <CheckinCard />
       <DailyCard />
 
