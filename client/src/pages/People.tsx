@@ -9,7 +9,7 @@ import { MAX_PEOPLE, RELATIONSHIPS, TRAITS } from '../options';
 import { Paywall } from '../components/Paywall';
 
 const REL_TINT: Record<string, string> = {
-  boss: '#f5b971', colleague: '#5ec2ff', direct_report: '#2dd4bf', client: '#a78bfa', professor: '#7c9cff',
+  boss: '#f5b971', senior_leader: '#fbbf24', colleague: '#5ec2ff', direct_report: '#2dd4bf', client: '#a78bfa', investor_board: '#7c9cff',
   partner: '#f2879b', family: '#fb923c', friend: '#86efac', other: '#9db3dc',
 };
 const relLabel = (v: string) => RELATIONSHIPS.find((r) => r.value === v)?.label ?? v;
@@ -27,8 +27,8 @@ export function PersonAvatar({ p, size = 52 }: { p: Pick<Person, 'name' | 'relat
 
 const SUGGESTIONS = [
   { relationship: 'boss', label: 'Your boss' }, { relationship: 'client', label: 'A client' },
-  { relationship: 'colleague', label: 'A colleague' }, { relationship: 'partner', label: 'Your partner' },
-  { relationship: 'professor', label: 'A professor' }, { relationship: 'friend', label: 'A friend' },
+  { relationship: 'colleague', label: 'A peer' }, { relationship: 'direct_report', label: 'A team member' },
+  { relationship: 'partner', label: 'Your partner' }, { relationship: 'friend', label: 'A friend' },
 ];
 
 export default function People() {

@@ -23,19 +23,20 @@ describe('Milestone 1 acceptance: sign up, set a persona, see all 8 headings', (
     const me = await a.get('/api/auth/me');
     expect(me.body).toMatchObject({ name: 'Ana', email: 'ana@example.com', onboarded: false, emailVerified: false, timezone: 'Asia/Dubai' });
 
-    const ob = await a.post('/api/me/onboarding').send({ persona: 'manager', industry: 'Technology', goal: 'Get promoted', dailyMinutes: 10, coach: 'maya' });
+    const ob = await a.post('/api/me/onboarding').send({ persona: 'manager', industry: 'Technology', goals: ['Get promoted', 'Lead and develop my team'], dailyMinutes: 10, coach: 'maya' });
     expect(ob.status).toBe(200);
-    expect(ob.body).toMatchObject({ persona: 'manager', coach: 'maya', onboarded: true });
+    expect(ob.body).toMatchObject({ persona: 'manager', coach: 'maya', onboarded: true, goals: ['Get promoted', 'Lead and develop my team'] });
 
     const cats = await a.get('/api/topics');
-    expect(cats.body).toHaveLength(8);
-    expect(cats.body.map((c: any) => c.topics.length)).toEqual([9, 16, 12, 9, 8, 13, 16, 16]);
+    expect(cats.body).toHaveLength(12);
+    expect(cats.body.map((c: any) => c.topics.length)).toEqual([6, 7, 7, 7, 11, 8, 13, 6, 10, 7, 7, 5]);
     const names = cats.body.flatMap((c: any) => c.topics.map((t: any) => t.name));
     expect(new Set(names).size).toBe(names.length); // no overlap across headings
 
     const topic = await a.get(`/api/topics/${cats.body[0].topics[0].id}`);
     expect(topic.body.name).toBe('Critical Thinking');
     expect(topic.body.books).toHaveLength(3);
+    expect(topic.body.description).toMatch(/evidence/);
   });
 });
 
@@ -104,7 +105,12 @@ describe('profile', () => {
     expect((await a.put('/api/me/profile').send({ dailyMinutes: 7 })).status).toBe(400);
     expect((await a.put('/api/me/profile').send({ industry: 'Free text' })).status).toBe(400);
     expect((await a.put('/api/me/profile').send({ isAdmin: true })).status).toBe(400);
-    expect((await a.post('/api/me/onboarding').send({ persona: 'student' })).status).toBe(400);
+    expect((await a.post('/api/me/onboarding').send({ persona: 'early_career' })).status).toBe(400);
+    expect((await a.put('/api/me/profile').send({ persona: 'student' })).status).toBe(400);
+    expect((await a.put('/api/me/profile').send({ goals: [] })).status).toBe(400);
+    expect((await a.put('/api/me/profile').send({ goals: ['Get promoted', 'Get promoted'] })).status).toBe(400);
+    expect((await a.put('/api/me/profile').send({ goals: ['Get promoted', 'Grow my business', 'Grow personally', 'Change jobs or careers'] })).status).toBe(400);
+    expect((await a.put('/api/me/profile').send({ goals: ['Get promoted', 'Grow personally'] })).body.goals).toEqual(['Get promoted', 'Grow personally']);
   });
 
   it('edits name and switches coach', async () => {
@@ -116,7 +122,7 @@ describe('profile', () => {
   it("each user only ever sees their own profile", async () => {
     const a = await signup(agent(), 'a@example.com');
     const b = await signup(agent(), 'b@example.com');
-    await a.put('/api/me/profile').send({ persona: 'leader' });
+    await a.put('/api/me/profile').send({ persona: 'senior_executive' });
     expect((await b.get('/api/me/profile')).body).toMatchObject({ email: 'b@example.com', persona: null });
   });
 

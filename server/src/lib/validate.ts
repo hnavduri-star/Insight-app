@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PERSONAS, INDUSTRIES, GOALS, DAILY_MINUTES, COACHES } from '../../../shared/options.js';
+import { PERSONAS, INDUSTRIES, GOALS, MAX_GOALS, DAILY_MINUTES, COACHES } from '../../../shared/options.js';
 
 export const email = z.string().trim().toLowerCase().max(254).email('Enter a valid email');
 export const password = z.string().min(6, 'Password must be at least 6 characters').max(128);
@@ -15,7 +15,8 @@ export const profileInput = z.object({
   name: name.optional(),
   persona: z.enum(values(PERSONAS)).optional(),
   industry: z.enum(INDUSTRIES as unknown as [string, ...string[]]).optional(),
-  goal: z.enum(GOALS as unknown as [string, ...string[]]).optional(),
+  goals: z.array(z.enum(GOALS as unknown as [string, ...string[]])).min(1, 'Pick at least one goal').max(MAX_GOALS, `Pick up to ${MAX_GOALS} goals`)
+    .refine((g) => new Set(g).size === g.length, 'Each goal once').optional(),
   dailyMinutes: z.number().int().refine((n) => (DAILY_MINUTES as readonly number[]).includes(n), 'Choose 5, 10, 15 or 20').optional(),
   coach: z.enum(values(COACHES)).optional(),
   timezone: z.string().max(64).refine(isValidTimezone, 'Unknown time zone').optional(),

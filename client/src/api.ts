@@ -1,12 +1,12 @@
 export type Me = {
   id: string; name: string; email: string; emailVerified: boolean;
-  persona: string | null; industry: string | null; goal: string | null; dailyMinutes: number | null;
+  persona: string | null; industry: string | null; goals: string[]; dailyMinutes: number | null;
   coach: 'maya' | 'alex' | null; timezone: string; onboarded: boolean;
   plan: 'free' | 'premium'; freeTopicId: string | null;
   planSource: 'subscription' | 'grant' | 'purchase' | 'test' | null; premiumUntil: string | null;
 };
 export type Category = { id: string; name: string; icon: string; sortOrder: number; topics: { id: string; name: string; unlocked: boolean; free: boolean }[] };
-export type TopicDetail = { id: string; name: string; category: string; icon: string; books: { title: string; author: string | null; kind: 'fiction' | 'nonfiction'; buyUrl: string | null }[];
+export type TopicDetail = { id: string; name: string; description: string | null; category: string; icon: string; books: { title: string; author: string | null; kind: 'fiction' | 'nonfiction'; buyUrl: string | null }[];
   unlocked: boolean; free: boolean };
 export type Person = { id: string; name: string; relationship: string; traits: string[]; notes: string | null; practiceGoal: string | null };
 

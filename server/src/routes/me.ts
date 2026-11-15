@@ -14,7 +14,7 @@ import { topics } from '../db/schema.js';
 export async function loadMe(userId: string) {
   const [row] = await db.select({
     id: users.id, name: users.name, email: users.email, emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`,
-    persona: profiles.persona, industry: profiles.industry, goal: profiles.goal, dailyMinutes: profiles.dailyMinutes,
+    persona: profiles.persona, industry: profiles.industry, goals: sql<string[]>`${profiles.goals}`, dailyMinutes: profiles.dailyMinutes,
     coach: profiles.coach, timezone: profiles.timezone, onboarded: sql<boolean>`${profiles.onboardedAt} is not null`,
   }).from(users).innerJoin(profiles, eq(profiles.userId, users.id)).where(eq(users.id, userId));
   if (!row) throw new HttpError(404, 'Account not found');
@@ -41,7 +41,7 @@ me.put('/profile', async (req, res) => {
 
 /** Finishes onboarding: all four answers plus a coach are required. */
 me.post('/onboarding', async (req, res) => {
-  const input = profileInput.required({ persona: true, industry: true, goal: true, dailyMinutes: true, coach: true })
+  const input = profileInput.required({ persona: true, industry: true, goals: true, dailyMinutes: true, coach: true })
     .omit({ name: true }).parse(req.body);
   await db.update(profiles).set({ ...input, onboardedAt: sql`coalesce(${profiles.onboardedAt}, now())`, updatedAt: new Date() })
     .where(eq(profiles.userId, req.userId!));

@@ -1,8 +1,9 @@
 /**
  * Reads the topic catalogue (default: data/insight-topics-and-books.xlsx at the repo root).
  * One row per book, either as .xlsx or .csv:
- *   heading, heading_icon, topic, book_title, author, book_type, buy_url
+ *   heading, heading_icon, topic, scope, book_title, author, book_type, buy_url
  * - heading_icon is optional (emoji); only the first row of a heading needs it.
+ * - scope is a one-line description of the topic; only one row of a topic needs it.
  * - book_type is "fiction" or "non-fiction" (blank = non-fiction).
  * - Row order sets display order of headings, topics and books.
  * Also reads .xlsx directly (sheet "Topics and Books", or the first sheet).
@@ -12,7 +13,7 @@ import { parse } from 'csv-parse/sync';
 import ExcelJS from 'exceljs';
 
 export type CatalogBook = { title: string; author: string | null; kind: 'fiction' | 'nonfiction'; buyUrl: string | null };
-export type CatalogTopic = { name: string; books: CatalogBook[] };
+export type CatalogTopic = { name: string; description: string | null; books: CatalogBook[] };
 export type CatalogHeading = { name: string; icon: string; topics: CatalogTopic[] };
 
 export const DEFAULT_CATALOG = new URL('../../../data/insight-topics-and-books.xlsx', import.meta.url).pathname;
@@ -77,7 +78,8 @@ function buildCatalog(rows: Record<string, string>[]): CatalogHeading[] {
     if (!h) headings.set(heading, (h = { name: heading, icon: '', topics: [] }));
     if (!h.icon && r.heading_icon) h.icon = r.heading_icon;
     let t = h.topics.find((x) => x.name.toLowerCase() === topic.toLowerCase());
-    if (!t) h.topics.push((t = { name: topic, books: [] }));
+    if (!t) h.topics.push((t = { name: topic, description: null, books: [] }));
+    if (!t.description && (r.scope || r.description)) t.description = r.scope || r.description;
     if (t.books.some((b) => b.title.toLowerCase() === title.toLowerCase())) return;
     t.books.push({ title, author: r.author || null, kind: type === 'fiction' ? 'fiction' : 'nonfiction', buyUrl: r.buy_url || null });
   });

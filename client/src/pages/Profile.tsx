@@ -63,8 +63,8 @@ export default function Profile() {
           <button className="btn-ghost min-h-[40px] px-3 text-sm" onClick={() => setEditing(true)}>Edit profile</button>
         </div>
         <dl className="grid grid-cols-2 gap-3 text-sm">
-          {[['Persona', personaLabel(m.persona)], ['Industry', m.industry], ['Goal', m.goal], ['Daily time', m.dailyMinutes ? `${m.dailyMinutes} min` : '']].map(([k, v]) => (
-            <div key={k} className="surface rounded-input px-3 py-2.5">
+          {[['Career stage', personaLabel(m.persona)], ['Industry', m.industry], ['Goals', m.goals.join(' · ')], ['Daily time', m.dailyMinutes ? `${m.dailyMinutes} min` : '']].map(([k, v]) => (
+            <div key={k} className={`surface rounded-input px-3 py-2.5 ${k === 'Goals' ? 'col-span-2' : ''}`}>
               <dt className="text-xs text-muted">{k}</dt>
               <dd className="font-medium">{v || '—'}</dd>
             </div>
@@ -96,12 +96,12 @@ export default function Profile() {
 function EditSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { me, setMe } = useAuth();
   const m = me!;
-  const [f, setF] = useState({ name: m.name, persona: m.persona, industry: m.industry, goal: m.goal, dailyMinutes: m.dailyMinutes });
+  const [f, setF] = useState({ name: m.name, persona: m.persona, industry: m.industry, goals: m.goals, dailyMinutes: m.dailyMinutes });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const save = async (e: FormEvent) => {
     e.preventDefault(); setBusy(true); setError('');
-    const body = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== null && v !== ''));
+    const body = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== null && v !== '' && !(Array.isArray(v) && v.length === 0)));
     try { setMe(await api<Me>('/me/profile', { method: 'PUT', body })); onClose(); }
     catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };
@@ -113,7 +113,7 @@ function EditSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
         <Field label="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} autoComplete="name" />
         <PersonaPicker value={f.persona} onChange={(persona) => setF({ ...f, persona })} />
         <IndustryPicker value={f.industry} onChange={(industry) => setF({ ...f, industry })} />
-        <GoalPicker value={f.goal} onChange={(goal) => setF({ ...f, goal })} />
+        <GoalPicker value={f.goals} onChange={(goals) => setF({ ...f, goals })} />
         <MinutesPicker value={f.dailyMinutes} onChange={(dailyMinutes) => setF({ ...f, dailyMinutes })} />
         <Submit busy={busy}>Save changes</Submit>
       </form>

@@ -13,7 +13,7 @@ export default function Onboarding() {
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [f, setF] = useState({
-    persona: me?.persona ?? null, industry: me?.industry ?? null, goal: me?.goal ?? null,
+    persona: me?.persona ?? null, industry: me?.industry ?? null, goals: me?.goals ?? [],
     dailyMinutes: me?.dailyMinutes ?? null, coach: me?.coach ?? null,
   });
   const [busy, setBusy] = useState(false);
@@ -21,7 +21,7 @@ export default function Onboarding() {
 
   const steps = [
     { title: "Let's shape your learning journey", ok: !!f.persona && !!f.industry },
-    { title: 'What are you working towards?', ok: !!f.goal && !!f.dailyMinutes },
+    { title: 'What are you working towards?', ok: f.goals.length > 0 && !!f.dailyMinutes },
     { title: 'Meet your coach', ok: !!f.coach },
   ];
   const cur = steps[step];
@@ -60,7 +60,7 @@ export default function Onboarding() {
             <IndustryPicker value={f.industry} onChange={(industry) => setF({ ...f, industry })} />
           </>}
           {step === 1 && <>
-            <GoalPicker value={f.goal} onChange={(goal) => setF({ ...f, goal })} />
+            <GoalPicker value={f.goals} onChange={(goals) => setF({ ...f, goals })} />
             <MinutesPicker value={f.dailyMinutes} onChange={(dailyMinutes) => setF({ ...f, dailyMinutes })} />
           </>}
           {step === 2 && <>

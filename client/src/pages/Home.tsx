@@ -7,7 +7,7 @@ import { Alert, Avatar, Spinner } from '../components/ui';
 import { Sheet } from '../components/Sheet';
 import { CoachAvatar } from '../components/Coach';
 import { CategoryIcon, categoryTint } from '../components/CategoryIcon';
-import { COACHES, personaLabel } from '../options';
+import { COACHES, personaLabel, personaPhrase } from '../options';
 import { Paywall } from '../components/Paywall';
 
 function greeting() {
@@ -116,7 +116,8 @@ function JourneyCard({ cats, onOpenTopic }: { cats: Category[] | null; onOpenTop
       <div className="pointer-events-none absolute -bottom-24 -left-10 h-48 w-48 rounded-full bg-accent/10 blur-3xl" aria-hidden />
       <div className="relative">
         <p className="eyebrow">Your learning journey</p>
-        <h2 className="mt-1.5 text-[24px] font-semibold leading-tight">{m.goal ?? 'Set your goal'}</h2>
+        <h2 className="mt-1.5 text-[24px] font-semibold leading-tight">{m.goals[0] ?? 'Set your goal'}</h2>
+        {m.goals.length > 1 && <p className="mt-1 text-sm text-muted">Also: {m.goals.slice(1).join(' · ')}</p>}
         <div className="mt-3 flex flex-wrap gap-2 text-xs">
           {[personaLabel(m.persona), m.industry, m.dailyMinutes && `${m.dailyMinutes} min a day`].filter(Boolean).map((x) => (
             <span key={String(x)} className="surface rounded-full px-3 py-1.5 text-ink/90">{x}</span>
@@ -197,10 +198,11 @@ function TopicSheet({ id, onClose, onChanged }: { id: string | null; onClose: ()
             <p className="eyebrow">{t.category}</p>
           </div>
           <h3 className="mt-3 text-[28px] font-semibold leading-tight">{t.name}</h3>
-          <p className="mt-2 text-[15px] leading-relaxed text-muted">
+          {t.description && <p className="mt-2 text-[15px] leading-relaxed text-ink/90">{t.description}</p>}
+          <p className="mt-3 text-sm leading-relaxed text-muted">
             Not a summary. Your bite blends the best ideas from these books into one practical framework,
-            shaped for {me?.persona ? `a ${personaLabel(me.persona).toLowerCase()}` : 'you'}
-            {me?.goal ? ` who wants to ${me.goal.charAt(0).toLowerCase()}${me.goal.slice(1)}` : ''}.
+            shaped for {me?.persona ? personaPhrase(me.persona) : 'you'}{me?.industry && me.industry !== 'Other' ? ` in ${me.industry.toLowerCase()}` : ''}
+            {me?.goals?.[0] ? <> and your goal: <span className="text-ink/90">{me.goals[0].toLowerCase()}</span></> : null}.
           </p>
 
           <ul className="mt-5 grid grid-cols-3 gap-2 text-center text-xs">

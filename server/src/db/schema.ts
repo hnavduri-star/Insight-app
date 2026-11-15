@@ -15,14 +15,14 @@ import {
 } from 'drizzle-orm/pg-core';
 
 // ---------- Enums ----------
-export const personaEnum = pgEnum('persona', ['student', 'job_seeker', 'professional', 'manager', 'leader']);
+export const personaEnum = pgEnum('persona', ['early_career', 'manager', 'senior_executive']);
 export const coachEnum = pgEnum('coach', ['maya', 'alex']);
 export const ratingBandEnum = pgEnum('rating_band', ['foundation', 'core', 'advanced']);
 export const difficultyEnum = pgEnum('difficulty', ['friendly', 'realistic', 'tough']);
 export const tokenPurposeEnum = pgEnum('token_purpose', ['verify_email', 'reset_password']);
 export const bookKindEnum = pgEnum('book_kind', ['nonfiction', 'fiction']);
 export const relationshipEnum = pgEnum('relationship', [
-  'boss', 'colleague', 'direct_report', 'client', 'professor', 'partner', 'family', 'friend', 'other',
+  'boss', 'senior_leader', 'colleague', 'direct_report', 'client', 'investor_board', 'partner', 'family', 'friend', 'other',
 ]);
 export const entitlementKindEnum = pgEnum('entitlement_kind', ['all_access', 'topic']);
 export const entitlementSourceEnum = pgEnum('entitlement_source', ['free_trial', 'subscription', 'purchase', 'grant']);
@@ -59,7 +59,7 @@ export const profiles = pgTable('profiles', {
   userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   persona: personaEnum('persona'),
   industry: text('industry'),
-  goal: text('goal'),
+  goals: jsonb('goals').notNull().default([]), // 1-3 objectives, first = main goal
   dailyMinutes: integer('daily_minutes'),
   coach: coachEnum('coach'),
   timezone: text('timezone').notNull().default('UTC'),
@@ -79,6 +79,7 @@ export const topics = pgTable('topics', {
   id: uuid('id').primaryKey().defaultRandom(),
   categoryId: uuid('category_id').notNull().references(() => categories.id, { onDelete: 'restrict' }),
   name: text('name').notNull(),
+  description: text('description'), // one-line scope, keeps topics mutually exclusive
   sortOrder: integer('sort_order').notNull(),
 }, (t) => [uniqueIndex('topics_name_unique').on(t.name), index('topics_category_idx').on(t.categoryId)]);
 

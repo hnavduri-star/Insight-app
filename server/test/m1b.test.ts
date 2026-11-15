@@ -105,13 +105,38 @@ describe('catalogue CSV import', () => {
     expect(cats[0].topics[0].books.map((b) => b.kind)).toEqual(['nonfiction', 'fiction']);
   });
 
-  it('reads the Excel workbook: 8 headings, 99 topics, 3 books each', async () => {
+  it('reads the Excel workbook: 12 headings, 94 topics with scope, 3 books each', async () => {
     const x = await loadCatalog();
-    expect(x).toHaveLength(8);
+    expect(x).toHaveLength(12);
     const topics = x.flatMap((h) => h.topics);
-    expect(topics).toHaveLength(99);
+    expect(topics).toHaveLength(94);
+    expect(topics.every((t) => t.description && t.description.length > 10)).toBe(true);
     expect(topics.every((t) => t.books.length === 3)).toBe(true);
     expect(topics[0].books[0]).toEqual({ title: 'Thinking, Fast and Slow', author: 'Daniel Kahneman', kind: 'nonfiction', buyUrl: null });
+  });
+
+  it('removes topics dropped from the file, but keeps ones with learner history', async () => {
+    const { a, id } = await user();
+    const { seed } = await import('../src/db/seedData.js');
+    const { db } = await import('../src/db/client.js');
+    const extra = [{ name: 'Old Heading', icon: '📦', topics: [
+      { name: 'Old Untouched', description: null, books: [{ title: 'Old Book', author: null, kind: 'nonfiction' as const, buyUrl: null }] },
+      { name: 'Old Studied', description: null, books: [{ title: 'Old Book', author: null, kind: 'nonfiction' as const, buyUrl: null }] },
+    ] }];
+    const base = await loadCatalog();
+    await seed(db, { catalog: [...base, ...extra] });
+    const { rows: [studied] } = await pool.query("select id from topics where name = 'Old Studied'");
+    const { rows: [untouched] } = await pool.query("select id from topics where name = 'Old Untouched'");
+    await pool.query('insert into topic_progress (user_id, topic_id, xp) values ($1, $2, 10)', [id, studied.id]);
+    await a.post('/api/me/free-topic').send({ topicId: untouched.id });
+    const r = await seed(db, { catalog: base });
+    expect(r.removed).toEqual(['Old Untouched']);
+    expect(r.kept).toEqual(['Old Studied']);
+    expect((await a.get('/api/auth/me')).body.freeTopicId).toBeNull(); // free pick on a removed topic is cleared
+    const forced = await seed(db, { catalog: base, prune: true });
+    expect(forced.removed).toEqual(['Old Studied']);
+    const { rows } = await pool.query("select count(*)::int n from categories where name = 'Old Heading'");
+    expect(rows[0].n).toBe(0);
   });
 
   it('reports bad rows with line numbers', () => {

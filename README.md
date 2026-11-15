@@ -41,17 +41,17 @@ Free-tier notes: the service sleeps when idle (about 30 seconds to wake), and th
 
 ## Topic and book catalogue
 
-The catalogue lives in **[`data/insight-topics-and-books.xlsx`](data/insight-topics-and-books.xlsx)**. Edit it in Excel. It has a *How to use* sheet, a *Topics and Books* sheet with one row per book, and a *Summary* sheet that counts topics, books and fiction per heading automatically.
+The catalogue lives in **[`data/insight-topics-and-books.xlsx`](data/insight-topics-and-books.xlsx)**. Edit it in Excel. It is organised MECE: 12 headings and 94 topics, each with a one-line *Scope* shown in the app. Its sheets are *How to use*, *Topics and Books* (one row per book), *Summary* (counts per heading, calculated automatically) and *Changes* (where every earlier topic now sits).
 
-| Heading | Heading Icon | Topic | Book Title | Author | Book Type | Buy URL |
-|---|---|---|---|---|---|---|
-| Leadership and Teams | 🧭 | Building Trust | The Speed of Trust | Stephen M.R. Covey | non-fiction | |
-| Leadership and Teams | | Building Trust | The Lord of the Rings | J.R.R. Tolkien | fiction | |
+| Heading | Heading Icon | Topic | Scope | Book Title | Author | Book Type | Buy URL |
+|---|---|---|---|---|---|---|---|
+| Leading People and Teams | 🧭 | Building Trust | Earning and extending trust as a leader. | The Speed of Trust | Stephen M.R. Covey | non-fiction | |
+| Leading People and Teams | | Building Trust | | The Lord of the Rings | J.R.R. Tolkien | fiction | |
 
 - Row order sets display order. A topic can have any number of books. Book Type is a dropdown (`non-fiction` or `fiction`).
 - Load it with `npm run db:seed` (the app also reloads it on every deploy). Another file: `npm run db:seed -- path/to/file.xlsx` (CSV also works).
 - Problems are reported with line numbers, such as a missing column, a topic under two headings, or a bad book type.
-- Topics missing from the file are kept unless you add `-- --prune`. Pruning deletes them along with learners' progress on them.
+- Topics removed from the file are deleted on the next load, unless a learner has history on them (those are kept and listed). `-- --prune` deletes them anyway.
 
 ## Free taste, then pay
 
@@ -80,11 +80,11 @@ Matte finish: a fine film grain over every screen, low-sheen card surfaces with 
 
 - Sign up (name, email, 6+ character password), log in, log out, forgot and reset password (resetting signs out other devices), email verification with resend.
 - New users go to onboarding; returning users go straight to Home.
-- Onboarding in 3 steps: persona and industry, goal and daily minutes, coach (Maya or Alex).
+- Onboarding in 3 steps: career stage (Early-stage employee, Manager, Senior executive) and industry; up to 3 goals (the first is the main goal) and daily minutes; coach (Maya or Alex).
 - Home: avatar and greeting (tap for Profile), verify-email banner, all 8 headings as collapsible lists, and a topic sheet that shows its 3 source books.
 - Profile: details, Edit profile, switch coach, log out, delete account (asks for the password and removes all of the user's data), privacy notice.
 - Access control: every user query is scoped to the session's user id (the brief's "equivalent check" to RLS). Auth endpoints are rate-limited, inputs are validated and size-limited, and writes must be JSON.
-- 29 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
+- 31 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
 
 ## Decisions made inside the brief's options
 
