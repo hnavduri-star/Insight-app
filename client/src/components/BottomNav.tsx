@@ -8,13 +8,13 @@ const items = [
 
 export function BottomNav() {
   return (
-    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 backdrop-blur-md"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)', background: 'rgba(8, 21, 52, 0.88)', borderTop: '1px solid rgba(157,179,220,0.10)' }}>
-      <ul className="mx-auto flex max-w-app">
+    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 px-4" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+      <ul className="mx-auto flex max-w-[440px] rounded-[26px] border border-white/10 p-1.5 shadow-[0_18px_40px_-12px_rgba(0,0,0,0.75)] backdrop-blur-xl"
+        style={{ background: 'rgba(13, 26, 70, 0.82)' }}>
         {items.map((i) => (
           <li key={i.to} className="flex-1">
             <NavLink to={i.to} end
-              className={({ isActive }) => `flex min-h-[60px] flex-col items-center justify-center gap-1 text-xs font-medium transition ${isActive ? 'text-primary' : 'text-muted/80 hover:text-ink'}`}>
+              className={({ isActive }) => `flex min-h-[54px] flex-col items-center justify-center gap-0.5 rounded-[20px] text-[11px] font-bold transition ${isActive ? 'bg-white text-[#1e3a8a]' : 'text-muted hover:text-ink'}`}>
               <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{i.icon}</svg>
               {i.label}
             </NavLink>

@@ -13,6 +13,8 @@ import Onboarding from './pages/Onboarding';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import People from './pages/People';
+import Skills from './pages/Skills';
+import Bite from './pages/Bite';
 
 /** Signed-out only. */
 function Public() {
@@ -77,7 +79,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/onboarding" element={<Onboarding />} />
           </Route>
           <Route element={<Private />}>
+            <Route path="/bite/:topicId" element={<Bite />} />
             <Route element={<WithNav />}>
+              <Route path="/skills/:id" element={<Skills />} />
               <Route path="/" element={<Home />} />
               <Route path="/people" element={<People />} />
               <Route path="/profile" element={<Profile />} />

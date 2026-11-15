@@ -23,6 +23,9 @@ services:
       # Try Premium with no payment. Switches off automatically once Stripe keys are added.
       - key: BILLING_TEST_MODE
         value: "true"
+      # Claude API key for bites and grading (server-side only). Add it in Render → insight → Environment.
+      - key: ANTHROPIC_API_KEY
+        sync: false
       - key: TEST_PRICE_MONTHLY_USD
         sync: false
       - key: TEST_PRICE_ANNUAL_USD

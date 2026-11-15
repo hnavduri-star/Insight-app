@@ -5,7 +5,7 @@ export type Me = {
   plan: 'free' | 'premium'; freeTopicId: string | null;
   planSource: 'subscription' | 'grant' | 'purchase' | 'test' | null; premiumUntil: string | null;
 };
-export type Category = { id: string; name: string; icon: string; sortOrder: number; topics: { id: string; name: string; unlocked: boolean; free: boolean }[] };
+export type Category = { id: string; name: string; icon: string; sortOrder: number; topics: { id: string; name: string; description: string | null; unlocked: boolean; free: boolean }[] };
 export type TopicDetail = { id: string; name: string; description: string | null; category: string; icon: string; books: { title: string; author: string | null; kind: 'fiction' | 'nonfiction'; buyUrl: string | null }[];
   unlocked: boolean; free: boolean };
 export type Person = { id: string; name: string; relationship: string; traits: string[]; notes: string | null; practiceGoal: string | null };

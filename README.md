@@ -72,9 +72,21 @@ The catalogue lives in **[`data/insight-topics-and-books.xlsx`](data/insight-top
 
 A **People** tab where learners add the real people in their life (boss, colleague, team member, client, professor, partner, family, friend) with a nickname, up to 5 traits, how that person tends to react, and what the learner wants to practise with them. Up to 20 people per learner, visible only to that learner. The role-play milestone uses these profiles so the AI plays that person (`roleplay_sessions.person_id`).
 
+## Bites (milestone 2)
+
+A bite is 5 swipeable cards (the idea, in your work, try this today), a 3-question quiz with instant feedback, and a written scenario graded by AI.
+
+- **Model:** Claude Sonnet 5.5 (`claude-sonnet-5-5`), called only from the server (`server/src/lib/ai.ts`). Output is schema-validated JSON, with a retry if the shape is wrong. Refusals fall back automatically to another model (server-side `fallbacks: "default"`).
+- **Cache:** one bite per topic, career stage, industry, main goal and rating band (`cached_lessons`), shared by every learner with the same key. Concurrent first requests share one AI call.
+- **Originality guardrails in the prompt:** ideas in our own words; no passages, chapter structures or long lists; at most one short quote; our own framework name; sources named per card.
+- **Safety:** learner text is wrapped and treated as data, never as instructions (prompt-injection guard). Answers are limited to 1,500 characters.
+- **Cost controls:** 20 bite generations and 30 gradings per learner per day. Every call is logged to `ai_calls` (model, tokens, latency).
+- **Quality signals:** a helpful / not helpful tap on every card (`feedback` table), plus quiz scores and scenario scores in `topic_progress`.
+- **Switch it on:** set `ANTHROPIC_API_KEY` on the server (Render → insight → Environment). Without it, bites show "not switched on yet".
+
 ## Look and feel
 
-Matte finish: a fine film grain over every screen, low-sheen card surfaces with a hairline top highlight, and soft ambient light. Headings use Fraunces (serif), body text uses Inter. Each heading has its own line icon and muted accent colour (`client/src/components/CategoryIcon.tsx`).
+Wio-style vivid design: each heading has its own bright two-colour fill (`client/src/components/CategoryIcon.tsx`), shown as colour tiles on Home, a colour header on each heading page, and full-colour bite cards. There's a vivid gradient hero card for the learner's journey, a floating pill navigation, bold Plus Jakarta Sans type and a fine film grain over everything.
 
 ## What works in milestone 1
 
@@ -84,7 +96,7 @@ Matte finish: a fine film grain over every screen, low-sheen card surfaces with 
 - Home: avatar and greeting (tap for Profile), verify-email banner, all 8 headings as collapsible lists, and a topic sheet that shows its 3 source books.
 - Profile: details, Edit profile, switch coach, log out, delete account (asks for the password and removes all of the user's data), privacy notice.
 - Access control: every user query is scoped to the session's user id (the brief's "equivalent check" to RLS). Auth endpoints are rate-limited, inputs are validated and size-limited, and writes must be JSON.
-- 31 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
+- 37 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
 
 ## Decisions made inside the brief's options
 

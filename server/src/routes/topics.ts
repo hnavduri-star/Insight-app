@@ -15,7 +15,7 @@ topicRoutes.get('/', async (req, res) => {
   const access = await accessFor(req.userId!);
   const unlocked = (id: string) => access.allAccess || access.topicIds.has(id);
   const cats = await db.select().from(categories).orderBy(asc(categories.sortOrder));
-  const tops = await db.select({ id: topics.id, name: topics.name, categoryId: topics.categoryId })
+  const tops = await db.select({ id: topics.id, name: topics.name, description: topics.description, categoryId: topics.categoryId })
     .from(topics).orderBy(asc(topics.sortOrder));
   res.json(cats.map((c) => ({ ...c, topics: tops.filter((t) => t.categoryId === c.id).map(({ categoryId, ...t }) => ({ ...t, unlocked: unlocked(t.id), free: t.id === access.freeTopicId })) })));
 });

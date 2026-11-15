@@ -8,6 +8,8 @@ import { me } from './routes/me.js';
 import { topicRoutes } from './routes/topics.js';
 import { peopleRoutes } from './routes/people.js';
 import { billing, stripeWebhook } from './routes/billing.js';
+import { biteRoutes } from './routes/bites.js';
+import { aiEnabled } from './lib/ai.js';
 import { errorHandler, HttpError } from './lib/errors.js';
 import { PERSONAS, INDUSTRIES, GOALS, DAILY_MINUTES, COACHES, RELATIONSHIPS, TRAITS } from '../../shared/options.js';
 
@@ -29,13 +31,14 @@ export function createApp() {
     next();
   });
 
-  app.get('/api/health', (_req, res) => { res.json({ ok: true }); });
+  app.get('/api/health', (_req, res) => { res.json({ ok: true, ai: aiEnabled() }); });
   app.get('/api/options', (_req, res) => { res.json({ personas: PERSONAS, industries: INDUSTRIES, goals: GOALS, dailyMinutes: DAILY_MINUTES, coaches: COACHES, relationships: RELATIONSHIPS, traits: TRAITS }); });
   app.use('/api/auth', auth);
   app.use('/api/me', me);
   app.use('/api/topics', topicRoutes);
   app.use('/api/people', peopleRoutes);
   app.use('/api/billing', billing);
+  app.use('/api/bites', biteRoutes);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found')));
 
   // In production the API also serves the built client.
