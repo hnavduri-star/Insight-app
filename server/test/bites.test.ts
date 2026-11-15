@@ -147,6 +147,17 @@ describe('bites (milestone 2)', () => {
     } finally { delete process.env.OPEN_ACCESS; }
   });
 
+  it('finds the AI key even when the variable name has the wrong case or stray spaces', async () => {
+    const { apiKey } = await import('../src/lib/ai.js');
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.Anthropic_API_Key = '  sk-ant-mixed  ';
+    try {
+      expect(apiKey()).toBe('sk-ant-mixed');
+      expect((await request(app).get('/api/health')).body.ai).toBe(true);
+    } finally { delete process.env.Anthropic_API_Key; }
+    expect(apiKey()).toBe('');
+  });
+
   it('enforces the daily generation limit', async () => {
     const l = await learner('limit@example.com');
     await pool.query("insert into ai_calls (user_id, endpoint, model, ok) select $1, 'bite', 'm', true from generate_series(1, 20)", [l.id]);

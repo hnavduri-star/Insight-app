@@ -15,10 +15,24 @@ import { HttpError } from './errors.js';
 export const AI_MODEL = 'claude-sonnet-5-5';
 
 let client: Anthropic | null = null;
-export const aiEnabled = () => !!process.env.ANTHROPIC_API_KEY;
+let clientKey = '';
+
+/**
+ * Finds the API key even if the variable was named with different case or spacing
+ * (e.g. "Anthropic_API_Key" or "anthropic api key"), and trims stray whitespace.
+ */
+export function apiKey(): string {
+  const exact = process.env.ANTHROPIC_API_KEY?.trim();
+  if (exact) return exact;
+  const name = Object.keys(process.env).find((k) => /^anthropic[\s_-]*api[\s_-]*key$/i.test(k.trim()));
+  return name ? (process.env[name] ?? '').trim() : '';
+}
+export const aiEnabled = () => !!apiKey();
 function anthropic() {
-  if (!aiEnabled()) throw new HttpError(503, 'Bites are not switched on yet: the AI key has not been added.', 'ai_disabled');
-  return (client ??= new Anthropic({ timeout: 240_000, maxRetries: 2 }));
+  const key = apiKey();
+  if (!key) throw new HttpError(503, 'Bites are not switched on yet: the AI key has not been added.', 'ai_disabled');
+  if (!client || clientKey !== key) { client = new Anthropic({ apiKey: key, timeout: 240_000, maxRetries: 2 }); clientKey = key; }
+  return client;
 }
 
 // ---------- Schemas ----------
