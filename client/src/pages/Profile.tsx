@@ -6,6 +6,7 @@ import { Alert, Avatar, Field, Submit } from '../components/ui';
 import { CoachPicker, GoalPicker, IndustryPicker, MinutesPicker, PersonaPicker } from '../components/Pickers';
 import { Sheet } from '../components/Sheet';
 import { COACHES, personaLabel } from '../options';
+import { Paywall } from '../components/Paywall';
 
 export default function Profile() {
   const { me, setMe, logout } = useAuth();
@@ -13,6 +14,7 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [coachErr, setCoachErr] = useState('');
+  const [paywall, setPaywall] = useState(false);
   const m = me!;
 
   const switchCoach = async (coach: 'maya' | 'alex') => {
@@ -29,6 +31,15 @@ export default function Profile() {
         <h1 className="mt-3 text-2xl font-semibold">{m.name}</h1>
         <p className="text-sm text-muted">{m.email}</p>
         {!m.emailVerified && <p className="mt-1 text-xs text-error">Email not verified</p>}
+      </section>
+
+      <section className="card flex items-center gap-4 p-5">
+        <div className="flex-1">
+          <p className="eyebrow">Your plan</p>
+          <p className="mt-1 font-display text-lg font-semibold">{m.plan === 'premium' ? 'Insight Premium' : 'Free'}</p>
+          <p className="text-sm text-muted">{m.plan === 'premium' ? 'Every topic is unlocked.' : 'One topic free. Upgrade for every topic.'}</p>
+        </div>
+        {m.plan === 'free' && <button className="btn-primary w-auto px-4" onClick={() => setPaywall(true)}>Upgrade</button>}
       </section>
 
       <section className="card p-5">
@@ -56,12 +67,13 @@ export default function Profile() {
         <button className="btn-ghost w-full" onClick={async () => { await logout(); nav('/login', { replace: true }); }}>Log out</button>
         <button className="min-h-[44px] w-full text-sm text-error/90 hover:text-error" onClick={() => setDeleting(true)}>Delete account</button>
         <p className="px-2 text-center text-xs leading-relaxed text-muted">
-          Privacy: your learning profile and written answers are sent to an AI provider (Anthropic) to personalize your learning and give you feedback. Your name, email and password are never sent.
+          Privacy: your learning profile, written answers and the details of people you add are sent to an AI provider (Anthropic) to personalize your learning and give you feedback. Your name, email and password are never sent.
         </p>
       </section>
 
       <EditSheet open={editing} onClose={() => setEditing(false)} />
       <DeleteSheet open={deleting} onClose={() => setDeleting(false)} />
+      <Paywall open={paywall} onClose={() => setPaywall(false)} />
     </main>
   );
 }

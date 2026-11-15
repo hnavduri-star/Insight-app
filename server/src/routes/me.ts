@@ -6,6 +6,8 @@ import { users, profiles } from '../db/schema.js';
 import { requireAuth, checkPassword, clearSession } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { profileInput } from '../lib/validate.js';
+import { accessFor, chooseFreeTopic } from '../lib/access.js';
+import { topics } from '../db/schema.js';
 
 /** The signed-in user's account + profile. Every query is scoped to req.userId. */
 export async function loadMe(userId: string) {
@@ -15,7 +17,8 @@ export async function loadMe(userId: string) {
     coach: profiles.coach, timezone: profiles.timezone, onboarded: sql<boolean>`${profiles.onboardedAt} is not null`,
   }).from(users).innerJoin(profiles, eq(profiles.userId, users.id)).where(eq(users.id, userId));
   if (!row) throw new HttpError(404, 'Account not found');
-  return row;
+  const { plan, freeTopicId } = await accessFor(userId);
+  return { ...row, plan, freeTopicId };
 }
 
 export const me = Router();
@@ -41,6 +44,15 @@ me.post('/onboarding', async (req, res) => {
     .omit({ name: true }).parse(req.body);
   await db.update(profiles).set({ ...input, onboardedAt: sql`coalesce(${profiles.onboardedAt}, now())`, updatedAt: new Date() })
     .where(eq(profiles.userId, req.userId!));
+  res.json(await loadMe(req.userId!));
+});
+
+/** Picks the one free topic every learner gets before paying. */
+me.post('/free-topic', async (req, res) => {
+  const { topicId } = z.object({ topicId: z.string().uuid() }).parse(req.body);
+  const [t] = await db.select({ id: topics.id }).from(topics).where(eq(topics.id, topicId));
+  if (!t) throw new HttpError(404, 'Topic not found');
+  await chooseFreeTopic(req.userId!, topicId);
   res.json(await loadMe(req.userId!));
 });
 

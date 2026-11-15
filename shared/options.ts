@@ -31,3 +31,23 @@ export const COACHES = [
 
 export type Persona = (typeof PERSONAS)[number]['value'];
 export type Coach = (typeof COACHES)[number]['value'];
+
+/** Real-life people the learner can add and practise conversations with. */
+export const RELATIONSHIPS = [
+  { value: 'boss', label: 'Boss' },
+  { value: 'colleague', label: 'Colleague' },
+  { value: 'direct_report', label: 'Team member' },
+  { value: 'client', label: 'Client' },
+  { value: 'professor', label: 'Professor' },
+  { value: 'partner', label: 'Partner or spouse' },
+  { value: 'family', label: 'Family' },
+  { value: 'friend', label: 'Friend' },
+  { value: 'other', label: 'Someone else' },
+] as const;
+
+export const TRAITS = [
+  'Direct', 'Demanding', 'Impatient', 'Skeptical', 'Analytical', 'Detail-oriented',
+  'Busy', 'Competitive', 'Emotional', 'Quiet', 'Supportive', 'Warm',
+] as const;
+
+export const MAX_PEOPLE = 20;

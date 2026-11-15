@@ -28,6 +28,31 @@ Email verification and password-reset links are **printed to the server log** un
 
 Production: `npm run build && NODE_ENV=production npm start`. Express serves the built client, so it deploys as one service on Render, Railway or Fly.io.
 
+## Topic and book catalogue
+
+The catalogue lives in [`data/topics.csv`](data/topics.csv), one row per book:
+
+| heading | heading_icon | topic | book_title | author | book_type | buy_url |
+|---|---|---|---|---|---|---|
+| Leadership and Teams | 🧭 | Building Trust | The Speed of Trust | Stephen M.R. Covey | non-fiction | |
+| Leadership and Teams | | Building Trust | The Lord of the Rings | J.R.R. Tolkien | fiction | |
+
+- Row order sets display order. A topic can have any number of books. `book_type` is `fiction` or `non-fiction`.
+- From Excel: *Save As → CSV UTF-8*. Then `npm run db:seed` (or `npm run db:seed -- path/to/file.csv`).
+- Problems are reported with line numbers, such as a missing column, a topic under two headings, or a bad book type.
+- Topics missing from the file are kept unless you add `-- --prune`. Pruning deletes them along with learners' progress on them.
+
+## Free taste, then pay
+
+- Every learner chooses **one free topic** and can change it until they start it. Every other topic shows a lock and opens the Premium sheet.
+- Access is stored as entitlements: `all_access` (premium) or `topic` (free trial or a per-topic purchase), with an optional expiry. That fits either a subscription or per-topic pricing.
+- The server enforces access with `requireTopicAccess()` in `server/src/lib/access.ts`, which returns 402. Every paid endpoint from milestone 2 calls it.
+- Payments are not connected yet. To test premium: `npm run grant -w server -- user@example.com` (add `--revoke` to undo).
+
+## Your people
+
+A **People** tab where learners add the real people in their life (boss, colleague, team member, client, professor, partner, family, friend) with a nickname, up to 5 traits, how that person tends to react, and what the learner wants to practise with them. Up to 20 people per learner, visible only to that learner. The role-play milestone uses these profiles so the AI plays that person (`roleplay_sessions.person_id`).
+
 ## Look and feel
 
 Matte finish: a fine film grain over every screen, low-sheen card surfaces with a hairline top highlight, and soft ambient light. Headings use Fraunces (serif), body text uses Inter. Each heading has its own line icon and muted accent colour (`client/src/components/CategoryIcon.tsx`).
@@ -40,7 +65,7 @@ Matte finish: a fine film grain over every screen, low-sheen card surfaces with 
 - Home: avatar and greeting (tap for Profile), verify-email banner, all 8 headings as collapsible lists, and a topic sheet that shows its 3 source books.
 - Profile: details, Edit profile, switch coach, log out, delete account (asks for the password and removes all of the user's data), privacy notice.
 - Access control: every user query is scoped to the session's user id (the brief's "equivalent check" to RLS). Auth endpoints are rate-limited, inputs are validated and size-limited, and writes must be JSON.
-- 12 API tests, including the milestone 1 acceptance check.
+- 21 API tests, including the milestone 1 acceptance check, paid access, people and catalogue import.
 
 ## Decisions made inside the brief's options
 

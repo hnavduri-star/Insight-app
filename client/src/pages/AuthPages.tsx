@@ -107,7 +107,7 @@ export function Signup() {
           value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
         <Submit busy={busy}>Create account</Submit>
         <p className="text-xs leading-relaxed text-muted">
-          <strong className="text-ink">Privacy:</strong> to personalize your learning and give you feedback, Insight sends your learning profile and the
+          <strong className="text-ink">Privacy:</strong> to personalize your learning and give you feedback, Insight sends your learning profile, the details of people you add and the
           answers you write to an AI provider (Anthropic). We don't send your name, email or password. You can delete your account and all your data at any time.
         </p>
       </form>

@@ -8,6 +8,7 @@
  * authenticated user's id (req.userId, set by requireAuth in src/lib/auth.ts). That is the "equivalent
  * check" to Row Level Security that the brief allows for a non-Supabase build.
  */
+import { sql } from 'drizzle-orm';
 import {
   pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, real,
   primaryKey, uniqueIndex, index, pgEnum, time,
@@ -19,6 +20,12 @@ export const coachEnum = pgEnum('coach', ['maya', 'alex']);
 export const ratingBandEnum = pgEnum('rating_band', ['foundation', 'core', 'advanced']);
 export const difficultyEnum = pgEnum('difficulty', ['friendly', 'realistic', 'tough']);
 export const tokenPurposeEnum = pgEnum('token_purpose', ['verify_email', 'reset_password']);
+export const bookKindEnum = pgEnum('book_kind', ['nonfiction', 'fiction']);
+export const relationshipEnum = pgEnum('relationship', [
+  'boss', 'colleague', 'direct_report', 'client', 'professor', 'partner', 'family', 'friend', 'other',
+]);
+export const entitlementKindEnum = pgEnum('entitlement_kind', ['all_access', 'topic']);
+export const entitlementSourceEnum = pgEnum('entitlement_source', ['free_trial', 'subscription', 'purchase', 'grant']);
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts('created_at').notNull().defaultNow();
@@ -79,6 +86,7 @@ export const books = pgTable('books', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
   author: text('author'),
+  kind: bookKindEnum('kind').notNull().default('nonfiction'),
   buyUrl: text('buy_url'),
 }, (t) => [uniqueIndex('books_title_unique').on(t.title)]);
 
@@ -268,6 +276,8 @@ export const roleplaySessions = pgTable('roleplay_sessions', {
   userId: userRef(),
   topicId: uuid('topic_id').notNull().references(() => topics.id, { onDelete: 'cascade' }),
   character: text('character').notNull(),
+  // Set when the learner practises with one of their own people rather than a stock character.
+  personId: uuid('person_id').references(() => people.id, { onDelete: 'set null' }),
   difficulty: difficultyEnum('difficulty').notNull(),
   transcriptJson: jsonb('transcript_json').notNull().default([]),
   score: integer('score'),
@@ -312,3 +322,37 @@ export const aiCalls = pgTable('ai_calls', {
   ok: boolean('ok').notNull(),
   createdAt: createdAt(),
 }, (t) => [index('ai_calls_user_created_idx').on(t.userId, t.createdAt)]);
+
+// ---------- The learner's real-life people (role-play partners) ----------
+// Details are written by the learner about someone else, so we keep them minimal:
+// a first name or nickname, the relationship, a few traits and free-text notes.
+export const people = pgTable('people', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  name: text('name').notNull(),
+  relationship: relationshipEnum('relationship').notNull(),
+  traitsJson: jsonb('traits_json').notNull().default([]),
+  notes: text('notes'),            // how they tend to react, what they care about
+  practiceGoal: text('practice_goal'), // what the learner wants to practise with them
+  createdAt: createdAt(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [index('people_user_idx').on(t.userId)]);
+
+// ---------- Paid access ----------
+// Access to a topic = an active all_access entitlement, or a topic entitlement for it.
+// The free taste is a topic entitlement with source free_trial (one per user).
+// Works for subscriptions and per-topic purchases alike, whichever pricing is chosen.
+export const entitlements = pgTable('entitlements', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  kind: entitlementKindEnum('kind').notNull(),
+  topicId: uuid('topic_id').references(() => topics.id, { onDelete: 'cascade' }),
+  source: entitlementSourceEnum('source').notNull(),
+  providerRef: text('provider_ref'), // payment provider's subscription / order id
+  startsAt: ts('starts_at').notNull().defaultNow(),
+  expiresAt: ts('expires_at'),       // null = no expiry
+  createdAt: createdAt(),
+}, (t) => [
+  index('entitlements_user_idx').on(t.userId),
+  uniqueIndex('entitlements_one_free_trial').on(t.userId).where(sql`${t.source} = 'free_trial'`),
+]);

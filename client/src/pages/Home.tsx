@@ -8,6 +8,7 @@ import { Sheet } from '../components/Sheet';
 import { CoachAvatar } from '../components/Coach';
 import { CategoryIcon, categoryTint } from '../components/CategoryIcon';
 import { COACHES, personaLabel } from '../options';
+import { Paywall } from '../components/Paywall';
 
 function greeting() {
   const h = new Date().getHours();
@@ -37,7 +38,7 @@ export default function Home() {
 
       {!me!.emailVerified && <VerifyBanner />}
 
-      <JourneyCard />
+      <JourneyCard cats={cats} onOpenTopic={setTopicId} />
 
       <div className="mb-3 mt-8 flex items-end justify-between">
         <div>
@@ -77,6 +78,8 @@ export default function Home() {
                         <button onClick={() => setTopicId(t.id)} className="flex min-h-[50px] w-full items-center gap-3 px-4 text-left text-[15px] transition hover:bg-white/[0.03]">
                           <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: tint }} aria-hidden />
                           <span className="flex-1">{t.name}</span>
+                          {t.free ? <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">Free</span>
+                            : !t.unlocked && me!.freeTopicId && <LockIcon />}
                           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted/70" aria-hidden><path d="m9 6 6 6-6 6" /></svg>
                         </button>
                       </li>
@@ -88,15 +91,24 @@ export default function Home() {
           );
         })}
       </ul>
-      <TopicSheet id={topicId} onClose={() => setTopicId(null)} />
+      <TopicSheet id={topicId} onClose={() => setTopicId(null)} onChanged={load} />
     </main>
   );
 }
 
 /** The learner's own journey: what they're working towards and how much time they have. */
-function JourneyCard() {
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted/60" aria-label="Premium">
+      <rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
+function JourneyCard({ cats, onOpenTopic }: { cats: Category[] | null; onOpenTopic: (id: string) => void }) {
   const { me } = useAuth();
   const m = me!;
+  const freeTopic = cats?.flatMap((c) => c.topics).find((t) => t.id === m.freeTopicId);
   const coachName = COACHES.find((c) => c.value === m.coach)?.name;
   return (
     <section className="card relative overflow-hidden p-5">
@@ -114,9 +126,15 @@ function JourneyCard() {
           <div className="mt-5 flex items-center gap-3 border-t border-white/[0.06] pt-4">
             <CoachAvatar coach={m.coach} size={44} />
             <p className="text-sm leading-relaxed text-muted">
-              <span className="font-medium text-ink">{coachName}:</span> Pick a skill that matters this week. Each bite takes about {m.dailyMinutes ?? 5} minutes and is shaped around your goal.
+              <span className="font-medium text-ink">{coachName}:</span>{' '}
+              {m.plan === 'premium' ? `Every topic is open to you. Pick one that matters this week. Each bite takes about ${m.dailyMinutes ?? 5} minutes.`
+                : freeTopic ? `${freeTopic.name} is your free topic. Each bite takes about ${m.dailyMinutes ?? 5} minutes and is shaped around your goal.`
+                : 'Your first topic is on us. Pick the skill that matters most to you right now.'}
             </p>
           </div>
+        )}
+        {m.plan === 'free' && freeTopic && (
+          <button onClick={() => onOpenTopic(freeTopic.id)} className="btn-primary mt-4">Open {freeTopic.name}</button>
         )}
       </div>
     </section>
@@ -147,8 +165,19 @@ function BookCover({ title, tint }: { title: string; tint: string }) {
   );
 }
 
-function TopicSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
-  const { me } = useAuth();
+function TopicSheet({ id, onClose, onChanged }: { id: string | null; onClose: () => void; onChanged: () => void }) {
+  const { me, setMe } = useAuth();
+  const [paywall, setPaywall] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const chooseFree = async () => {
+    if (!t) return;
+    setBusy(true); setError('');
+    try {
+      setMe(await api('/me/free-topic', { body: { topicId: t.id } }));
+      setT({ ...t, unlocked: true, free: true });
+      onChanged();
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+  };
   const [t, setT] = useState<TopicDetail | null>(null);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -157,7 +186,8 @@ function TopicSheet({ id, onClose }: { id: string | null; onClose: () => void })
   }, [id]);
   const tint = t ? categoryTint(t.category) : '#5ec2ff';
   return (
-    <Sheet open={!!id} onClose={onClose} title={t?.name ?? 'Topic'}>
+    <>
+    <Sheet open={!!id && !paywall} onClose={onClose} title={t?.name ?? 'Topic'}>
       {error && <Alert>{error}</Alert>}
       {!t && !error && <Spinner />}
       {t && (
@@ -189,14 +219,38 @@ function TopicSheet({ id, onClose }: { id: string | null; onClose: () => void })
                 <BookCover title={b.title} tint={tint} />
                 <span>
                   <span className="block font-medium leading-snug">{b.title}</span>
-                  {b.author && <span className="text-xs text-muted">{b.author}</span>}
+                  <span className="text-xs text-muted">
+                    {b.author}{b.kind === 'fiction' && <span className="ml-2 rounded-full border border-[#a78bfa]/40 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider text-[#c4b5fd]">Fiction</span>}
+                  </span>
                 </span>
               </li>
             ))}
           </ul>
-          <button className="btn-primary mt-7" disabled>Your first bite is coming soon</button>
+          <div className="mt-7 space-y-3">
+            {t.unlocked ? (
+              <>
+                {t.free && <p className="text-center text-sm text-accent">This is your free topic.</p>}
+                <button className="btn-primary" disabled>Your first bite is coming soon</button>
+              </>
+            ) : !me?.freeTopicId ? (
+              <>
+                <button className="btn-primary" onClick={chooseFree} disabled={busy}>{busy ? 'Saving…' : 'Make this my free topic'}</button>
+                <p className="text-center text-xs text-muted">Your first topic is free. You can change it until you start it.</p>
+              </>
+            ) : (
+              <>
+                <button className="btn-primary" onClick={() => setPaywall(true)}>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                  Unlock with Premium
+                </button>
+                <button className="btn-ghost w-full text-sm" onClick={chooseFree} disabled={busy}>Switch my free topic to this one</button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </Sheet>
+    <Paywall open={paywall} onClose={() => setPaywall(false)} topicName={t?.name} />
+    </>
   );
 }

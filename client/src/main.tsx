@@ -10,6 +10,7 @@ import { ForgotPassword, Login, ResetPassword, Signup, VerifyEmail } from './pag
 import Onboarding from './pages/Onboarding';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
+import People from './pages/People';
 
 /** Signed-out only. */
 function Public() {
@@ -54,6 +55,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route element={<Private />}>
             <Route element={<WithNav />}>
               <Route path="/" element={<Home />} />
+              <Route path="/people" element={<People />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
           </Route>
