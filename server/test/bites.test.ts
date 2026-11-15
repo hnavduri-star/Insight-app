@@ -221,19 +221,27 @@ describe('bites (milestone 2)', () => {
   it('finds the AI key even when the variable name has the wrong case or stray spaces', async () => {
     const { apiKey } = await import('../src/lib/ai.js');
     delete process.env.ANTHROPIC_API_KEY;
-    process.env.Anthropic_API_Key = '  sk-ant-mixed  ';
+    process.env.Anthropic_API_Key = '  sk-ant-mixedkey123  ';
     try {
-      expect(apiKey()).toBe('sk-ant-mixed');
+      expect(apiKey()).toBe('sk-ant-mixedkey123');
       expect((await request(app).get('/api/health')).body.ai).toBe(true);
     } finally { delete process.env.Anthropic_API_Key; }
     expect(apiKey()).toBe('');
-    process.env['Anthropic key'] = 'sk-ant-named';
-    try { expect(apiKey()).toBe('sk-ant-named'); } finally { delete process.env['Anthropic key']; }
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-api03-REALKEY_abc-123\n 9.99';
+    try {
+      expect(apiKey()).toBe('sk-ant-api03-REALKEY_abc-123'); // only the key part
+      const h = (await request(app).get('/api/health')).body;
+      expect(h.ai).toBe(true);
+      expect(h.aiHint).toMatch(/extra characters/);
+      expect(JSON.stringify(h)).not.toMatch(/REALKEY/);
+    } finally { delete process.env.ANTHROPIC_API_KEY; }
+    process.env['Anthropic key'] = 'sk-ant-namedkey456';
+    try { expect(apiKey()).toBe('sk-ant-namedkey456'); } finally { delete process.env['Anthropic key']; }
     process.env.Anthropic_Secret = '';
     try {
       const h = (await request(app).get('/api/health')).body;
       expect(h).toMatchObject({ ai: false, version: 'local' });
-      expect(h.aiHint).toMatch(/"Anthropic_Secret" but its value is empty/);
+      expect(h.aiHint).toMatch(/"Anthropic_Secret" but its value doesn't contain a key/);
       expect(JSON.stringify(h)).not.toMatch(/sk-ant-(mixed|named|test)/);
     } finally { delete process.env.Anthropic_Secret; }
   });

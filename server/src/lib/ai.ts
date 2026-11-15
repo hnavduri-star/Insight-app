@@ -21,16 +21,31 @@ let clientKey = '';
  * Finds the API key even if the variable was named with different case or spacing
  * (e.g. "Anthropic_API_Key" or "anthropic api key"), and trims stray whitespace.
  */
+/** The key itself, from a value that may also contain spaces, line breaks or stray text. */
+const KEY_RE = /sk-ant-[A-Za-z0-9_-]{4,}/;
+function extract(value: string | undefined): { key: string; messy: boolean } {
+  const v = (value ?? '').trim();
+  const m = v.match(KEY_RE);
+  return m ? { key: m[0], messy: m[0] !== v } : { key: '', messy: false };
+}
+
 export function findApiKey(): { key: string; source: string | null; hint: string } {
-  const exact = process.env.ANTHROPIC_API_KEY?.trim();
-  if (exact) return { key: exact, source: 'ANTHROPIC_API_KEY', hint: 'Key found.' };
-  const named = Object.keys(process.env).filter((k) => /anthropic/i.test(k));
-  const byName = named.find((k) => /^anthropic[\s_-]*(api[\s_-]*)?key$/i.test(k.trim()) && process.env[k]?.trim());
-  if (byName) return { key: process.env[byName]!.trim(), source: byName, hint: `Key found in "${byName}".` };
-  // Last resort: any variable whose value looks like an Anthropic key.
-  const byValue = Object.keys(process.env).find((k) => process.env[k]?.trim().startsWith('sk-ant-'));
-  if (byValue) return { key: process.env[byValue]!.trim(), source: byValue, hint: `Key found in "${byValue}".` };
-  if (named.length) return { key: '', source: null, hint: `Found ${named.map((n) => `"${n}"`).join(', ')} but its value is empty or doesn't start with sk-ant-.` };
+  const found = (source: string) => {
+    const { key, messy } = extract(process.env[source]);
+    return key ? { key, source, hint: messy
+      ? `Key found in "${source}", but the value also has extra characters (spaces or text); only the key part is used. Re-paste just the key when convenient.`
+      : `Key found in "${source}".` } : null;
+  };
+  if (process.env.ANTHROPIC_API_KEY?.trim()) {
+    const r = found('ANTHROPIC_API_KEY');
+    if (r) return r;
+    return { key: '', source: null, hint: 'ANTHROPIC_API_KEY is set, but its value does not contain a key starting with sk-ant-. Re-paste the key from Claude Console.' };
+  }
+  const named = Object.keys(process.env).filter((k) => /anthropic/i.test(k) && !/base_url/i.test(k));
+  for (const k of named.filter((n) => /^anthropic[\s_-]*(api[\s_-]*)?key$/i.test(n.trim()))) { const r = found(k); if (r) return r; }
+  // Last resort: any variable whose value contains an Anthropic key.
+  for (const k of Object.keys(process.env)) { if (process.env[k]?.includes('sk-ant-')) { const r = found(k); if (r) return r; } }
+  if (named.length) return { key: '', source: null, hint: `Found ${named.map((n) => `"${n}"`).join(', ')} but its value doesn't contain a key starting with sk-ant-.` };
   return { key: '', source: null, hint: 'No Anthropic key found. Add ANTHROPIC_API_KEY in Render → insight → Environment.' };
 }
 export const apiKey = () => findApiKey().key;
@@ -38,7 +53,7 @@ export const aiEnabled = () => !!apiKey();
 function anthropic() {
   const key = apiKey();
   if (!key) throw new HttpError(503, 'Bites are not switched on yet: the AI key has not been added.', 'ai_disabled');
-  if (!client || clientKey !== key) { client = new Anthropic({ apiKey: key, timeout: 240_000, maxRetries: 2 }); clientKey = key; }
+  if (!client || clientKey !== key) { client = new Anthropic({ apiKey: key, authToken: null, timeout: 240_000, maxRetries: 2 }); clientKey = key; }
   return client;
 }
 
