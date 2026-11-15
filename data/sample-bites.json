@@ -1,5 +1,5 @@
 {
-  "note": "Reference sample bites written to the app's exact format and rules. Use as a quality benchmark for generated bites.",
+  "note": "Reference sample bites written to the app's exact format and rules (5 cards, 2-3 real-life examples, 5 quiz questions). Use as a quality benchmark for generated bites.",
   "samples": [
     {
       "topic": "Negotiation Fundamentals",
@@ -50,6 +50,26 @@
             "tryThis": "Draft your opening number and the single sentence that justifies it."
           }
         ],
+        "examples": [
+          {
+            "person": "An engineering manager asking for a promotion",
+            "situation": "Her director said promotions were frozen until next year, although she had taken over a second team.",
+            "approach": "She asked what the freeze was protecting, learned the issue was salary cost this year, and proposed the title now with the pay change at mid-year review.",
+            "outcome": "She got the title within a month and a written date for the raise."
+          },
+          {
+            "person": "A procurement lead renewing a software contract",
+            "situation": "The vendor wanted a 15% price rise and said there was no flexibility.",
+            "approach": "He priced a credible alternative vendor first, then offered a three-year term in exchange for holding the price and adding support hours.",
+            "outcome": "Price stayed flat for three years and support improved at no extra cost."
+          },
+          {
+            "person": "A product manager negotiating a deadline with sales",
+            "situation": "Sales had promised a client a feature in four weeks; engineering needed ten.",
+            "approach": "She separated the client's real need, a demo for their board, from the position, the full feature, and offered a working prototype in four weeks.",
+            "outcome": "The client got their board demo, and the full release shipped on the team's plan."
+          }
+        ],
         "quiz": [
           {
             "q": "Your director says, “There's no budget for a raise this year.” Which reply best uses interest-based thinking?",
@@ -83,6 +103,28 @@
             ],
             "answer": 2,
             "why": "Multiple issues let you swap low-cost concessions for high-value gains, so both sides end up better off."
+          },
+          {
+            "q": "When should you make the first offer?",
+            "options": [
+              "Always, to take control",
+              "Never; always let them go first",
+              "When you're well informed about the value",
+              "Only when you're short of time"
+            ],
+            "answer": 2,
+            "why": "A well-researched first number anchors in your favour; an uninformed one can anchor against you."
+          },
+          {
+            "q": "HR offers a salary below your target. Best next move?",
+            "options": [
+              "Accept and ask for more next year",
+              "Ask how the figure was set before you counter",
+              "Counter at once with a higher number",
+              "Say you'll leave"
+            ],
+            "answer": 1,
+            "why": "Understanding their reasoning shows you what to trade on and stops their number setting the range."
           }
         ],
         "scenario": "Your manager tells you the promotion you expected is delayed six months because of a hiring freeze, although you have led a second team since spring. You meet tomorrow for 15 minutes. Write the opening two or three sentences you will say."
@@ -144,6 +186,26 @@
             "tryThis": "Cut tomorrow's update to one answer plus three bullets, under 60 seconds spoken."
           }
         ],
+        "examples": [
+          {
+            "person": "A quiet technical partner who dislikes the spotlight",
+            "situation": "Clients saw him as brilliant but forgettable in steering committees.",
+            "approach": "Instead of talking more, he opened each meeting with a one-line recommendation, paused, and let the silence work. He kept his calm, measured style.",
+            "outcome": "Clients began asking for his view first; his low-key style now read as gravitas."
+          },
+          {
+            "person": "A high-energy new partner seen as “too much”",
+            "situation": "Her enthusiasm made senior clients doubt her judgment in tense meetings.",
+            "approach": "She slowed her pace, cut updates to three points, and showed warmth by naming the client's constraints before giving her view.",
+            "outcome": "Within a quarter, feedback shifted from “energetic” to “trusted adviser”."
+          },
+          {
+            "person": "A programme director on a crisis call",
+            "situation": "A failed system launch had the client's CEO on the phone, angry and demanding answers.",
+            "approach": "He acknowledged the impact in one sentence, said what was known and unknown, and committed to an update time. No defence, no blame.",
+            "outcome": "The CEO calmed down and later called it the moment trust was rebuilt."
+          }
+        ],
         "quiz": [
           {
             "q": "Which element weighs most in how senior leaders judge presence?",
@@ -177,6 +239,28 @@
             ],
             "answer": 0,
             "why": "Undivided attention is felt immediately, and it is the foundation of charisma."
+          },
+          {
+            "q": "A naturally quiet leader wants more presence. Best advice?",
+            "options": [
+              "Become more extroverted",
+              "Speak first and longest in every meeting",
+              "Keep their style, but lead with a clear view and use pauses",
+              "Avoid large meetings"
+            ],
+            "answer": 2,
+            "why": "Presence isn't one personality type. Clarity and composure work in any style."
+          },
+          {
+            "q": "On a crisis call with an angry client, what signals gravitas?",
+            "options": [
+              "Calmly saying what you know, what you don't, and when you'll update",
+              "Explaining why it wasn't your team's fault",
+              "Promising it will never happen again",
+              "Letting the most junior person answer"
+            ],
+            "answer": 0,
+            "why": "Composure and ownership under pressure are the heart of gravitas."
           }
         ],
         "scenario": "Mid-update in a steering committee, the client's COO cuts in: “This programme is three weeks late and I'm hearing different stories from your team.” The CEO is watching. Write exactly what you say in the next 30 seconds."
@@ -231,6 +315,26 @@
             "tryThis": "Give one specific piece of praise today, naming exactly what the person did."
           }
         ],
+        "examples": [
+          {
+            "person": "A new team lead giving feedback to a former peer",
+            "situation": "A colleague she used to sit beside kept sending sloppy client decks now that she managed him.",
+            "approach": "She said she cared about his promotion case, pointed to two specific slides with errors, and asked what was getting in the way.",
+            "outcome": "He admitted he was rushing three deals; they rebalanced his load and the decks improved."
+          },
+          {
+            "person": "A risk manager whose star analyst keeps missing reviews",
+            "situation": "After two conversations about late reviews, the delays continued.",
+            "approach": "He moved from the content to the pattern: “This is the third time, and I'm starting to double-check your work. Let's fix that together.”",
+            "outcome": "The analyst asked for help with prioritising, and deadlines held from then on."
+          },
+          {
+            "person": "A director whose team only heard from him when things went wrong",
+            "situation": "Morale was low and people avoided bringing him problems early.",
+            "approach": "He began naming specific wins in the Monday team call and kept corrections to short, private chats soon after the moment.",
+            "outcome": "Engagement scores rose and people started asking him for feedback."
+          }
+        ],
         "quiz": [
           {
             "q": "A team member has missed deadlines again after two conversations. What should the next talk focus on?",
@@ -264,6 +368,28 @@
             ],
             "answer": 0,
             "why": "It feels kind in the moment but leaves the person without what they need to improve."
+          },
+          {
+            "q": "When is feedback most effective?",
+            "options": [
+              "At the annual review",
+              "Soon after the moment, in small doses",
+              "Only when problems are serious",
+              "In front of the whole team"
+            ],
+            "answer": 1,
+            "why": "Timely, small and frequent feedback is easier to hear and act on."
+          },
+          {
+            "q": "How should you close a feedback conversation?",
+            "options": [
+              "With a warning",
+              "By listing everything else that's wrong",
+              "By asking what they'll try differently next time",
+              "By changing the subject quickly"
+            ],
+            "answer": 2,
+            "why": "A forward-looking question turns feedback into a plan the person owns."
           }
         ],
         "scenario": "A strong associate on your team has missed two internal deadlines this month, and the second delayed a client report. They are well liked, and you suspect they are overloaded. Write how you will open your one-to-one."
@@ -318,6 +444,26 @@
             "tryThis": "Use one polite no, with an alternative, on a request today."
           }
         ],
+        "examples": [
+          {
+            "person": "A junior developer pulled in four directions",
+            "situation": "Three teams kept asking her for “quick” help, and her sprint work slipped.",
+            "approach": "She asked her lead which work mattered most this sprint, then politely declined the other requests and offered help the following week.",
+            "outcome": "Her sprint tasks shipped on time, and her lead began shielding her from ad-hoc asks."
+          },
+          {
+            "person": "A new analyst drowning in messages",
+            "situation": "He spent mornings on chat and email and did his real analysis late at night.",
+            "approach": "He blocked 9 to 11 every day for his key task, set his status to busy, and answered messages twice a day.",
+            "outcome": "He finished his first model a week early and stopped working evenings."
+          },
+          {
+            "person": "A graduate asked to “just help out” by a senior colleague",
+            "situation": "A senior colleague asked her to format his slides while her own deliverable was due.",
+            "approach": "She said she was committed to her deliverable by Thursday and offered Friday morning, or a template he could use straight away.",
+            "outcome": "He used the template and later praised her reliability to her manager."
+          }
+        ],
         "quiz": [
           {
             "q": "Your lead asks for a “quick favour” while you're on a deadline. Best response?",
@@ -351,6 +497,28 @@
             ],
             "answer": 0,
             "why": "Your best attention is usually early. Spend it on the work that matters most."
+          },
+          {
+            "q": "What's the focusing question for choosing your key task?",
+            "options": [
+              "Which task is quickest?",
+              "Which task would make the rest easier or unnecessary?",
+              "Which task does my manager mention most?",
+              "Which task do I enjoy most?"
+            ],
+            "answer": 1,
+            "why": "One well-chosen task can remove or simplify many others."
+          },
+          {
+            "q": "Which is the best way to say no to a colleague?",
+            "options": [
+              "Ignore the request",
+              "Say yes and deliver late",
+              "Explain your priority and offer an alternative",
+              "Say you're too busy, with no reason"
+            ],
+            "answer": 2,
+            "why": "A clear no with an alternative protects both your work and the relationship."
           }
         ],
         "scenario": "It's Monday. Your manager wants a bug fix by Wednesday, a product manager asks you to estimate a new feature today, and a colleague needs your review on a pull request. Write the message you'll send your manager explaining how you'll prioritise."
@@ -405,6 +573,26 @@
             "tryThis": "Mark which current initiatives address your diagnosis. Pause one that doesn't."
           }
         ],
+        "examples": [
+          {
+            "person": "A supermarket chain CEO facing online grocers",
+            "situation": "Sales were flat while app-based grocers won over young urban shoppers.",
+            "approach": "She diagnosed convenience as the gap, chose busy urban families as the target, and turned 40 stores into delivery hubs instead of opening new ones.",
+            "outcome": "Online orders reached 12% of sales within a year, at lower cost than new stores."
+          },
+          {
+            "person": "A fashion retailer's head of strategy with twelve initiatives",
+            "situation": "Every department had its own priority and none was properly funded.",
+            "approach": "He tested each initiative against one diagnosis, losing relevance with under-30s, kept three, and publicly paused the rest.",
+            "outcome": "The three funded initiatives delivered, and staff finally knew what mattered."
+          },
+          {
+            "person": "A family-owned electronics retailer",
+            "situation": "Price wars with big-box rivals squeezed margins every quarter.",
+            "approach": "They dropped low-margin commodity lines, reduced floor space, raised expert advice and created paid home-installation services.",
+            "outcome": "Margins recovered, and installation became their fastest-growing revenue line."
+          }
+        ],
         "quiz": [
           {
             "q": "Which of these is a strategy rather than a goal?",
@@ -438,6 +626,28 @@
             ],
             "answer": 0,
             "why": "Strategy is about focus. Twelve priorities means no real priority."
+          },
+          {
+            "q": "What comes first in a good strategy?",
+            "options": [
+              "An ambitious revenue target",
+              "A list of initiatives",
+              "An honest diagnosis of the critical challenge",
+              "A new brand campaign"
+            ],
+            "answer": 2,
+            "why": "Without a clear diagnosis, actions can't be coherent."
+          },
+          {
+            "q": "A “where to play” choice is real when:",
+            "options": [
+              "The opposite choice would also be sensible",
+              "Everyone already agrees with it",
+              "It includes every customer segment",
+              "It copies the market leader"
+            ],
+            "answer": 0,
+            "why": "If no sensible company would choose the opposite, it isn't really a choice."
           }
         ],
         "scenario": "Your board asks why like-for-like sales are flat while a digital-first competitor is growing 30% a year. You have five minutes at the next board meeting. Write your opening: the diagnosis and the one strategic choice you'll propose."
@@ -492,6 +702,26 @@
             "tryThis": "Ask one team member this week what you could take off their plate."
           }
         ],
+        "examples": [
+          {
+            "person": "A consulting manager on her third back-to-back project",
+            "situation": "She was sleeping five hours, snapping at her team and dreading Mondays.",
+            "approach": "She named workload as the driver, asked the partner to move one deliverable, and protected two evenings a week with a firm shutdown ritual.",
+            "outcome": "Within a month her energy returned, and her team noticed the difference."
+          },
+          {
+            "person": "A manager whose team was quietly exhausted",
+            "situation": "Engagement scores dropped and two strong consultants asked to switch teams.",
+            "approach": "He asked each person what drained them most, cut a weekly status report nobody read, and started ending meetings ten minutes early.",
+            "outcome": "Both consultants stayed, and the team said they felt more in control."
+          },
+          {
+            "person": "A senior associate who rested by scrolling",
+            "situation": "Weekends off didn't help; Mondays felt just as tiring.",
+            "approach": "She swapped phone time for a long Saturday walk and a weekly hobby class, and kept her phone out of the bedroom.",
+            "outcome": "She felt genuinely recharged for the first time in months."
+          }
+        ],
         "quiz": [
           {
             "q": "Your team is worn out by repeated scope creep. Most effective first move?",
@@ -525,6 +755,28 @@
             ],
             "answer": 0,
             "why": "Deliberate rest is active and fully detached from work and screens."
+          },
+          {
+            "q": "Which of these is one of the six drivers of burnout?",
+            "options": [
+              "Lack of control over your work",
+              "An open-plan office",
+              "A long commute",
+              "Your manager's personal style"
+            ],
+            "answer": 0,
+            "why": "Lack of control is a core driver, alongside workload, reward, community, fairness and values."
+          },
+          {
+            "q": "As a manager, what most reduces your team's burnout risk?",
+            "options": [
+              "Offering yoga sessions",
+              "Removing low-value work and asking what drains people",
+              "Telling people to set boundaries",
+              "Adding more team socials"
+            ],
+            "answer": 1,
+            "why": "Fixing the work itself beats adding support on top of it."
           }
         ],
         "scenario": "You've worked late for five weeks on a demanding engagement, you're snapping at your team, and the partner has just asked you to lead a new pitch next week. Write what you'll say to the partner."

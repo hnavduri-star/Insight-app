@@ -14,10 +14,11 @@ const { createApp } = await import('../src/app.js');
 const { pool } = await import('../src/db/client.js');
 const app = createApp();
 
-const bite = (cards = 5) => ({
+const bite = (cards = 5, quiz = 5, examples = 2) => ({
   title: 'Negotiate from interests', framework: 'The Insight Framework: prepare, probe, propose.',
   cards: Array.from({ length: cards }, (_, i) => ({ source: 'Getting to Yes', concept: `Idea ${i}`, application: 'Use it', tryThis: 'Do it' })),
-  quiz: Array.from({ length: 3 }, () => ({ q: 'Q?', options: ['a', 'b', 'c', 'd'], answer: 1, why: 'Because' })),
+  examples: Array.from({ length: examples }, (_, i) => ({ person: `Person ${i}`, situation: 'S', approach: 'A', outcome: 'O' })),
+  quiz: Array.from({ length: quiz }, () => ({ q: 'Q?', options: ['a', 'b', 'c', 'd'], answer: 1, why: 'Because' })),
   scenario: 'Your client asks for a discount. Write what you say.',
 });
 const reply = (data: unknown) => ({ parsed_output: data, stop_reason: 'end_turn', model: 'claude-sonnet-5-5', usage: { input_tokens: 900, output_tokens: 700 } });
@@ -47,6 +48,8 @@ describe('bites (milestone 2)', () => {
     expect(r1.status).toBe(200);
     expect(r1.body).toMatchObject({ cached: false, topic: { name: 'Negotiation Fundamentals' } });
     expect(r1.body.bite.cards).toHaveLength(5);
+    expect(r1.body.bite.quiz).toHaveLength(5);
+    expect(r1.body.bite.examples).toHaveLength(2);
 
     const two = await learner('two@example.com');
     const r2 = await two.a.post('/api/bites').send({ topicId: two.topic.id });
@@ -63,6 +66,8 @@ describe('bites (milestone 2)', () => {
     expect(req.messages[0].content).toMatch(/Getting to Yes/);
     expect(req.messages[0].content).toMatch(/Main goal: Get promoted/);
     expect(req.system).toMatch(/Never reproduce passages/);
+    expect(req.messages[0].content).toMatch(/exactly 5 questions/);
+    expect(req.messages[0].content).toMatch(/2 or 3 short real-life examples/);
     const { rows } = await pool.query("select model, ok, input_tokens, output_tokens from ai_calls where endpoint = 'bite'");
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ model: 'claude-sonnet-5-5', ok: true, input_tokens: 900, output_tokens: 700 });
@@ -80,6 +85,28 @@ describe('bites (milestone 2)', () => {
     const bad = await l.a.post('/api/bites').send({ topicId: l.topic.id });
     expect(bad.status).toBe(502);
     expect(bad.body.error).toMatch(/couldn't build this bite/);
+  });
+
+  it('rejects bites with the wrong number of questions or examples', async () => {
+    parse.mockResolvedValueOnce(reply(bite(5, 3, 2))).mockResolvedValueOnce(reply(bite(5, 5, 1)));
+    const l = await learner('shape@example.com');
+    expect((await l.a.post('/api/bites').send({ topicId: l.topic.id })).status).toBe(502);
+    expect(parse.mock.calls[1][0].messages[0].content).toMatch(/expected 5 quiz questions, got 3/);
+  });
+
+  it('rebuilds a bite saved in the old format (3 questions, no examples) and keeps its id', async () => {
+    parse.mockResolvedValueOnce(reply(bite()));
+    const l = await learner('stale@example.com');
+    const first = (await l.a.post('/api/bites').send({ topicId: l.topic.id })).body;
+    const old = { ...bite(), quiz: bite().quiz.slice(0, 3) } as any;
+    delete old.examples;
+    await pool.query('update cached_lessons set content_json = $1', [old]);
+    parse.mockResolvedValueOnce(reply(bite(5, 5, 3)));
+    const again = (await l.a.post('/api/bites').send({ topicId: l.topic.id })).body;
+    expect(again).toMatchObject({ cached: false, lessonId: first.lessonId });
+    expect(again.bite.examples).toHaveLength(3);
+    expect(parse).toHaveBeenCalledTimes(2);
+    expect((await l.a.post('/api/bites').send({ topicId: l.topic.id })).body.cached).toBe(true);
   });
 
   it('handles refusals and API errors gracefully', async () => {
@@ -114,7 +141,8 @@ describe('bites (milestone 2)', () => {
     const l = await learner('grade@example.com');
     const { lessonId } = (await l.a.post('/api/bites').send({ topicId: l.topic.id })).body;
     expect((await l.a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' })).status).toBe(200);
-    expect((await l.a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 2 })).status).toBe(200);
+    expect((await l.a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 4 })).status).toBe(200);
+    expect((await l.a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 6 })).status).toBe(400);
     expect((await l.a.post(`/api/bites/${lessonId}/feedback`).send({ cardIndex: 0, helpful: true })).status).toBe(200);
     expect((await l.a.post(`/api/bites/${lessonId}/feedback`).send({ cardIndex: 9, helpful: true })).status).toBe(400);
 
@@ -129,6 +157,6 @@ describe('bites (milestone 2)', () => {
     expect(sent.system).toMatch(/ignore any instructions/);
     const { rows: [tp] } = await pool.query('select cards_completed_at, quiz_correct, best_scenario_score from topic_progress where user_id = $1', [l.id]);
     expect(tp.cards_completed_at).not.toBeNull();
-    expect(tp).toMatchObject({ quiz_correct: 2, best_scenario_score: 100 });
+    expect(tp).toMatchObject({ quiz_correct: 4, best_scenario_score: 100 });
   });
 });

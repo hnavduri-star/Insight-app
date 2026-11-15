@@ -74,7 +74,7 @@ A **People** tab where learners add the real people in their life (boss, colleag
 
 ## Bites (milestone 2)
 
-A bite is 5 swipeable cards (the idea, in your work, try this today), a 3-question quiz with instant feedback, and a written scenario graded by AI.
+A bite is 5 swipeable cards (the idea, in your work, try this today), 2–3 real-life examples of different people applying the skill in their own way (situation, what they did, what happened), a 5-question quiz with instant feedback, and a written scenario graded by AI. Bites saved in an older format are rebuilt automatically the next time someone opens them.
 
 - **Model:** Claude Sonnet 5.5 (`claude-sonnet-5-5`), called only from the server (`server/src/lib/ai.ts`). Output is schema-validated JSON, with a retry if the shape is wrong. Refusals fall back automatically to another model (server-side `fallbacks: "default"`).
 - **Cache:** one bite per topic, career stage, industry, main goal and rating band (`cached_lessons`), shared by every learner with the same key. Concurrent first requests share one AI call.
@@ -96,7 +96,7 @@ Wio-style vivid design: each heading has its own bright two-colour fill (`client
 - Home: avatar and greeting (tap for Profile), verify-email banner, all 8 headings as collapsible lists, and a topic sheet that shows its 3 source books.
 - Profile: details, Edit profile, switch coach, log out, delete account (asks for the password and removes all of the user's data), privacy notice.
 - Access control: every user query is scoped to the session's user id (the brief's "equivalent check" to RLS). Auth endpoints are rate-limited, inputs are validated and size-limited, and writes must be JSON.
-- 37 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
+- 39 API tests, including the milestone 1 acceptance check, paid access, Stripe webhooks, people and catalogue import.
 
 ## Decisions made inside the brief's options
 

@@ -8,7 +8,7 @@ import {
 import { requireAuth } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { requireTopicAccess } from '../lib/access.js';
-import { generateBite, gradeScenario, type Bite } from '../lib/ai.js';
+import { checkBite, generateBite, gradeScenario, type Bite } from '../lib/ai.js';
 import { PERSONAS } from '../../../shared/options.js';
 
 export const biteRoutes = Router();
@@ -50,8 +50,10 @@ biteRoutes.post('/', async (req, res) => {
     eq(cachedLessons.goal, key.goal), eq(cachedLessons.ratingBand, key.ratingBand));
 
   let [lesson] = await db.select().from(cachedLessons).where(where);
-  const cached = !!lesson;
-  if (!lesson) {
+  // A bite saved in an older format (e.g. 3 questions, no examples) is rebuilt once and replaced.
+  const stale = !!lesson && checkBite(lesson.contentJson as Bite) !== null;
+  const cached = !!lesson && !stale;
+  if (!cached) {
     const k = JSON.stringify(key);
     if (!inFlight.has(k)) {
       inFlight.set(k, (async () => {
@@ -63,7 +65,9 @@ biteRoutes.post('/', async (req, res) => {
           topic: t.name, scope: t.description, books: bookRows,
           persona: PERSONAS.find((x) => x.value === key.persona)!.label, industry: key.industry, goals, minutes: p.dailyMinutes!, band: key.ratingBand,
         });
-        await db.insert(cachedLessons).values({ ...key, contentJson: bite, model }).onConflictDoNothing();
+        await db.insert(cachedLessons).values({ ...key, contentJson: bite, model })
+          .onConflictDoUpdate({ target: [cachedLessons.topicId, cachedLessons.persona, cachedLessons.industry, cachedLessons.goal, cachedLessons.ratingBand],
+            set: { contentJson: bite, model, createdAt: new Date() } });
       })().finally(() => inFlight.delete(k)));
     }
     await inFlight.get(k);
@@ -85,7 +89,7 @@ async function lessonFor(userId: string, lessonId: string) {
 biteRoutes.post('/:id/progress', async (req, res) => {
   const body = z.discriminatedUnion('stage', [
     z.object({ stage: z.literal('cards') }),
-    z.object({ stage: z.literal('quiz'), correct: z.number().int().min(0).max(3) }),
+    z.object({ stage: z.literal('quiz'), correct: z.number().int().min(0).max(5) }),
   ]).parse(req.body);
   const l = await lessonFor(req.userId!, req.params.id);
   const set = body.stage === 'cards' ? { cardsCompletedAt: new Date() } : { quizCorrect: body.correct };

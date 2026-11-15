@@ -12,11 +12,12 @@ import { COACHES, personaLabel } from '../options';
 type BiteData = {
   title: string; framework: string; scenario: string;
   cards: { source: string; concept: string; application: string; tryThis: string }[];
+  examples: { person: string; situation: string; approach: string; outcome: string }[];
   quiz: { q: string; options: string[]; answer: number; why: string }[];
 };
 type Started = { lessonId: string; topic: { id: string; name: string; category: string }; bite: BiteData; cached: boolean };
 type Grade = { score: number; feedback: string; strength: string; improve: string };
-type Phase = 'loading' | 'error' | 'intro' | 'cards' | 'quiz' | 'scenario' | 'done';
+type Phase = 'loading' | 'error' | 'intro' | 'cards' | 'examples' | 'quiz' | 'scenario' | 'done';
 
 const CARD_COACH = [
   'Start here: the core idea everything else builds on.',
@@ -40,6 +41,7 @@ export default function Bite() {
   const [card, setCard] = useState(0);
   const [dir, setDir] = useState(1);
   const [helpful, setHelpful] = useState<Record<number, boolean>>({});
+  const [ex, setEx] = useState(0);
   const [qi, setQi] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [correct, setCorrect] = useState(0);
@@ -63,14 +65,18 @@ export default function Bite() {
 
   const tint = categoryTint(data?.topic.category ?? topic?.category ?? '');
   const bite = data?.bite;
-  const step = { loading: 0, error: 0, intro: 0, cards: 1 + card, quiz: 6 + qi, scenario: 9, done: 10 }[phase];
+  const nEx = bite?.examples?.length ?? 0;
+  const nQ = bite?.quiz.length ?? 5;
+  const total = 5 + nEx + nQ + 1;
+  const step = { loading: 0, error: 0, intro: 0, cards: 1 + card, examples: 6 + ex, quiz: 6 + nEx + qi, scenario: total - 1, done: total }[phase];
   const close = () => nav(-1);
 
   const goCard = (to: number) => {
     if (!bite) return;
     if (to >= bite.cards.length) {
       api(`/bites/${data!.lessonId}/progress`, { body: { stage: 'cards' } }).catch(() => {});
-      setPhase('quiz'); return;
+      if (nEx) { setEx(0); setPhase('examples'); } else setPhase('quiz');
+      return;
     }
     if (to < 0) { setPhase('intro'); return; }
     setDir(to > card ? 1 : -1); setCard(to);
@@ -105,8 +111,8 @@ export default function Bite() {
         <button onClick={close} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-ink" aria-label="Close bite">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
-        <div className="flex flex-1 gap-1" role="progressbar" aria-valuemin={0} aria-valuemax={10} aria-valuenow={step} aria-label="Bite progress">
-          {Array.from({ length: 10 }, (_, i) => (
+        <div className="flex flex-1 gap-1" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={step} aria-label="Bite progress">
+          {Array.from({ length: total }, (_, i) => (
             <div key={i} className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
               <motion.div className="h-full rounded-full" style={{ background: tint }} initial={false} animate={{ width: i < step ? '100%' : '0%' }} />
             </div>
@@ -152,8 +158,9 @@ export default function Bite() {
                 </div>
               </div>
             </div>
-            <p className="mt-3 text-center text-xs text-muted">An original synthesis written for you, not a book summary.</p>
-            <button className="btn-primary mt-3" onClick={() => { setCard(0); setDir(1); setPhase('cards'); }}>Start · 5 cards</button>
+            <p className="mt-3 text-center text-sm font-semibold">5 ideas · {nEx} real-life examples · {nQ} questions · 1 scenario</p>
+            <p className="mt-1 text-center text-xs text-muted">An original synthesis written for you, not a book summary.</p>
+            <button className="btn-primary mt-3" onClick={() => { setCard(0); setDir(1); setPhase('cards'); }}>Start</button>
           </motion.section>
         )}
 
@@ -199,14 +206,43 @@ export default function Bite() {
               <div className="flex flex-1 justify-center gap-1.5" aria-hidden>
                 {bite.cards.map((_, i) => <span key={i} className="h-2 rounded-full transition-all" style={{ width: i === card ? 20 : 8, background: i === card ? tint : 'rgba(255,255,255,0.2)' }} />)}
               </div>
-              <button className="btn-primary w-28" onClick={() => goCard(card + 1)}>{card === 4 ? 'Quiz' : 'Next'}</button>
+              <button className="btn-primary w-28" onClick={() => goCard(card + 1)}>{card === 4 ? (nEx ? 'Examples' : 'Quiz') : 'Next'}</button>
+            </div>
+          </motion.section>
+        )}
+
+        {phase === 'examples' && bite && (
+          <motion.section key={`ex-${ex}`} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="flex flex-1 flex-col">
+            <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em]" style={{ color: tint }}>In real life · {ex + 1} of {nEx}</p>
+            <h2 className="mt-2 text-[22px] leading-tight">Same skill, different people</h2>
+            <div className="mt-2 flex items-center gap-2.5">
+              <CoachAvatar coach={coach} size={32} />
+              <p className="text-sm text-muted"><span className="font-semibold text-ink">{coachName}:</span> {ex === 0 ? 'Here is how this looks for real people. Notice what changes and what stays the same.' : 'Another person, another style. Which one is closest to you?'}</p>
+            </div>
+            <article className="card mt-4 flex-1 p-5">
+              <div className="flex items-center gap-3">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-extrabold text-white" style={{ background: tileBackground(tint) }}>{ex + 1}</span>
+                <p className="text-[17px] font-bold leading-snug">{bite.examples[ex].person}</p>
+              </div>
+              <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted">The situation</p>
+              <p className="mt-1 text-[15px] leading-relaxed">{bite.examples[ex].situation}</p>
+              <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: tint }}>What they did</p>
+              <p className="mt-1 text-[15px] font-semibold leading-relaxed">{bite.examples[ex].approach}</p>
+              <div className="mt-5 rounded-2xl p-4 text-white" style={{ background: tileBackground(tint) }}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">What happened</p>
+                <p className="mt-1 text-[15px] font-semibold leading-snug">{bite.examples[ex].outcome}</p>
+              </div>
+            </article>
+            <div className="mt-4 flex gap-3">
+              <button className="btn-ghost w-28" onClick={() => (ex ? setEx(ex - 1) : (setCard(4), setPhase('cards')))}>Back</button>
+              <button className="btn-primary flex-1" onClick={() => (ex + 1 < nEx ? setEx(ex + 1) : setPhase('quiz'))}>{ex + 1 < nEx ? 'Next example' : 'Quick check'}</button>
             </div>
           </motion.section>
         )}
 
         {phase === 'quiz' && bite && (
           <motion.section key={`quiz-${qi}`} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="flex flex-1 flex-col">
-            <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em]" style={{ color: tint }}>Quick check · {qi + 1} of 3</p>
+            <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em]" style={{ color: tint }}>Quick check · {qi + 1} of {nQ}</p>
             <h2 className="mt-2 text-[24px] leading-tight">{bite.quiz[qi].q}</h2>
             <div className="mt-5 space-y-2.5">
               {bite.quiz[qi].options.map((o, i) => {
@@ -234,7 +270,7 @@ export default function Bite() {
                 </p>
               </motion.div>
             )}
-            <button className="btn-primary mt-auto" disabled={picked === null} onClick={nextQuestion}>{qi === 2 ? 'Last step: practise it' : 'Continue'}</button>
+            <button className="btn-primary mt-auto" disabled={picked === null} onClick={nextQuestion}>{qi === nQ - 1 ? 'Last step: practise it' : 'Continue'}</button>
           </motion.section>
         )}
 
@@ -284,7 +320,7 @@ export default function Bite() {
             <motion.div initial={{ scale: 0.6, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 200 }}
               className="flex h-24 w-24 items-center justify-center rounded-[28px] text-5xl" style={{ background: tileBackground(tint) }}>🎉</motion.div>
             <h1 className="mt-5 text-[30px]">Bite complete</h1>
-            <p className="mt-2 max-w-[18rem] text-muted">{data!.topic.name}: 5 ideas learned, {correct} of 3 quiz answers right{grade ? `, scenario ${grade.score}/100` : ''}.</p>
+            <p className="mt-2 max-w-[18rem] text-muted">{data!.topic.name}: 5 ideas learned, {correct} of {nQ} quiz answers right{grade ? `, scenario ${grade.score}/100` : ''}.</p>
             <div className="mt-6 w-full rounded-2xl bg-white p-4 text-left text-[#0b1640]">
               <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#4f46e5]">Try one thing today</p>
               <p className="mt-1 font-semibold">{bite.cards[0].tryThis}</p>

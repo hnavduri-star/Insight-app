@@ -31,6 +31,12 @@ export const BiteSchema = z.object({
     application: z.string(),
     tryThis: z.string(),
   })),
+  examples: z.array(z.object({
+    person: z.string(),
+    situation: z.string(),
+    approach: z.string(),
+    outcome: z.string(),
+  })),
   quiz: z.array(z.object({
     q: z.string(),
     options: z.array(z.string()),
@@ -44,7 +50,8 @@ export type Bite = z.infer<typeof BiteSchema>;
 /** Shape checks the JSON schema can't express (exact counts, answer in range). */
 export function checkBite(b: Bite): string | null {
   if (b.cards.length !== 5) return `expected 5 cards, got ${b.cards.length}`;
-  if (b.quiz.length !== 3) return `expected 3 quiz questions, got ${b.quiz.length}`;
+  if (b.examples?.length < 2 || b.examples?.length > 3) return `expected 2 or 3 real-life examples, got ${b.examples?.length ?? 0}`;
+  if (b.quiz.length !== 5) return `expected 5 quiz questions, got ${b.quiz.length}`;
   for (const q of b.quiz) {
     if (q.options.length !== 4) return 'each quiz question needs 4 options';
     if (q.answer < 0 || q.answer > 3) return 'quiz answer index out of range';
@@ -126,7 +133,8 @@ Write the bite:
 - title: short and specific.
 - framework: one sentence naming and stating your Insight Framework.
 - cards: exactly 5, in a logical order. Each card has source (book title), concept (45 words or fewer: the idea, in your words), application (40 words or fewer: how this learner uses it in their work), tryThis (25 words or fewer: one action doable today).
-- quiz: exactly 3 questions testing understanding and application (not trivia). Each has 4 plausible options, answer (0-3 index of the correct option) and why (one sentence).
+- examples: 2 or 3 short real-life examples showing how DIFFERENT people apply this framework in their own way (vary the role, personality, seniority or situation, and include at least one close to this learner's world). Each has person (12 words or fewer, e.g. "A quiet data lead presenting to the board"; no real names of real people), situation (30 words or fewer), approach (40 words or fewer: what they did, using the framework), outcome (25 words or fewer: what changed).
+- quiz: exactly 5 questions testing understanding and application (not trivia); vary which option is correct. Each has 4 plausible options, answer (0-3 index of the correct option) and why (one sentence).
 - scenario: 2 to 4 sentences describing a realistic situation for this learner, ending with exactly what they must write or say.`;
 
   let last = '';
