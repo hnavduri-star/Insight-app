@@ -6,6 +6,7 @@ import { Alert, Field, Spinner, Submit } from '../components/ui';
 import { Sheet } from '../components/Sheet';
 import { CoachBubble } from '../components/Coach';
 import { MAX_PEOPLE, RELATIONSHIPS, TRAITS } from '../options';
+import { Paywall } from '../components/Paywall';
 
 const REL_TINT: Record<string, string> = {
   boss: '#f5b971', colleague: '#5ec2ff', direct_report: '#2dd4bf', client: '#a78bfa', professor: '#7c9cff',
@@ -35,6 +36,8 @@ export default function People() {
   const [people, setPeople] = useState<Person[] | null>(null);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<Partial<Person> | null>(null);
+  const [paywall, setPaywall] = useState(false);
+  const premium = me?.plan === 'premium';
 
   const load = () => { setError(''); api<Person[]>('/people').then(setPeople).catch((e) => setError(e.message)); };
   useEffect(load, []);
@@ -46,6 +49,14 @@ export default function People() {
       <p className="mt-2 text-[15px] leading-relaxed text-muted">
         Add the people you actually talk to. Then rehearse the conversations that matter, with them playing themselves.
       </p>
+
+      {!premium && people && (
+        <button onClick={() => setPaywall(true)} className="mt-5 flex w-full items-center gap-3 rounded-card border border-[#f5b971]/30 bg-[#f5b971]/[0.07] px-4 py-3 text-left">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f5b971" strokeWidth="1.8" strokeLinejoin="round" className="shrink-0" aria-hidden><path d="m3 8 4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8Z" /></svg>
+          <span className="flex-1 text-sm"><span className="font-medium text-ink">Practising is part of Premium.</span> <span className="text-muted">Add your people now so they're ready when you upgrade.</span></span>
+          <span className="text-sm font-medium text-[#f5b971]">Upgrade</span>
+        </button>
+      )}
 
       {me?.coach && people?.length === 0 && (
         <div className="mt-6">
@@ -105,7 +116,8 @@ export default function People() {
         </section>
       )}
 
-      <PersonSheet person={editing} onClose={() => setEditing(null)} onSaved={(p, deleted) => {
+      <Paywall open={paywall} onClose={() => setPaywall(false)} reason="Practise real conversations with the people in your life." />
+      <PersonSheet person={editing} premium={premium} onUpgrade={() => { setEditing(null); setPaywall(true); }} onClose={() => setEditing(null)} onSaved={(p, deleted) => {
         setPeople((cur) => {
           const list = cur ?? [];
           if (deleted) return list.filter((x) => x.id !== p.id);
@@ -117,7 +129,9 @@ export default function People() {
   );
 }
 
-function PersonSheet({ person, onClose, onSaved }: { person: Partial<Person> | null; onClose: () => void; onSaved: (p: Person, deleted?: boolean) => void }) {
+function PersonSheet({ person, premium, onUpgrade, onClose, onSaved }: {
+  person: Partial<Person> | null; premium: boolean; onUpgrade: () => void; onClose: () => void; onSaved: (p: Person, deleted?: boolean) => void;
+}) {
   const [f, setF] = useState({ name: '', relationship: 'other', traits: [] as string[], notes: '', practiceGoal: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -179,7 +193,12 @@ function PersonSheet({ person, onClose, onSaved }: { person: Partial<Person> | n
         <Field label="What do you want to practise with them?" maxLength={200} value={f.practiceGoal}
           onChange={(e) => setF({ ...f, practiceGoal: e.target.value })} placeholder="e.g. Ask for a raise" />
         <Submit busy={busy}>{isEdit ? 'Save changes' : 'Add to your people'}</Submit>
-        <button type="button" className="btn-ghost w-full" disabled title="Arrives with role-play">Practise a conversation · coming soon</button>
+        {isEdit && (premium
+          ? <button type="button" className="btn-ghost w-full" disabled title="Arrives with role-play">Practise a conversation · coming soon</button>
+          : <button type="button" className="btn-ghost w-full" onClick={onUpgrade}>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+              Practise with {person?.name} · Premium
+            </button>)}
         {isEdit && <button type="button" onClick={remove} className="min-h-[44px] w-full text-sm text-error/90 hover:text-error">Remove {person?.name}</button>}
       </form>
     </Sheet>

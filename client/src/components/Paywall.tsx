@@ -1,13 +1,63 @@
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { api, type Plans } from '../api';
 import { Sheet } from './Sheet';
+import { Alert } from './ui';
 
 const PERKS = [
   { title: 'Every topic in the library', text: 'Go beyond your free topic, whenever you are ready.' },
+  { title: 'Practise with your people', text: 'Rehearse real conversations with your boss, client or partner before they happen.' },
   { title: 'A journey that adds up', text: 'Each topic builds on the last in your Playbook.' },
-  { title: 'A plan built around your goal', text: 'Know what to learn next, week by week.' },
 ];
 
-/** Upgrade sheet. Payments are not connected yet, so the button is disabled. */
-export function Paywall({ open, onClose, topicName }: { open: boolean; onClose: () => void; topicName?: string }) {
+const money = (amount: number, currency: string) =>
+  new Intl.NumberFormat(undefined, { style: 'currency', currency: currency.toUpperCase(), minimumFractionDigits: amount % 100 ? 2 : 0 }).format(amount / 100);
+
+/** Upgrade sheet: pick monthly or annual, then go to Stripe Checkout (card, Apple Pay, Google Pay). */
+export function Paywall({ open, onClose, topicName, reason }: { open: boolean; onClose: () => void; topicName?: string; reason?: string }) {
+  const [plans, setPlans] = useState<Plans | null>(null);
+  const [interval, setInterval] = useState<'month' | 'year'>('year');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    setError('');
+    api<Plans>('/billing/plans').then(setPlans).catch(() => setPlans({ enabled: false, plans: [] }));
+  }, [open]);
+
+  const monthly = plans?.plans.find((p) => p.interval === 'month');
+  const annual = plans?.plans.find((p) => p.interval === 'year');
+  const saving = monthly?.amount && annual?.amount ? Math.round((1 - annual.amount / (monthly.amount * 12)) * 100) : 0;
+
+  const checkout = async () => {
+    setBusy(true); setError('');
+    try {
+      const { url } = await api<{ url: string }>('/billing/checkout', { body: { interval } });
+      window.location.assign(url);
+    } catch (e) { setError((e as Error).message); setBusy(false); }
+  };
+
+  const option = (iv: 'month' | 'year', title: string, plan?: Plans['plans'][number]) => {
+    const on = interval === iv;
+    return (
+      <button type="button" role="radio" aria-checked={on} onClick={() => setInterval(iv)}
+        className={`relative flex-1 rounded-card border p-4 text-left transition active:scale-[0.98] ${on ? 'border-primary bg-primary/10' : 'border-white/10 bg-bg/30 hover:border-white/20'}`}>
+        {iv === 'year' && saving > 0 && (
+          <span className="absolute -top-2.5 right-3 rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-bg">Save {saving}%</span>
+        )}
+        <span className="block text-sm text-muted">{title}</span>
+        {plan?.amount != null && plan.currency ? (
+          <>
+            <span className="mt-1 block font-display text-2xl font-semibold">{money(plan.amount, plan.currency)}</span>
+            <span className="text-xs text-muted">{iv === 'year' ? `per year · ${money(Math.round(plan.amount / 12), plan.currency)}/mo` : 'per month'}</span>
+          </>
+        ) : <span className="mt-1 block font-display text-xl font-semibold text-muted">—</span>}
+        <span className={`absolute right-3 top-4 h-5 w-5 rounded-full border-2 ${on ? 'border-primary bg-primary shadow-[inset_0_0_0_3px_#122b5e]' : 'border-muted/40'}`} aria-hidden />
+      </button>
+    );
+  };
+
   return (
     <Sheet open={open} onClose={onClose} title="Insight Premium">
       <div className="relative">
@@ -19,18 +69,37 @@ export function Paywall({ open, onClose, topicName }: { open: boolean; onClose: 
           </span>
           <p className="eyebrow mt-4">Insight Premium</p>
           <h2 className="mt-1.5 text-[26px] font-semibold leading-tight">Unlock your whole learning journey</h2>
-          {topicName && <p className="mt-2 text-sm text-muted">{topicName} is part of Premium.</p>}
+          {(reason || topicName) && <p className="mt-2 text-sm text-muted">{reason ?? `${topicName} is part of Premium.`}</p>}
         </div>
-        <ul className="mt-6 space-y-3">
-          {PERKS.map((p) => (
-            <li key={p.title} className="surface flex gap-3 rounded-input px-3.5 py-3">
+
+        <ul className="mt-5 space-y-2.5">
+          {PERKS.map((p, i) => (
+            <motion.li key={p.title} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i }}
+              className="flex gap-3 px-1">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#2dd4bf" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0" aria-hidden><path d="m5 12 5 5 9-10" /></svg>
               <span><span className="block font-medium">{p.title}</span><span className="text-sm text-muted">{p.text}</span></span>
-            </li>
+            </motion.li>
           ))}
         </ul>
-        <button className="btn-primary mt-6" disabled>Subscriptions open soon</button>
-        <button className="btn-ghost mt-3 w-full" onClick={onClose}>Not now</button>
+
+        <div className="mt-6 flex gap-3" role="radiogroup" aria-label="Billing period">
+          {option('month', 'Monthly', monthly)}
+          {option('year', 'Annual', annual)}
+        </div>
+
+        {error && <div className="mt-4"><Alert>{error}</Alert></div>}
+        {plans?.enabled ? (
+          <button className="btn-primary mt-5" onClick={checkout} disabled={busy}>
+            {busy ? 'Opening secure checkout…' : `Continue with ${interval === 'year' ? 'annual' : 'monthly'}`}
+          </button>
+        ) : (
+          <button className="btn-primary mt-5" disabled>{plans ? 'Subscriptions open soon' : 'Loading plans…'}</button>
+        )}
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-muted">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+          Secure checkout by Stripe · Card, Apple Pay or Google Pay · Cancel anytime
+        </p>
+        <button className="btn-ghost mt-4 w-full" onClick={onClose}>Not now</button>
       </div>
     </Sheet>
   );

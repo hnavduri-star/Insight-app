@@ -11,7 +11,11 @@ export async function accessFor(userId: string) {
   const allAccess = rows.some((r) => r.kind === 'all_access');
   const freeTopicId = rows.find((r) => r.source === 'free_trial')?.topicId ?? null;
   const topicIds = new Set(rows.filter((r) => r.kind === 'topic' && r.topicId).map((r) => r.topicId!));
-  return { plan: allAccess ? ('premium' as const) : ('free' as const), allAccess, freeTopicId, topicIds };
+  const premium = rows.filter((r) => r.kind === 'all_access');
+  const planSource = premium.find((r) => r.source === 'subscription')?.source ?? premium[0]?.source ?? null;
+  const ends = premium.map((r) => r.expiresAt);
+  const premiumUntil = !premium.length || ends.some((e) => e === null) ? null : new Date(Math.max(...ends.map((e) => e!.getTime())));
+  return { plan: allAccess ? ('premium' as const) : ('free' as const), allAccess, freeTopicId, topicIds, planSource, premiumUntil };
 }
 
 export async function canAccessTopic(userId: string, topicId: string) {
@@ -22,6 +26,11 @@ export async function canAccessTopic(userId: string, topicId: string) {
 /** Server-side gate for every paid endpoint (bites, quizzes, role-play from milestone 2). */
 export async function requireTopicAccess(userId: string, topicId: string) {
   if (!(await canAccessTopic(userId, topicId))) throw new HttpError(402, 'This topic is part of Insight Premium.', 'premium_required');
+}
+
+/** Practice (role-play with your people and stock characters) is Premium only; learning is not. */
+export async function requirePremium(userId: string) {
+  if (!(await accessFor(userId)).allAccess) throw new HttpError(402, 'Practising conversations is part of Insight Premium.', 'premium_required');
 }
 
 /**

@@ -204,7 +204,7 @@ function TopicSheet({ id, onClose, onChanged }: { id: string | null; onClose: ()
           </p>
 
           <ul className="mt-5 grid grid-cols-3 gap-2 text-center text-xs">
-            {[['Learn', 'Key ideas'], ['Practise', 'Quick quiz'], ['Apply', 'Real scenario']].map(([a, b], i) => (
+            {[['Learn', 'Key ideas'], ['Check', 'Quick quiz'], ['Apply', 'Real scenario']].map(([a, b], i) => (
               <li key={a} className="surface rounded-input px-2 py-2.5">
                 <span className="block font-semibold" style={{ color: i === 0 ? tint : undefined }}>{a}</span>
                 <span className="text-muted">{b}</span>

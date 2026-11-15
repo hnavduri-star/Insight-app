@@ -354,5 +354,20 @@ export const entitlements = pgTable('entitlements', {
   createdAt: createdAt(),
 }, (t) => [
   index('entitlements_user_idx').on(t.userId),
+  uniqueIndex('entitlements_provider_ref_unique').on(t.providerRef),
   uniqueIndex('entitlements_one_free_trial').on(t.userId).where(sql`${t.source} = 'free_trial'`),
 ]);
+
+// ---------- Stripe billing ----------
+export const billingCustomers = pgTable('billing_customers', {
+  userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  stripeCustomerId: text('stripe_customer_id').notNull(),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex('billing_customers_stripe_unique').on(t.stripeCustomerId)]);
+
+/** Processed webhook event ids, so a retried delivery is applied once. */
+export const stripeEvents = pgTable('stripe_events', {
+  id: text('id').primaryKey(),
+  type: text('type').notNull(),
+  receivedAt: ts('received_at').notNull().defaultNow(),
+});

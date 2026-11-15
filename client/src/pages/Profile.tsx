@@ -15,6 +15,12 @@ export default function Profile() {
   const [deleting, setDeleting] = useState(false);
   const [coachErr, setCoachErr] = useState('');
   const [paywall, setPaywall] = useState(false);
+  const [portalBusy, setPortalBusy] = useState(false);
+  const manage = async () => {
+    setPortalBusy(true);
+    try { window.location.assign((await api<{ url: string }>('/billing/portal', { body: {} })).url); }
+    catch (e) { setCoachErr((e as Error).message); setPortalBusy(false); }
+  };
   const m = me!;
 
   const switchCoach = async (coach: 'maya' | 'alex') => {
@@ -37,9 +43,14 @@ export default function Profile() {
         <div className="flex-1">
           <p className="eyebrow">Your plan</p>
           <p className="mt-1 font-display text-lg font-semibold">{m.plan === 'premium' ? 'Insight Premium' : 'Free'}</p>
-          <p className="text-sm text-muted">{m.plan === 'premium' ? 'Every topic is unlocked.' : 'One topic free. Upgrade for every topic.'}</p>
+          <p className="text-sm text-muted">
+            {m.plan === 'free' ? 'Learn one topic free. Upgrade for every topic and practice.'
+              : m.planSource === 'subscription' && m.premiumUntil ? `Every topic unlocked · renews or ends ${new Date(m.premiumUntil).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`
+              : 'Every topic unlocked.'}
+          </p>
         </div>
         {m.plan === 'free' && <button className="btn-primary w-auto px-4" onClick={() => setPaywall(true)}>Upgrade</button>}
+        {m.planSource === 'subscription' && <button className="btn-ghost px-3 text-sm" onClick={manage} disabled={portalBusy}>{portalBusy ? 'Opening…' : 'Manage'}</button>}
       </section>
 
       <section className="card p-5">
@@ -120,7 +131,7 @@ function DeleteSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
   return (
     <Sheet open={open} onClose={onClose} title="Delete account">
       <h2 className="text-xl font-bold">Delete your account?</h2>
-      <p className="mt-2 text-sm text-muted">This permanently removes your profile, progress and everything you've saved. It can't be undone.</p>
+      <p className="mt-2 text-sm text-muted">This permanently removes your profile, progress and everything you've saved, and cancels any Premium subscription. It can't be undone.</p>
       <form onSubmit={del} className="mt-5 space-y-4">
         {error && <Alert>{error}</Alert>}
         <Field label="Confirm with your password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />

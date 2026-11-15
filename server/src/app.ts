@@ -7,6 +7,7 @@ import { auth } from './routes/auth.js';
 import { me } from './routes/me.js';
 import { topicRoutes } from './routes/topics.js';
 import { peopleRoutes } from './routes/people.js';
+import { billing, stripeWebhook } from './routes/billing.js';
 import { errorHandler, HttpError } from './lib/errors.js';
 import { PERSONAS, INDUSTRIES, GOALS, DAILY_MINUTES, COACHES, RELATIONSHIPS, TRAITS } from '../../shared/options.js';
 
@@ -14,6 +15,8 @@ export function createApp() {
   const app = express();
   app.set('trust proxy', 1);
   app.use(helmet({ contentSecurityPolicy: false }));
+  // Before express.json: Stripe signs the raw body.
+  app.use('/api/billing/webhook', stripeWebhook);
   app.use(express.json({ limit: '20kb' }));
   app.use(cookieParser());
 
@@ -32,6 +35,7 @@ export function createApp() {
   app.use('/api/me', me);
   app.use('/api/topics', topicRoutes);
   app.use('/api/people', peopleRoutes);
+  app.use('/api/billing', billing);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found')));
 
   // In production the API also serves the built client.

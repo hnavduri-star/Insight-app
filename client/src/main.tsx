@@ -1,7 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { useEffect } from 'react';
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { ToastProvider, useToast } from './components/Toast';
+import { api, type Me } from './api';
 import './index.css';
 import { AuthProvider, useAuth } from './auth';
 import { Spinner } from './components/ui';
@@ -34,11 +36,33 @@ function ScrollToTop() {
   return null;
 }
 
-function WithNav() { return <><Outlet /><BottomNav /></>; }
+/** Handles the return from Stripe Checkout (?checkout=success&session_id=… or ?checkout=cancelled). */
+function CheckoutReturn() {
+  const { search } = useLocation();
+  const nav = useNavigate();
+  const { me, setMe } = useAuth();
+  const toast = useToast();
+  useEffect(() => {
+    const q = new URLSearchParams(search);
+    const result = q.get('checkout');
+    if (!result || !me) return;
+    nav('/', { replace: true });
+    if (result === 'cancelled') { toast('Checkout cancelled. You can upgrade any time.'); return; }
+    const sessionId = q.get('session_id');
+    if (!sessionId) return;
+    api<Me>('/billing/confirm', { body: { sessionId } })
+      .then((m) => { setMe(m); toast(m.plan === 'premium' ? 'Welcome to Insight Premium. Every topic is now open.' : 'Payment received. Premium will switch on in a moment.', 'success'); })
+      .catch(() => toast('Payment received. Premium will switch on in a moment.', 'success'));
+  }, [search, me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+function WithNav() { return <><CheckoutReturn /><Outlet /><BottomNav /></>; }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AuthProvider>
+      <ToastProvider>
       <BrowserRouter>
         <ScrollToTop />
         <Routes>
@@ -62,6 +86,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   </React.StrictMode>,
 );

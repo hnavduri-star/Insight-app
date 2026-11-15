@@ -7,6 +7,7 @@ import { requireAuth, checkPassword, clearSession } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { profileInput } from '../lib/validate.js';
 import { accessFor, chooseFreeTopic } from '../lib/access.js';
+import { cancelSubscriptionsFor } from '../lib/billing.js';
 import { topics } from '../db/schema.js';
 
 /** The signed-in user's account + profile. Every query is scoped to req.userId. */
@@ -17,8 +18,8 @@ export async function loadMe(userId: string) {
     coach: profiles.coach, timezone: profiles.timezone, onboarded: sql<boolean>`${profiles.onboardedAt} is not null`,
   }).from(users).innerJoin(profiles, eq(profiles.userId, users.id)).where(eq(users.id, userId));
   if (!row) throw new HttpError(404, 'Account not found');
-  const { plan, freeTopicId } = await accessFor(userId);
-  return { ...row, plan, freeTopicId };
+  const { plan, freeTopicId, planSource, premiumUntil } = await accessFor(userId);
+  return { ...row, plan, freeTopicId, planSource, premiumUntil };
 }
 
 export const me = Router();
@@ -61,6 +62,7 @@ me.delete('/account', async (req, res) => {
   const { password } = z.object({ password: z.string().max(128) }).parse(req.body);
   const [u] = await db.select().from(users).where(eq(users.id, req.userId!));
   if (!(await checkPassword(password, u.passwordHash))) throw new HttpError(401, 'Password is incorrect', 'bad_credentials');
+  await cancelSubscriptionsFor(req.userId!);
   await db.delete(users).where(eq(users.id, req.userId!));
   clearSession(res);
   res.json({ ok: true });
