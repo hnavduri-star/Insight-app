@@ -41,15 +41,15 @@ Free-tier notes: the service sleeps when idle (about 30 seconds to wake), and th
 
 ## Topic and book catalogue
 
-The catalogue lives in [`data/topics.csv`](data/topics.csv), one row per book:
+The catalogue lives in **[`data/insight-topics-and-books.xlsx`](data/insight-topics-and-books.xlsx)**. Edit it in Excel. It has a *How to use* sheet, a *Topics and Books* sheet with one row per book, and a *Summary* sheet that counts topics, books and fiction per heading automatically.
 
-| heading | heading_icon | topic | book_title | author | book_type | buy_url |
+| Heading | Heading Icon | Topic | Book Title | Author | Book Type | Buy URL |
 |---|---|---|---|---|---|---|
 | Leadership and Teams | 🧭 | Building Trust | The Speed of Trust | Stephen M.R. Covey | non-fiction | |
 | Leadership and Teams | | Building Trust | The Lord of the Rings | J.R.R. Tolkien | fiction | |
 
-- Row order sets display order. A topic can have any number of books. `book_type` is `fiction` or `non-fiction`.
-- From Excel: *Save As → CSV UTF-8*. Then `npm run db:seed` (or `npm run db:seed -- path/to/file.csv`).
+- Row order sets display order. A topic can have any number of books. Book Type is a dropdown (`non-fiction` or `fiction`).
+- Load it with `npm run db:seed` (the app also reloads it on every deploy). Another file: `npm run db:seed -- path/to/file.xlsx` (CSV also works).
 - Problems are reported with line numbers, such as a missing column, a topic under two headings, or a bad book type.
 - Topics missing from the file are kept unless you add `-- --prune`. Pruning deletes them along with learners' progress on them.
 

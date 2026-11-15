@@ -6,7 +6,7 @@ import path from 'node:path';
 import { createApp } from '../src/app.js';
 import { pool } from '../src/db/client.js';
 import { canAccessTopic, requireTopicAccess } from '../src/lib/access.js';
-import { readCatalog } from '../src/db/catalog.js';
+import { readCatalog, loadCatalog } from '../src/db/catalog.js';
 
 const app = createApp();
 beforeEach(async () => { await pool.query('delete from users'); });
@@ -103,6 +103,15 @@ describe('catalogue CSV import', () => {
     const cats = readCatalog(write('Heading,Heading Icon,Topic,Book Title,Author,Book Type\nLeading,🧭,Trust,The Speed of Trust,Covey,Non-fiction\nLeading,,Trust,The Lord of the Rings,Tolkien,Fiction\n'));
     expect(cats[0]).toMatchObject({ name: 'Leading', icon: '🧭' });
     expect(cats[0].topics[0].books.map((b) => b.kind)).toEqual(['nonfiction', 'fiction']);
+  });
+
+  it('reads the Excel workbook: 8 headings, 99 topics, 3 books each', async () => {
+    const x = await loadCatalog();
+    expect(x).toHaveLength(8);
+    const topics = x.flatMap((h) => h.topics);
+    expect(topics).toHaveLength(99);
+    expect(topics.every((t) => t.books.length === 3)).toBe(true);
+    expect(topics[0].books[0]).toEqual({ title: 'Thinking, Fast and Slow', author: 'Daniel Kahneman', kind: 'nonfiction', buyUrl: null });
   });
 
   it('reports bad rows with line numbers', () => {

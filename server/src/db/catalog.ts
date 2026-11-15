@@ -1,28 +1,59 @@
 /**
- * Reads the topic catalogue from a CSV (default: data/topics.csv at the repo root).
- * One row per book:
+ * Reads the topic catalogue (default: data/insight-topics-and-books.xlsx at the repo root).
+ * One row per book, either as .xlsx or .csv:
  *   heading, heading_icon, topic, book_title, author, book_type, buy_url
  * - heading_icon is optional (emoji); only the first row of a heading needs it.
  * - book_type is "fiction" or "non-fiction" (blank = non-fiction).
  * - Row order sets display order of headings, topics and books.
- * Excel: File > Save As > CSV UTF-8.
+ * Also reads .xlsx directly (sheet "Topics and Books", or the first sheet).
  */
 import fs from 'node:fs';
 import { parse } from 'csv-parse/sync';
+import ExcelJS from 'exceljs';
 
 export type CatalogBook = { title: string; author: string | null; kind: 'fiction' | 'nonfiction'; buyUrl: string | null };
 export type CatalogTopic = { name: string; books: CatalogBook[] };
 export type CatalogHeading = { name: string; icon: string; topics: CatalogTopic[] };
 
-export const DEFAULT_CATALOG = new URL('../../../data/topics.csv', import.meta.url).pathname;
+export const DEFAULT_CATALOG = new URL('../../../data/insight-topics-and-books.xlsx', import.meta.url).pathname;
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/[\s_]+/g, '_');
+
+/** Reads a .csv or .xlsx catalogue. */
+export async function loadCatalog(file = DEFAULT_CATALOG): Promise<CatalogHeading[]> {
+  if (!/\.xlsx$/i.test(file)) return readCatalog(file);
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(file);
+  const ws = wb.getWorksheet('Topics and Books') ?? wb.worksheets[0];
+  const text = (v: ExcelJS.CellValue): string => {
+    if (v == null) return '';
+    if (typeof v === 'object') {
+      if ('richText' in v) return v.richText.map((t) => t.text).join('');
+      if ('text' in v) return String(v.text);           // hyperlink
+      if ('result' in v) return String(v.result ?? ''); // formula
+    }
+    return String(v);
+  };
+  const header = (ws.getRow(1).values as ExcelJS.CellValue[]).slice(1).map((h) => norm(text(h)));
+  const rows: Record<string, string>[] = [];
+  ws.eachRow((row, n) => {
+    if (n === 1) return;
+    const r: Record<string, string> = {};
+    header.forEach((h, c) => { r[h] = text(row.getCell(c + 1).value).trim(); });
+    rows.push(r);
+  });
+  return buildCatalog(rows);
+}
 
 export function readCatalog(file = DEFAULT_CATALOG): CatalogHeading[] {
   const raw = fs.readFileSync(file, 'utf8').replace(/^﻿/, '');
   const rows: Record<string, string>[] = parse(raw, {
     columns: (h: string[]) => h.map(norm), skip_empty_lines: true, trim: true, relax_column_count: true,
   });
+  return buildCatalog(rows);
+}
+
+function buildCatalog(rows: Record<string, string>[]): CatalogHeading[] {
   const errors: string[] = [];
   const headings = new Map<string, CatalogHeading>();
   const topicHeading = new Map<string, string>();

@@ -1,7 +1,7 @@
 import { and, eq, notInArray, sql } from 'drizzle-orm';
 import type { DB } from './client.js';
 import { categories, topics, books, topicBooks, badges } from './schema.js';
-import { readCatalog, type CatalogHeading } from './catalog.js';
+import { loadCatalog, type CatalogHeading } from './catalog.js';
 import { BADGES } from './badges.js';
 
 /**
@@ -10,7 +10,7 @@ import { BADGES } from './badges.js';
  * also deletes learners' progress on it.
  */
 export async function seed(db: DB, opts: { catalog?: CatalogHeading[]; prune?: boolean } = {}) {
-  const cats = opts.catalog ?? readCatalog();
+  const cats = opts.catalog ?? await loadCatalog();
   const topicNames: string[] = [];
   let bookCount = 0;
 
