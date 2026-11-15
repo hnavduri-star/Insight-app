@@ -23,21 +23,22 @@ export default function Profile() {
 
   return (
     <main className="page page-with-nav space-y-5">
-      <section className="card flex flex-col items-center p-6 text-center">
+      <section className="card relative flex flex-col items-center overflow-hidden p-6 text-center">
+        <div className="pointer-events-none absolute -top-24 h-48 w-72 rounded-full bg-primary/15 blur-3xl" aria-hidden />
         <Avatar name={m.name} size={84} />
-        <h1 className="mt-3 text-xl font-bold tracking-tight">{m.name}</h1>
+        <h1 className="mt-3 text-2xl font-semibold">{m.name}</h1>
         <p className="text-sm text-muted">{m.email}</p>
         {!m.emailVerified && <p className="mt-1 text-xs text-error">Email not verified</p>}
       </section>
 
       <section className="card p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold">Your learning profile</h2>
+          <h2 className="text-lg font-semibold">Your learning journey</h2>
           <button className="btn-ghost min-h-[40px] px-3 text-sm" onClick={() => setEditing(true)}>Edit profile</button>
         </div>
         <dl className="grid grid-cols-2 gap-3 text-sm">
           {[['Persona', personaLabel(m.persona)], ['Industry', m.industry], ['Goal', m.goal], ['Daily time', m.dailyMinutes ? `${m.dailyMinutes} min` : '']].map(([k, v]) => (
-            <div key={k} className="rounded-input bg-bg/40 px-3 py-2.5">
+            <div key={k} className="surface rounded-input px-3 py-2.5">
               <dt className="text-xs text-muted">{k}</dt>
               <dd className="font-medium">{v || '—'}</dd>
             </div>
@@ -55,7 +56,7 @@ export default function Profile() {
         <button className="btn-ghost w-full" onClick={async () => { await logout(); nav('/login', { replace: true }); }}>Log out</button>
         <button className="min-h-[44px] w-full text-sm text-error/90 hover:text-error" onClick={() => setDeleting(true)}>Delete account</button>
         <p className="px-2 text-center text-xs leading-relaxed text-muted">
-          Privacy: your learning profile and written answers are sent to an AI provider (Anthropic) to create lessons and feedback. Your name, email and password are never sent.
+          Privacy: your learning profile and written answers are sent to an AI provider (Anthropic) to personalize your learning and give you feedback. Your name, email and password are never sent.
         </p>
       </section>
 

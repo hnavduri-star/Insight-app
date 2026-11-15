@@ -20,7 +20,7 @@ export default function Onboarding() {
   const [error, setError] = useState('');
 
   const steps = [
-    { title: 'Tell us about you', ok: !!f.persona && !!f.industry },
+    { title: "Let's shape your learning journey", ok: !!f.persona && !!f.industry },
     { title: 'What are you working towards?', ok: !!f.goal && !!f.dailyMinutes },
     { title: 'Meet your coach', ok: !!f.coach },
   ];
@@ -50,7 +50,7 @@ export default function Onboarding() {
         </div>
       </div>
 
-      <h1 className="mb-5 text-2xl font-bold tracking-tight">{cur.title}</h1>
+      <h1 className="mb-6 text-[26px] font-semibold leading-tight">{cur.title}</h1>
 
       <AnimatePresence mode="wait">
         <motion.div key={step} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}
@@ -67,7 +67,7 @@ export default function Onboarding() {
             <CoachPicker value={f.coach} onChange={(coach) => setF({ ...f, coach })} />
             {f.coach && (
               <CoachBubble coach={f.coach}>
-                Hi, I'm {coachName}! I'll guide you through each lesson. You can switch coaches any time in your Profile.
+                Hi, I'm {coachName}! I'll guide you through every bite and help you put it to work. You can switch coaches any time in your Profile.
               </CoachBubble>
             )}
           </>}

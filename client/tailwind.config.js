@@ -15,8 +15,14 @@ export default {
         error: '#f87171',
       },
       borderRadius: { card: '18px', btn: '14px', input: '12px' },
-      boxShadow: { soft: '0 8px 24px -8px rgba(2, 8, 30, 0.6), 0 2px 6px rgba(2, 8, 30, 0.35)' },
-      fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+      boxShadow: {
+        soft: '0 10px 30px -12px rgba(2, 8, 30, 0.75), 0 2px 6px rgba(2, 8, 30, 0.35)',
+        matte: 'inset 0 1px 0 rgba(232, 240, 255, 0.05), 0 12px 32px -14px rgba(2, 8, 30, 0.8), 0 2px 4px rgba(2, 8, 30, 0.3)',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
+      },
       maxWidth: { app: '480px' },
     },
   },

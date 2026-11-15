@@ -1,6 +1,6 @@
 # Insight
 
-A mobile-first, gamified micro-learning app that turns the best non-fiction books into personalized, bite-sized lessons.
+A mobile-first learning tool: bite-size learning built around each learner's goals, drawn from the best fiction and non-fiction. Not a book-summary app. Each bite blends ideas from several books into one practical framework for that learner.
 
 **Status: Milestone 1 (Foundation) complete.** Auth, profile, onboarding with coach choice, topic seed data, and the full database schema (including the Playbook, plan and reminder tables, which stay empty for now).
 
@@ -27,6 +27,10 @@ npm test                                  # API tests against insight_test DB
 Email verification and password-reset links are **printed to the server log** until an email provider is chosen.
 
 Production: `npm run build && NODE_ENV=production npm start`. Express serves the built client, so it deploys as one service on Render, Railway or Fly.io.
+
+## Look and feel
+
+Matte finish: a fine film grain over every screen, low-sheen card surfaces with a hairline top highlight, and soft ambient light. Headings use Fraunces (serif), body text uses Inter. Each heading has its own line icon and muted accent colour (`client/src/components/CategoryIcon.tsx`).
 
 ## What works in milestone 1
 

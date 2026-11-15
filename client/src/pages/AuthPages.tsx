@@ -5,19 +5,45 @@ import { api, browserTimezone, type Me } from '../api';
 import { useAuth } from '../auth';
 import { Alert, Field, Logo, Submit } from '../components/ui';
 
-function Shell({ title, subtitle, children, footer }: { title: string; subtitle?: string; children: ReactNode; footer?: ReactNode }) {
+function Shell({ title, subtitle, children, footer, hero }: { title: string; subtitle?: string; children: ReactNode; footer?: ReactNode; hero?: ReactNode }) {
   return (
     <main className="page flex min-h-dvh flex-col justify-center pb-10">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-        <div className="mb-8 flex flex-col items-center text-center">
-          <Logo />
-          <h1 className="mt-5 text-2xl font-bold tracking-tight">{title}</h1>
-          {subtitle && <p className="mt-2 text-muted">{subtitle}</p>}
+        <div className="mb-7 flex flex-col items-center text-center">
+          <div className="relative">
+            <div className="absolute -inset-6 rounded-full bg-primary/20 blur-2xl" aria-hidden />
+            <div className="relative"><Logo /></div>
+          </div>
+          <p className="eyebrow mt-5">Insight</p>
+          <h1 className="mt-2 text-[28px] font-semibold leading-tight">{title}</h1>
+          {subtitle && <p className="mt-2 max-w-[22rem] text-[15px] leading-relaxed text-muted">{subtitle}</p>}
         </div>
+        {hero}
         <div className="card p-5">{children}</div>
         {footer && <div className="mt-6 text-center text-sm text-muted">{footer}</div>}
       </motion.div>
     </main>
+  );
+}
+
+const VALUES = [
+  { icon: <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M9 2h6" /></>, title: 'Bite-size', text: '5 to 20 minutes a day' },
+  { icon: <><path d="M4 19c4-1 6-5 8-9s4-6 8-6" /><circle cx="4" cy="19" r="1.6" /><circle cx="20" cy="4" r="1.6" /></>, title: 'Your journey', text: 'Built around your goals' },
+  { icon: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" /><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" /></>, title: 'Great books', text: 'Fiction and non-fiction' },
+];
+
+function ValueStrip() {
+  return (
+    <ul className="mb-5 grid grid-cols-3 gap-2">
+      {VALUES.map((v, i) => (
+        <motion.li key={v.title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.08 }}
+          className="surface flex flex-col items-center rounded-card px-2 py-3 text-center">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#5ec2ff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{v.icon}</svg>
+          <span className="mt-1.5 text-[13px] font-semibold">{v.title}</span>
+          <span className="text-[11px] leading-snug text-muted">{v.text}</span>
+        </motion.li>
+      ))}
+    </ul>
   );
 }
 
@@ -43,7 +69,7 @@ export function Login() {
     nav(me.onboarded ? '/' : '/onboarding', { replace: true });
   });
   return (
-    <Shell title="Welcome to Insight" subtitle="The best non-fiction books, in five-minute lessons."
+    <Shell title="Learn something that sticks, every day" subtitle="Bite-size learning built around your goals, drawn from the best fiction and non-fiction." hero={<ValueStrip />}
       footer={<>New here? <Link to="/signup" className="link">Create an account</Link></>}>
       <form onSubmit={run} className="space-y-4" noValidate>
         {error && <Alert>{error}</Alert>}
@@ -71,7 +97,7 @@ export function Signup() {
     setLocalErr(''); run(e);
   };
   return (
-    <Shell title="Create your account" subtitle="Takes under a minute."
+    <Shell title="Start your learning journey" subtitle="Tell us where you're headed and every bite is shaped around you. Takes under a minute."
       footer={<>Already have an account? <Link to="/login" className="link">Log in</Link></>}>
       <form onSubmit={submit} className="space-y-4" noValidate>
         {(localErr || error) && <Alert>{localErr || error}</Alert>}
@@ -81,7 +107,7 @@ export function Signup() {
           value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
         <Submit busy={busy}>Create account</Submit>
         <p className="text-xs leading-relaxed text-muted">
-          <strong className="text-ink">Privacy:</strong> to create and grade your lessons, Insight sends your learning profile and the
+          <strong className="text-ink">Privacy:</strong> to personalize your learning and give you feedback, Insight sends your learning profile and the
           answers you write to an AI provider (Anthropic). We don't send your name, email or password. You can delete your account and all your data at any time.
         </p>
       </form>

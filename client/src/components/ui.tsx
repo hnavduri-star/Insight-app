@@ -55,7 +55,7 @@ export function Avatar({ name, size = 48 }: { name: string; size?: number }) {
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
   return (
     <span style={{ width: size, height: size, fontSize: size * 0.38 }}
-      className="inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2563eb] to-accent font-semibold text-white shadow-soft">
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2563eb] via-[#1d74d8] to-[#14a89a] font-display font-semibold text-white shadow-soft ring-1 ring-white/10">
       {initials}
     </span>
   );
