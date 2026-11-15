@@ -21,12 +21,19 @@ let clientKey = '';
  * Finds the API key even if the variable was named with different case or spacing
  * (e.g. "Anthropic_API_Key" or "anthropic api key"), and trims stray whitespace.
  */
-export function apiKey(): string {
+export function findApiKey(): { key: string; source: string | null; hint: string } {
   const exact = process.env.ANTHROPIC_API_KEY?.trim();
-  if (exact) return exact;
-  const name = Object.keys(process.env).find((k) => /^anthropic[\s_-]*api[\s_-]*key$/i.test(k.trim()));
-  return name ? (process.env[name] ?? '').trim() : '';
+  if (exact) return { key: exact, source: 'ANTHROPIC_API_KEY', hint: 'Key found.' };
+  const named = Object.keys(process.env).filter((k) => /anthropic/i.test(k));
+  const byName = named.find((k) => /^anthropic[\s_-]*(api[\s_-]*)?key$/i.test(k.trim()) && process.env[k]?.trim());
+  if (byName) return { key: process.env[byName]!.trim(), source: byName, hint: `Key found in "${byName}".` };
+  // Last resort: any variable whose value looks like an Anthropic key.
+  const byValue = Object.keys(process.env).find((k) => process.env[k]?.trim().startsWith('sk-ant-'));
+  if (byValue) return { key: process.env[byValue]!.trim(), source: byValue, hint: `Key found in "${byValue}".` };
+  if (named.length) return { key: '', source: null, hint: `Found ${named.map((n) => `"${n}"`).join(', ')} but its value is empty or doesn't start with sk-ant-.` };
+  return { key: '', source: null, hint: 'No Anthropic key found. Add ANTHROPIC_API_KEY in Render → insight → Environment.' };
 }
+export const apiKey = () => findApiKey().key;
 export const aiEnabled = () => !!apiKey();
 function anthropic() {
   const key = apiKey();

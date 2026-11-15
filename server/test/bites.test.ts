@@ -156,6 +156,15 @@ describe('bites (milestone 2)', () => {
       expect((await request(app).get('/api/health')).body.ai).toBe(true);
     } finally { delete process.env.Anthropic_API_Key; }
     expect(apiKey()).toBe('');
+    process.env['Anthropic key'] = 'sk-ant-named';
+    try { expect(apiKey()).toBe('sk-ant-named'); } finally { delete process.env['Anthropic key']; }
+    process.env.Anthropic_Secret = '';
+    try {
+      const h = (await request(app).get('/api/health')).body;
+      expect(h).toMatchObject({ ai: false, version: 'local' });
+      expect(h.aiHint).toMatch(/"Anthropic_Secret" but its value is empty/);
+      expect(JSON.stringify(h)).not.toMatch(/sk-ant/);
+    } finally { delete process.env.Anthropic_Secret; }
   });
 
   it('enforces the daily generation limit', async () => {
