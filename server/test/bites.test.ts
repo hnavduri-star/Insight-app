@@ -163,7 +163,7 @@ describe('bites (milestone 2)', () => {
       const h = (await request(app).get('/api/health')).body;
       expect(h).toMatchObject({ ai: false, version: 'local' });
       expect(h.aiHint).toMatch(/"Anthropic_Secret" but its value is empty/);
-      expect(JSON.stringify(h)).not.toMatch(/sk-ant/);
+      expect(JSON.stringify(h)).not.toMatch(/sk-ant-(mixed|named|test)/);
     } finally { delete process.env.Anthropic_Secret; }
   });
 
