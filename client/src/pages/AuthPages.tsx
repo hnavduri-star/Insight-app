@@ -5,9 +5,24 @@ import { api, browserTimezone, type Me } from '../api';
 import { useAuth } from '../auth';
 import { Alert, Field, Logo, Submit } from '../components/ui';
 
+/** Log in | Register switch on the second screen (after the welcome page). */
+function AuthTabs({ active }: { active: 'login' | 'signup' }) {
+  return (
+    <div className="mb-5 grid grid-cols-2 rounded-full bg-white/[0.07] p-1" role="tablist" aria-label="Log in or register">
+      {([['login', 'Log in', '/login'], ['signup', 'Register', '/signup']] as const).map(([k, label, to]) => (
+        <Link key={k} to={to} replace role="tab" aria-selected={active === k}
+          className={`flex min-h-[46px] items-center justify-center rounded-full text-[15px] font-bold transition ${active === k ? 'bg-white text-[#1e3a8a]' : 'text-muted'}`}>{label}</Link>
+      ))}
+    </div>
+  );
+}
+
 function Shell({ title, subtitle, children, footer, hero }: { title: string; subtitle?: string; children: ReactNode; footer?: ReactNode; hero?: ReactNode }) {
   return (
     <main className="page flex min-h-dvh flex-col justify-center pb-10">
+      <Link to="/welcome" className="absolute left-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10" style={{ top: 'max(1rem, env(safe-area-inset-top))' }} aria-label="Back to the Insight welcome page">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><path d="m15 6-6 6 6 6" /></svg>
+      </Link>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
         <div className="mb-7 flex flex-col items-center text-center">
           <div className="relative">
@@ -23,27 +38,6 @@ function Shell({ title, subtitle, children, footer, hero }: { title: string; sub
         {footer && <div className="mt-6 text-center text-sm text-muted">{footer}</div>}
       </motion.div>
     </main>
-  );
-}
-
-const VALUES = [
-  { icon: <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M9 2h6" /></>, title: 'Bite-size', text: '5 to 20 minutes a day' },
-  { icon: <><path d="M4 19c4-1 6-5 8-9s4-6 8-6" /><circle cx="4" cy="19" r="1.6" /><circle cx="20" cy="4" r="1.6" /></>, title: 'Your journey', text: 'Built around your goals' },
-  { icon: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" /><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" /></>, title: 'Great books', text: 'Fiction and non-fiction' },
-];
-
-function ValueStrip() {
-  return (
-    <ul className="mb-5 grid grid-cols-3 gap-2">
-      {VALUES.map((v, i) => (
-        <motion.li key={v.title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.08 }}
-          className="surface flex flex-col items-center rounded-card px-2 py-3 text-center">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#5ec2ff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{v.icon}</svg>
-          <span className="mt-1.5 text-[13px] font-semibold">{v.title}</span>
-          <span className="text-[11px] leading-snug text-muted">{v.text}</span>
-        </motion.li>
-      ))}
-    </ul>
   );
 }
 
@@ -69,7 +63,7 @@ export function Login() {
     nav(me.onboarded ? '/' : '/onboarding', { replace: true });
   });
   return (
-    <Shell title="Learn something that sticks, every day" subtitle="Bite-size learning built around your goals, drawn from the best fiction and non-fiction." hero={<ValueStrip />}
+    <Shell title="Welcome back" subtitle="Log in to continue your development." hero={<AuthTabs active="login" />}
       footer={<>New here? <Link to="/signup" className="link">Create an account</Link></>}>
       <form onSubmit={run} className="space-y-4" noValidate>
         {error && <Alert>{error}</Alert>}
@@ -97,7 +91,7 @@ export function Signup() {
     setLocalErr(''); run(e);
   };
   return (
-    <Shell title="Start your learning journey" subtitle="Tell us where you're headed and every bite is shaped around you. Takes under a minute."
+    <Shell title="Create your account" subtitle="Tell us where you're headed and everything is shaped around you. Takes under a minute." hero={<AuthTabs active="signup" />}
       footer={<>Already have an account? <Link to="/login" className="link">Log in</Link></>}>
       <form onSubmit={submit} className="space-y-4" noValidate>
         {(localErr || error) && <Alert>{localErr || error}</Alert>}

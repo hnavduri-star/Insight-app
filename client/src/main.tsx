@@ -26,6 +26,7 @@ import Friends from './pages/Friends';
 import Finder from './pages/Finder';
 import CpdLog, { Certificate, Verify } from './pages/Cpd';
 import Daily, { Week } from './pages/Daily';
+import Welcome from './pages/Welcome';
 
 /** Signed-out only. */
 function Public() {
@@ -38,7 +39,7 @@ function Public() {
 function Private({ needsOnboarding = true }: { needsOnboarding?: boolean }) {
   const { me, loading } = useAuth();
   if (loading) return <Spinner />;
-  if (!me) return <Navigate to="/login" replace />;
+  if (!me) return <Navigate to="/welcome" replace />;
   if (needsOnboarding && !me.onboarded) return <Navigate to="/onboarding" replace />;
   return <Outlet />;
 }
@@ -90,6 +91,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ScrollToTop />
         <Routes>
           <Route element={<Public />}>
+            <Route path="/welcome" element={<Welcome />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
