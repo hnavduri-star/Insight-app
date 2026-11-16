@@ -143,6 +143,7 @@ export const topicProgress = pgTable('topic_progress', {
   xp: integer('xp').notNull().default(0),
   cardsCompletedAt: ts('cards_completed_at'),
   quizCorrect: integer('quiz_correct').notNull().default(0),
+  quizTotal: integer('quiz_total').notNull().default(5), // per-tool checks + mixed quiz (older toolkits: 5)
   bestScenarioScore: integer('best_scenario_score'),
   quizCompletedAt: ts('quiz_completed_at'), // set when the 5-question quiz is finished (any score)
   masteryCompletedAt: ts('mastery_completed_at'),
@@ -474,6 +475,17 @@ export const appSettings = pgTable('app_settings', {
   key: text('key').primaryKey(),
   value: jsonb('value').notNull(),
 });
+
+// ---------- Find my skills (diagnostic) ----------
+export const finderResults = pgTable('finder_results', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  answersJson: jsonb('answers_json').notNull(),   // { questionId: answerKey }
+  headingScoresJson: jsonb('heading_scores_json').notNull(), // { heading: gap score }
+  topicsJson: jsonb('topics_json').notNull(),     // [{ name, reason }] in order
+  note: text('note'),                             // optional "anything specific?" text
+  createdAt: createdAt(),
+}, (t) => [index('finder_results_user_idx').on(t.userId, t.createdAt)]);
 
 // ---------- Friends (weekly league) ----------
 // Stored both ways (a→b and b→a) when two people connect with a friend code.

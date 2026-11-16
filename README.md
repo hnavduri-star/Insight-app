@@ -113,6 +113,14 @@ Slow AI work runs as background jobs (`server/src/lib/jobs.ts`): a request waits
 - **Streaks** (`server/src/lib/activity.ts`): every learning action is logged with the learner's local date (their time zone). The first action of a day counts. Active yesterday → +1. One missed day with a freeze → the freeze is spent and the streak continues. Otherwise it restarts at 1. Learners start with 1 freeze and earn one at every 7-day milestone.
 - **Your week** (`/week`, `GET /api/daily/week`): days active over the last 7 local days, counts by activity, average rep and role-play scores, review accuracy, topics worked on, and a rule-based focus for next week.
 
+## Progressive Foundations and "Find my skills"
+
+- **A question after every tool.** Each tool in a toolkit ends with a "What would you do?" question applying that tool to a realistic moment from the learner's world, with instant feedback. **Next** stays locked until it's answered. After the last tool come **3 mixed questions** (which tool fits), then the **coached scenario**.
+- **Each step unlocks the next, enforced on the server:** quiz after the tools (`tools_first`), scenario after the quiz (`quiz_first`), practice reps after the scenario (`foundations_first`). Learners who had already started reps before the scenario became required keep their access. All questions (per-tool and mixed) join spaced review.
+- Toolkits saved in the older format (5-question quiz, no per-tool questions) are rebuilt once, the first time someone opens them; learners' progress is kept.
+- **Find my skills** (`/finder`, `/api/finder`): the last step of onboarding (skippable) and a Home card. 7 indirect "How would you react?" questions, written per career stage, score the 10 skill areas; the learner's goals add weight. 3 follow-up questions on the 2 weakest areas pick topics. The result is 3 topics in order, each with a one-line reason from their own answers. It's rule-based and instant; an optional "Anything specific?" note lets the AI fine-tune the picks. Results are kept, so a retake shows the previous one, and Home's first suggestion uses them.
+- The questions, answers, what each answer points to and the insight lines live in the **Skill Finder** sheet of the Excel file; `npm run db:seed` loads them and checks every heading and topic name.
+
 ## Growth features
 
 - **Home** leads with one vivid card: the single best next step (`GET /api/home`), e.g. "Continue · Executive Presence · Practise rep 4 · 2 min". New learners get the flagship topic for their main goal. Below it: a due real-world check-in, the streak, "I have a situation", **Editor's picks** and **Lessons from fiction**, then the skill tiles.

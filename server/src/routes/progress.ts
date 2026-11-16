@@ -77,7 +77,7 @@ export async function progressFor(userId: string) {
   const B = (key: string, name: string, emoji: string, description: string, earned: boolean) => ({ key, name, emoji, description, earned });
   const badges = [
     B('first_toolkit', 'First toolkit', '🧰', 'Finish the tools and quiz on a topic', foundations >= 1),
-    B('perfect_quiz', 'Perfect quiz', '🎯', 'Get 5 out of 5 on a quiz', tps.some(({ tp }) => tp.quizCorrect >= 5)),
+    B('perfect_quiz', 'Perfect quiz', '🎯', 'Answer every question on a topic right', tps.some(({ tp }) => tp.quizCompletedAt && tp.quizCorrect >= tp.quizTotal)),
     B('ten_reps', '10 reps', '💪', 'Complete 10 practice reps', totalReps >= 10),
     B('first_roleplay', 'First conversation', '🗣️', 'Finish your first role-play', rps.length >= 1),
     B('with_your_people', 'Real people', '🤝', 'Role-play with one of your own people', rps.some((r) => r.personId)),

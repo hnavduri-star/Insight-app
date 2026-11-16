@@ -1,6 +1,7 @@
 import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import type { DB } from './client.js';
-import { categories, topics, books, topicBooks, badges } from './schema.js';
+import { appSettings, categories, topics, books, topicBooks, badges } from './schema.js';
+import { loadFinder } from './finderSheet.js';
 import { loadCatalog, type CatalogHeading } from './catalog.js';
 import { BADGES } from './badges.js';
 
@@ -11,8 +12,11 @@ import { BADGES } from './badges.js';
  * those are kept and reported. `prune` deletes them anyway, history included.
  * Free-topic picks on a deleted topic are cleared, so the learner picks again.
  */
-export async function seed(db: DB, opts: { catalog?: CatalogHeading[]; prune?: boolean } = {}) {
+export async function seed(db: DB, opts: { catalog?: CatalogHeading[]; prune?: boolean; file?: string } = {}) {
   const cats = opts.catalog ?? await loadCatalog();
+  // The "Find my skills" questions live in the same workbook (sheet "Skill Finder").
+  const finder = await loadFinder(cats, opts.file);
+  if (finder) await db.insert(appSettings).values({ key: 'finder', value: finder }).onConflictDoUpdate({ target: appSettings.key, set: { value: finder } });
   const topicNames: string[] = [];
   let bookCount = 0;
 
@@ -57,5 +61,5 @@ export async function seed(db: DB, opts: { catalog?: CatalogHeading[]; prune?: b
       sql`not exists (select 1 from ${topics} where ${topics.categoryId} = ${categories.id})`));
     return { removed: removable.map((s) => s.name), kept: staleTopics.filter((s) => withHistory.has(s.id)).map((s) => s.name) };
   });
-  return { categories: cats.length, topics: topicNames.length, books: bookCount, ...stale };
+  return { categories: cats.length, topics: topicNames.length, books: bookCount, finder: finder ? finder.round1.length + finder.round2.length : 0, ...stale };
 }

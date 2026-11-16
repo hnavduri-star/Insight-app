@@ -5,6 +5,7 @@ import { activityEvents, books, categories, profiles, topicBooks, topicProgress,
 import { levelFor } from './progress.js';
 import { shouldAskFeedback } from './admin.js';
 import { leagueFor } from './friends.js';
+import { latestPicks } from './finder.js';
 import { requireAuth } from '../lib/auth.js';
 import { accessFor } from '../lib/access.js';
 import { trackFor } from './bites.js';
@@ -33,6 +34,10 @@ const topicMeta = async (ids: string[]): Promise<TopicRow[]> => ids.length ? db.
 export async function suggestedTopic(userId: string): Promise<TopicRow | null> {
   const access = await accessFor(userId);
   if (!access.allAccess && access.freeTopicId) return (await topicMeta([access.freeTopicId]))[0] ?? null;
+  // Their "Find my skills" result comes first.
+  const found = await latestPicks(userId);
+  const first = found?.topics.find((t) => access.allAccess || access.topicIds.has(t.id!));
+  if (first) return { id: first.id!, name: first.name, category: first.category! };
   const [p] = await db.select({ goals: profiles.goals }).from(profiles).where(eq(profiles.userId, userId));
   const names = GOAL_TOPICS[((p?.goals as string[]) ?? [])[0]] ?? ['Executive Presence'];
   const rows = await db.select({ id: topics.id, name: topics.name, category: categories.name }).from(topics)
@@ -43,7 +48,8 @@ export async function suggestedTopic(userId: string): Promise<TopicRow | null> {
 /** The single best next step on a topic, as a label and a path. */
 export function stepFor(t: Awaited<ReturnType<typeof trackFor>>, id: string) {
   if (!t.toolkit.toolsDone) return { label: 'Continue your toolkit', sub: 'Tools, case studies and what to say', minutes: 10, path: `/bite/${id}` };
-  if (!t.toolkit.quizDone) return { label: 'Take the quiz', sub: '5 questions to finish Foundations', minutes: 3, path: `/bite/${id}?start=quiz` };
+  if (!t.toolkit.quizDone) return { label: 'Take the quiz', sub: '3 mixed questions, then the scenario', minutes: 2, path: `/bite/${id}?start=quiz` };
+  if (!t.toolkit.scenarioDone) return { label: 'Answer the scenario', sub: 'The last step of Foundations', minutes: 3, path: `/bite/${id}?start=scenario` };
   if (t.reps.done < 3) return { label: `Practise · rep ${t.reps.done + 1}`, sub: 'A short coached drill', minutes: 2, path: `/practice/${id}` };
   if (t.roleplay.unlocked && t.roleplay.done === 0) return { label: 'Try a real conversation', sub: 'Role-play, then a debrief', minutes: 5, path: `/roleplay/${id}` };
   if (t.mastery.unlocked && !t.mastery.done && t.reps.done >= t.reps.goal) return { label: 'Open Mastery', sub: 'Advanced tools and edge cases', minutes: 10, path: `/bite/${id}?level=mastery` };
@@ -78,6 +84,7 @@ homeRoutes.get('/', async (req, res) => {
   res.json({
     level: levelFor(up?.xp ?? 0),
     askFeedback: await shouldAskFeedback(userId),
+    finder: await latestPicks(userId).then((r) => (r ? { at: r.createdAt, topics: r.topics } : null)),
     league: await leagueFor(userId).then((l) => ({ friends: l.friends, daysLeft: l.daysLeft, top: l.league.slice(0, 3), me: l.league.find((r) => r.me)! })),
     next,
     picks: picks.map((p) => ({ ...p, unlocked: unlocked(p.id) })),

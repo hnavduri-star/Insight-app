@@ -23,6 +23,7 @@ import Progress from './pages/Progress';
 import TeamDashboard from './pages/Team';
 import Admin from './pages/Admin';
 import Friends from './pages/Friends';
+import Finder from './pages/Finder';
 import Daily, { Week } from './pages/Daily';
 
 /** Signed-out only. */
@@ -107,6 +108,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/team" element={<TeamDashboard />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/friends" element={<Friends />} />
+            <Route path="/finder" element={<Finder />} />
             <Route path="/week" element={<Week />} />
             <Route path="/situation" element={<NewSituation />} />
             <Route path="/situation/:id" element={<SituationPlan />} />

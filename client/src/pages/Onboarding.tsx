@@ -31,7 +31,7 @@ export default function Onboarding() {
     setBusy(true); setError('');
     try {
       setMe(await api<Me>('/me/onboarding', { body: { ...f, timezone: browserTimezone() } }));
-      nav('/', { replace: true });
+      nav('/finder?welcome=1', { replace: true }); // last step: "Find my skills" (skippable)
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
 

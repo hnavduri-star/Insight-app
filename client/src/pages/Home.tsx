@@ -18,6 +18,7 @@ function greeting() {
 
 type HomeData = {
   askFeedback: boolean;
+  finder: { at: string; topics: { id: string; name: string; category: string; reason: string }[] } | null;
   league: { friends: number; daysLeft: number; top: LeagueRow[]; me: LeagueRow };
   level: { n: number; name: string; xp: number };
   next: { topic: { id: string; name: string; category: string }; label: string; sub: string; minutes: number; path: string; started: boolean } | null;
@@ -72,6 +73,7 @@ export default function Home() {
       <FeedbackSheet open={fb} onClose={() => setFb(false)} onSent={() => setFbDone(true)} />
       <CheckinCard />
       <DailyCard />
+      {home && <SkillsCard finder={home.finder} onOpenTopic={setTopicId} />}
       {home && <LeagueCard league={home.league} />}
 
       <Link to="/situation" className="card mt-3 flex items-center gap-4 p-4 transition active:scale-[0.99]">
@@ -224,6 +226,34 @@ function CheckinCard() {
         <button className="btn-primary mt-2" onClick={saveNote}>{note.trim() ? 'Save' : 'Skip and save'}</button>
       </>}
       {step === 'done' && <p className="text-sm font-semibold">{outcome === 'not_yet' ? "No problem. I'll ask again in a couple of days." : outcome === 'well' ? '🎉 Real-world win logged. +25 XP' : 'Logged. Every try builds the skill. +25 XP'}</p>}
+    </section>
+  );
+}
+
+/** "Find my skills": an invitation to take the check, or the learner's 3 recommended topics. */
+function SkillsCard({ finder, onOpenTopic }: { finder: HomeData['finder']; onOpenTopic: (id: string) => void }) {
+  if (!finder) {
+    return (
+      <Link to="/finder" className="card mt-3 flex items-center gap-3 p-4 transition active:scale-[0.99]">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-xl" aria-hidden>🧭</span>
+        <span className="flex-1"><span className="block font-bold">Not sure where to start?</span><span className="block text-sm text-muted">Find my skills: 10 quick questions, 3 recommendations</span></span>
+        <Chevron />
+      </Link>
+    );
+  }
+  return (
+    <section className="card mt-3 p-4">
+      <div className="flex items-center justify-between"><p className="eyebrow">Recommended for you</p><Link to="/finder" className="text-xs font-bold text-primary">Retake</Link></div>
+      <ul className="mt-2 space-y-1.5">
+        {finder.topics.map((t, i) => (
+          <li key={t.id}>
+            <button onClick={() => onOpenTopic(t.id)} className="flex w-full items-center gap-3 rounded-2xl px-1 py-1.5 text-left">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold" style={{ background: `color-mix(in oklab, ${categoryTint(t.category)} 22%, transparent)`, color: categoryTint(t.category) }}>{i + 1}</span>
+              <span className="min-w-0 flex-1"><span className="block truncate text-[15px] font-bold">{t.name}</span><span className="block truncate text-xs text-muted">{t.reason}</span></span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

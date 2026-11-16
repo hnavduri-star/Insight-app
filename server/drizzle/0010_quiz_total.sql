@@ -1,0 +1,1 @@
+ALTER TABLE "topic_progress" ADD COLUMN "quiz_total" integer DEFAULT 5 NOT NULL;

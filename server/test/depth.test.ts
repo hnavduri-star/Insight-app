@@ -28,8 +28,8 @@ const app = createApp();
 
 const toolkit = (title = 'Toolkit') => ({
   title, framework: 'F',
-  tools: Array.from({ length: 6 }, (_, i) => ({ name: `Tool ${i}`, source: 'Getting to Yes', idea: `Idea ${i}`, steps: ['a', 'b'], say: ['x'], caseStudy: { situation: 's', action: 'a', result: 'r' }, tryThis: 't' })),
-  quiz: Array.from({ length: 5 }, () => ({ q: 'Q', options: ['a', 'b', 'c', 'd'], answer: 0, why: 'w' })), scenario: 'S',
+  tools: Array.from({ length: 6 }, (_, i) => ({ name: `Tool ${i}`, source: 'Getting to Yes', idea: `Idea ${i}`, steps: ['a', 'b'], say: ['x'], caseStudy: { situation: 's', action: 'a', result: 'r' }, tryThis: 't', check: { q: `Check ${i}`, options: ['a', 'b', 'c', 'd'], answer: 2, why: 'w' } })),
+  quiz: Array.from({ length: 3 }, () => ({ q: 'Q', options: ['a', 'b', 'c', 'd'], answer: 0, why: 'w' })), scenario: 'S',
 });
 let repN = 0;
 const reps = () => ({ reps: Array.from({ length: 5 }, (_, i) => ({ situation: `Situation ${++repN}`, ask: 'Say what?', tools: ['Tool 1', 'Not a tool'], with: i === 0 ? 'Raj' : null })) });
@@ -56,6 +56,7 @@ async function foundations(a: any, topicId: string) {
   const { lessonId } = (await a.post('/api/bites').send({ topicId })).body;
   await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
   await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 3 });
+  await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would acknowledge their concern first, then propose two options and agree a next step.' });
   return lessonId as string;
 }
 
@@ -70,7 +71,7 @@ async function learner(email = 'deep@example.com') {
 }
 
 describe('topic track and practice reps', () => {
-  it('keeps practice locked until every tool is viewed AND the quiz is finished', async () => {
+  it('keeps practice locked until each tool, the quiz and the scenario are done, in order', async () => {
     const { a, topic } = await learner();
     const noToolkit = await a.post('/api/practice/next').send({ topicId: topic.id });
     expect(noToolkit.status).toBe(409);
@@ -78,16 +79,22 @@ describe('topic track and practice reps', () => {
     const { lessonId } = (await a.post('/api/bites').send({ topicId: topic.id })).body;
     const notViewed = await a.post('/api/practice/next').send({ topicId: topic.id }); // toolkit built but not gone through
     expect(notViewed.status).toBe(409);
-    expect(notViewed.body.error).toMatch(/Go through all the tools first/);
+    expect(notViewed.body.error).toMatch(/Go through each tool and its question first/);
+    expect((await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 2 })).body.code).toBe('tools_first');
     await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
     const noQuiz = await a.post('/api/practice/next').send({ topicId: topic.id });
     expect(noQuiz.status).toBe(409);
-    expect(noQuiz.body.error).toMatch(/Take the 5-question quiz first/);
+    expect(noQuiz.body.error).toMatch(/Take the quiz first/);
+    expect((await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would listen first and then agree the next step together.' })).body.code).toBe('quiz_first');
     let t = (await a.get(`/api/bites/track/${topic.id}`)).body;
     expect(t.toolkit).toMatchObject({ done: false, toolsDone: true, quizDone: false });
     await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 0 }); // any score counts as taken
     t = (await a.get(`/api/bites/track/${topic.id}`)).body;
-    expect(t.toolkit).toMatchObject({ done: true, quizDone: true });
+    expect(t.toolkit).toMatchObject({ done: false, quizDone: true, scenarioDone: false, quizCorrect: 0, quizTotal: 9 });
+    expect((await a.post('/api/practice/next').send({ topicId: topic.id })).body.error).toMatch(/Answer the scenario first/);
+    await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would listen first and then agree the next step together.' });
+    t = (await a.get(`/api/bites/track/${topic.id}`)).body;
+    expect(t.toolkit).toMatchObject({ done: true, scenarioDone: true });
     expect((await a.post('/api/practice/next').send({ topicId: topic.id })).status).toBe(200);
     expect(ai.mock.calls.filter((c) => c[0].system.includes('practice designer'))).toHaveLength(1); // no AI spent while locked
   });

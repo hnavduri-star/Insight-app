@@ -130,7 +130,8 @@ export function TopicSheet({ id, onClose, onChanged }: { id: string | null; onCl
 
 /** The single best next step on this topic's track. */
 function NextStep({ t, track, go }: { t: TopicDetail; track: Track | null; go: (path: string) => void }) {
-  if (track?.toolkit.toolsDone && !track.toolkit.quizDone) return <button className="btn-primary" onClick={() => go(`/bite/${t.id}?start=quiz`)}>Take the quiz to finish Foundations</button>;
+  if (track?.toolkit.toolsDone && !track.toolkit.quizDone) return <button className="btn-primary" onClick={() => go(`/bite/${t.id}?start=quiz`)}>Take the quiz</button>;
+  if (track?.toolkit.quizDone && !track.toolkit.scenarioDone) return <button className="btn-primary" onClick={() => go(`/bite/${t.id}?start=scenario`)}>Answer the scenario to finish Foundations</button>;
   if (!track || !track.toolkit.done) return <button className="btn-primary" onClick={() => go(`/bite/${t.id}`)}>Open your toolkit</button>;
   if (track.roleplay.unlocked && track.roleplay.done === 0) return <button className="btn-primary" onClick={() => go(`/roleplay/${t.id}`)}>Try a real conversation</button>;
   if (track.mastery.unlocked && !track.mastery.done && track.reps.done >= track.reps.goal) {
@@ -144,12 +145,13 @@ function TrackLevels({ t, track, tint, go }: { t: TopicDetail; track: Track | nu
   const unlocked = t.unlocked;
   const levels = [
     {
-      n: 1, title: 'Foundations', sub: '5–8 tools with theory, what to say and case studies, a 5-question quiz and a coached scenario',
+      n: 1, title: 'Foundations', sub: '5–8 tools, each with a "what would you do?" question, then 3 mixed questions and a coached scenario',
       status: track?.toolkit.done ? 'done' : 'open', progress: track?.toolkit.done ? 1 : 0,
-      note: track?.toolkit.done ? `Quiz ${track.toolkit.quizCorrect}/5${track.toolkit.bestScenario != null ? ` · scenario ${track.toolkit.bestScenario}/100` : ''}`
-        : track?.toolkit.toolsDone ? 'Tools ✓ · take the quiz to finish' : 'Go through the tools, then the quiz · about 15 minutes',
-      action: unlocked ? (track?.toolkit.toolsDone && !track.toolkit.quizDone
-        ? { label: 'Take quiz', path: `/bite/${t.id}?start=quiz` }
+      note: track?.toolkit.done ? `${track.toolkit.quizCorrect}/${track.toolkit.quizTotal} questions right${track.toolkit.bestScenario != null ? ` · scenario ${track.toolkit.bestScenario}/100` : ''}`
+        : track?.toolkit.quizDone ? 'Tools ✓ · quiz ✓ · answer the scenario to finish'
+        : track?.toolkit.toolsDone ? 'Tools ✓ · next: the quiz, then the scenario' : 'Tools → quiz → scenario, each unlocks the next · about 15 minutes',
+      action: unlocked ? (track?.toolkit.toolsDone && !track.toolkit.quizDone ? { label: 'Take quiz', path: `/bite/${t.id}?start=quiz` }
+        : track?.toolkit.quizDone && !track.toolkit.scenarioDone ? { label: 'Scenario', path: `/bite/${t.id}?start=scenario` }
         : { label: track?.toolkit.done ? 'Review' : 'Start', path: `/bite/${t.id}` }) : null,
     },
     {

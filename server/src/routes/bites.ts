@@ -19,7 +19,7 @@ export const biteRoutes = Router();
 biteRoutes.use(requireAuth);
 
 /** AI calls per user per rolling 24 hours. */
-export const LIMITS: Record<string, number> = { bite: 20, grade: 40, reps: 15, situation: 10, roleplay: 8, roleplay_turn: 80, roleplay_hint: 30, roleplay_debrief: 12 };
+export const LIMITS: Record<string, number> = { bite: 20, grade: 40, reps: 15, situation: 10, roleplay: 8, roleplay_turn: 80, roleplay_hint: 30, roleplay_debrief: 12, finder: 10 };
 export const REPS_GOAL = 10;          // practice reps that complete level 2
 export const MASTERY_AFTER_REPS = 5;  // reps needed (with the toolkit done) to unlock mastery
 export const ROLEPLAY_AFTER_REPS = 3; // reps needed (with the toolkit done) to unlock level 3 role-play
@@ -58,15 +58,17 @@ export async function learnerKey(userId: string, topicId: string, level: Level =
   return { profile: p, goals, key, where };
 }
 
-/** The learner's ready toolkit (level 1) for a topic, or null if it hasn't been built yet. */
-/** Practice needs Foundations done: every tool viewed and the quiz finished. Enforced on the server. */
+/** Practice needs Foundations done: every tool and its question, the quiz, then the scenario. Enforced on the server. */
 export async function requireFoundations(userId: string, topicId: string) {
   const t = await trackFor(userId, topicId);
   if (t.toolkit.done) return;
   throw new HttpError(409, !t.toolkit.toolsDone
-    ? 'Practice opens after you finish Foundations. Go through all the tools first, then take the quiz.'
-    : 'Practice opens after you finish Foundations. Take the 5-question quiz first.', 'foundations_first');
+    ? 'Practice opens after you finish Foundations. Go through each tool and its question first.'
+    : !t.toolkit.quizDone ? 'Practice opens after you finish Foundations. Take the quiz first.'
+    : 'Practice opens after you finish Foundations. Answer the scenario first.', 'foundations_first');
 }
+
+/** The learner's ready toolkit (level 1) for a topic, or null if it hasn't been built yet. */
 
 export async function readyToolkit(userId: string, topicId: string) {
   const { where } = await learnerKey(userId, topicId, 'toolkit');
@@ -79,15 +81,17 @@ export async function trackFor(userId: string, topicId: string) {
   const [tp] = await db.select().from(topicProgress).where(and(eq(topicProgress.userId, userId), eq(topicProgress.topicId, topicId)));
   const [r] = await db.select({ done: count(), avg: avg(practiceReps.score) }).from(practiceReps)
     .where(and(eq(practiceReps.userId, userId), eq(practiceReps.topicId, topicId), isNotNull(practiceReps.answeredAt)));
-  // Foundations are complete only when the learner has gone through every tool AND finished the quiz.
+  // Foundations are progressive: every tool (each with its question), then the quiz, then the coached scenario.
   const toolsDone = !!tp?.cardsCompletedAt;
   const quizDone = !!tp?.quizCompletedAt;
-  const toolkitDone = toolsDone && quizDone;
+  const scenarioDone = tp?.bestScenarioScore != null;
   const repsDone = Number(r?.done ?? 0);
+  // Learners who started reps before the scenario became required keep their access.
+  const toolkitDone = toolsDone && quizDone && (scenarioDone || repsDone > 0);
   const [rp] = await db.select({ n: count(), best: max(roleplaySessions.score) }).from(roleplaySessions)
     .where(and(eq(roleplaySessions.userId, userId), eq(roleplaySessions.topicId, topicId), eq(roleplaySessions.status, 'debriefed')));
   return {
-    toolkit: { done: toolkitDone, toolsDone, quizDone, quizCorrect: tp?.quizCorrect ?? 0, bestScenario: tp?.bestScenarioScore ?? null },
+    toolkit: { done: toolkitDone, toolsDone, quizDone, scenarioDone: scenarioDone || toolkitDone, quizCorrect: tp?.quizCorrect ?? 0, quizTotal: tp?.quizTotal ?? 5, bestScenario: tp?.bestScenarioScore ?? null },
     reps: { done: repsDone, goal: REPS_GOAL, avgScore: r?.avg == null ? null : Math.round(Number(r.avg)) },
     roleplay: {
       available: true, unlocked: toolkitDone && repsDone >= ROLEPLAY_AFTER_REPS, done: Number(rp?.n ?? 0), best: rp?.best ?? null,
@@ -216,10 +220,21 @@ async function lessonFor(userId: string, lessonId: string) {
 biteRoutes.post('/:id/progress', async (req, res) => {
   const body = z.discriminatedUnion('stage', [
     z.object({ stage: z.literal('cards') }),
-    z.object({ stage: z.literal('quiz'), correct: z.number().int().min(0).max(5) }),
+    // correct: right answers across the per-tool questions and the mixed quiz.
+    z.object({ stage: z.literal('quiz'), correct: z.number().int().min(0).max(20) }),
   ]).parse(req.body);
   const l = await lessonFor(req.userId!, req.params.id);
   const mastery = l.ratingBand === 'mastery';
+  const bite = l.contentJson as Bite;
+  const total = bite.tools.length + bite.quiz.length;
+  if (body.stage === 'quiz') {
+    if (body.correct > total) throw new HttpError(400, `correct: at most ${total}`, 'invalid_input');
+    if (!mastery) {
+      const [tp] = await db.select({ cards: topicProgress.cardsCompletedAt }).from(topicProgress)
+        .where(and(eq(topicProgress.userId, req.userId!), eq(topicProgress.topicId, l.topicId)));
+      if (!tp?.cards) throw new HttpError(409, 'Go through each tool and its question before the quiz.', 'tools_first');
+    }
+  }
   if (body.stage === 'cards') {
     const col = mastery ? { masteryCompletedAt: new Date() } : { cardsCompletedAt: new Date() };
     await db.insert(topicProgress).values({ userId: req.userId!, topicId: l.topicId, ...col })
@@ -227,15 +242,16 @@ biteRoutes.post('/:id/progress', async (req, res) => {
         set: mastery ? { masteryCompletedAt: sql`coalesce(${topicProgress.masteryCompletedAt}, now())` }
           : { cardsCompletedAt: sql`coalesce(${topicProgress.cardsCompletedAt}, now())` } });
   } else if (!mastery) {
-    await db.insert(topicProgress).values({ userId: req.userId!, topicId: l.topicId, quizCorrect: body.correct, quizCompletedAt: new Date() })
+    await db.insert(topicProgress).values({ userId: req.userId!, topicId: l.topicId, quizCorrect: body.correct, quizTotal: total, quizCompletedAt: new Date() })
       .onConflictDoUpdate({ target: [topicProgress.userId, topicProgress.topicId], set: {
-        quizCorrect: sql`greatest(${topicProgress.quizCorrect}, ${body.correct})`,
+        quizCorrect: sql`greatest(${topicProgress.quizCorrect}, ${body.correct})`, quizTotal: total,
         quizCompletedAt: sql`coalesce(${topicProgress.quizCompletedAt}, now())`,
       } });
   }
-  if (body.stage === 'quiz') await seedReview(req.userId!, l.topicId, l.id, (l.contentJson as Bite).quiz);
+  // Every question (each tool's check and the mixed quiz) joins spaced review.
+  if (body.stage === 'quiz') await seedReview(req.userId!, l.topicId, l.id, [...bite.tools.map((t) => t.check), ...bite.quiz].filter(Boolean));
   await recordActivity(req.userId!, body.stage === 'cards' ? 'tools' : 'quiz', {
-    topicId: l.topicId, score: body.stage === 'quiz' ? body.correct * 20 : null, xp: body.stage === 'cards' ? 20 : 10 + body.correct * 2,
+    topicId: l.topicId, score: body.stage === 'quiz' ? Math.round((body.correct / total) * 100) : null, xp: body.stage === 'cards' ? 20 : 10 + body.correct * 2,
   });
   res.json({ ok: true });
 });
@@ -256,6 +272,12 @@ biteRoutes.post('/:id/scenario', async (req, res) => {
   const { response } = responseInput.parse(req.body);
   const userId = req.userId!;
   const l = await lessonFor(userId, req.params.id);
+  if (l.ratingBand !== 'mastery') {
+    // Progressive: the scenario unlocks after the tools and the quiz.
+    const [tp] = await db.select({ quiz: topicProgress.quizCompletedAt }).from(topicProgress)
+      .where(and(eq(topicProgress.userId, userId), eq(topicProgress.topicId, l.topicId)));
+    if (!tp?.quiz) throw new HttpError(409, 'The scenario opens after you finish the tools and the quiz.', 'quiz_first');
+  }
   await checkLimit(userId, 'grade');
   const bite = l.contentJson as Bite;
   const grade = await gradeScenario(userId, { framework: bite.framework, tools: bite.tools.map((t) => ({ name: t.name, idea: t.idea })), scenario: bite.scenario, response });

@@ -35,13 +35,13 @@ const app = createApp();
 
 const toolkit = () => ({
   title: 'Toolkit', framework: 'F',
-  tools: Array.from({ length: 6 }, (_, i) => ({ name: `Tool ${i}`, source: 'Book', idea: `Idea ${i}`, steps: ['a', 'b'], say: ['x'], caseStudy: { situation: 's', action: 'a', result: 'r' }, tryThis: 't' })),
-  quiz: Array.from({ length: 5 }, (_, i) => ({ q: `Q${i}`, options: ['a', 'b', 'c', 'd'], answer: 0, why: 'w' })), scenario: 'S',
+  tools: Array.from({ length: 6 }, (_, i) => ({ name: `Tool ${i}`, source: 'Book', idea: `Idea ${i}`, steps: ['a', 'b'], say: ['x'], caseStudy: { situation: 's', action: 'a', result: 'r' }, tryThis: 't', check: { q: `Check ${i}`, options: ['a', 'b', 'c', 'd'], answer: 2, why: 'w' } })),
+  quiz: Array.from({ length: 3 }, (_, i) => ({ q: `Q${i}`, options: ['a', 'b', 'c', 'd'], answer: 0, why: 'w' })), scenario: 'S',
 });
 const setup = () => ({ title: 'Pay talk', characterName: 'Raj', characterRole: 'Boss', situation: 's', yourGoal: 'g', hiddenObjective: 'h', skills: ['Tool 1'], opening: 'Hi' });
 
 beforeEach(async () => {
-  await pool.query('delete from users; delete from cached_lessons; delete from ai_calls; delete from app_settings');
+  await pool.query('delete from users; delete from cached_lessons; delete from ai_calls; delete from app_settings where key = \'vapid\'');
   pushed.length = 0;
   ai.mockReset();
   ai.mockImplementation(async (p: any) => {
@@ -72,7 +72,8 @@ async function learner(email = 'g@example.com', goals = ['Get promoted']) {
 async function throughRoleplay(a: any, topicId: string, personId?: string) {
   const { lessonId } = (await a.post('/api/bites').send({ topicId })).body;
   await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
-  await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 5 });
+  await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 9 });
+  await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would acknowledge their concern first, then propose two options and agree a next step.' });
   for (let i = 0; i < 3; i++) {
     const { rep } = (await a.post('/api/practice/next').send({ topicId })).body;
     await a.post(`/api/practice/${rep.id}/answer`).send({ response: 'I would listen first and then propose a clear next step together.' });
@@ -128,6 +129,8 @@ describe('home and first value', () => {
     h = (await a.get('/api/home')).body;
     expect(h.next).toMatchObject({ started: true, label: 'Take the quiz', path: `/bite/${topic.id}?start=quiz` });
     await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 4 });
+    expect((await a.get('/api/home')).body.next).toMatchObject({ label: 'Answer the scenario', path: `/bite/${topic.id}?start=scenario` });
+    await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would listen first and then agree the next step together.' });
     expect((await a.get('/api/home')).body.next.label).toBe('Practise · rep 1');
   });
 

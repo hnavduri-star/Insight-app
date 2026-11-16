@@ -11,8 +11,8 @@ import { loadCatalog } from './catalog.js';
 const args = process.argv.slice(2);
 const file = args.find((a) => !a.startsWith('--'));
 try {
-  const r = await seed(db, { catalog: await loadCatalog(file), prune: args.includes('--prune') });
-  console.log(`Loaded ${r.categories} headings, ${r.topics} topics, ${r.books} topic-book links`);
+  const r = await seed(db, { catalog: await loadCatalog(file), prune: args.includes('--prune'), file });
+  console.log(`Loaded ${r.categories} headings, ${r.topics} topics, ${r.books} topic-book links${r.finder ? `, ${r.finder} Skill Finder questions` : ''}`);
   if (r.removed.length) console.log(`Removed (no longer in file): ${r.removed.join(', ')}`);
   if (r.kept.length) console.log(`Kept because learners have history on them (use --prune to remove): ${r.kept.join(', ')}`);
 } catch (e) {

@@ -71,6 +71,20 @@
       "when": 1794814761886,
       "tag": "0009_friends",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794819590351,
+      "tag": "0010_quiz_total",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794819925509,
+      "tag": "0011_finder",
+      "breakpoints": true
     }
   ]
 }
