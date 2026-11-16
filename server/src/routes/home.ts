@@ -6,6 +6,7 @@ import { levelFor } from './progress.js';
 import { shouldAskFeedback } from './admin.js';
 import { leagueFor } from './friends.js';
 import { latestPicks } from './finder.js';
+import { coachingSummaryFor } from './coaching.js';
 import { requireAuth } from '../lib/auth.js';
 import { accessFor } from '../lib/access.js';
 import { trackFor } from './bites.js';
@@ -84,6 +85,7 @@ homeRoutes.get('/', async (req, res) => {
   res.json({
     level: levelFor(up?.xp ?? 0),
     askFeedback: await shouldAskFeedback(userId),
+    coaching: await coachingSummaryFor(userId),
     finder: await latestPicks(userId).then((r) => (r ? { at: r.createdAt, topics: r.topics } : null)),
     league: await leagueFor(userId).then((l) => ({ friends: l.friends, daysLeft: l.daysLeft, top: l.league.slice(0, 3), me: l.league.find((r) => r.me)! })),
     next,

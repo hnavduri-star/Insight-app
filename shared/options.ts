@@ -53,3 +53,11 @@ export const TRAITS = [
 ] as const;
 
 export const MAX_PEOPLE = 20;
+
+/** Attributes a coachee can choose to develop with their coach (or write their own). */
+export const COACHING_ATTRIBUTES = [
+  'Confidence', 'Executive presence', 'Influence', 'Assertiveness', 'Clear communication', 'Listening',
+  'Decision-making', 'Strategic thinking', 'Delegation', 'Accountability', 'Resilience', 'Emotional regulation',
+  'Building relationships', 'Leading change', 'Work-life balance', 'Self-awareness',
+] as const;
+export const MAX_COACHING_ATTRIBUTES = 3;

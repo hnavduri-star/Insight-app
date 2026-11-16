@@ -22,6 +22,7 @@ import { reminderRoutes } from './routes/reminders.js';
 import { friendRoutes } from './routes/friends.js';
 import { finderRoutes } from './routes/finder.js';
 import { cpdRoutes, verifyRoutes } from './routes/cpd.js';
+import { coachingRoutes } from './routes/coaching.js';
 import { aiEnabled, findApiKey } from './lib/ai.js';
 import { errorHandler, HttpError } from './lib/errors.js';
 import { PERSONAS, INDUSTRIES, GOALS, DAILY_MINUTES, COACHES, RELATIONSHIPS, TRAITS } from '../../shared/options.js';
@@ -69,6 +70,7 @@ export function createApp() {
   app.use('/api/friends', friendRoutes);
   app.use('/api/finder', finderRoutes);
   app.use('/api/cpd', cpdRoutes);
+  app.use('/api/coaching', coachingRoutes);
   app.use('/api/verify', verifyRoutes);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found')));
 

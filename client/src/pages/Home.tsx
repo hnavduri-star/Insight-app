@@ -18,6 +18,7 @@ function greeting() {
 
 type HomeData = {
   askFeedback: boolean;
+  coaching: { attributes: string[]; openCommitments: { id: string; action: string; when: string | null }[]; active: { id: string; attribute: string } | null };
   finder: { at: string; topics: { id: string; name: string; category: string; reason: string }[] } | null;
   league: { friends: number; daysLeft: number; top: LeagueRow[]; me: LeagueRow };
   level: { n: number; name: string; xp: number };
@@ -73,6 +74,7 @@ export default function Home() {
       <FeedbackSheet open={fb} onClose={() => setFb(false)} onSent={() => setFbDone(true)} />
       <CheckinCard />
       <DailyCard />
+      {home && <CoachingCard c={home.coaching} />}
       {home && <SkillsCard finder={home.finder} onOpenTopic={setTopicId} />}
       {home && <LeagueCard league={home.league} />}
 
@@ -227,6 +229,25 @@ function CheckinCard() {
       </>}
       {step === 'done' && <p className="text-sm font-semibold">{outcome === 'not_yet' ? "No problem. I'll ask again in a couple of days." : outcome === 'well' ? '🎉 Real-world win logged. +25 XP' : 'Logged. Every try builds the skill. +25 XP'}</p>}
     </section>
+  );
+}
+
+/** Coaching: an open session, the coachee's own commitments, or an invitation. */
+function CoachingCard({ c }: { c: HomeData['coaching'] }) {
+  const { me } = useAuth();
+  const name = COACHES.find((x) => x.value === me?.coach)?.name ?? 'your coach';
+  const to = c.active ? `/coach/session/${c.active.id}` : '/coach';
+  return (
+    <Link to={to} className="card mt-3 flex items-center gap-3 p-4 transition active:scale-[0.99]" style={{ boxShadow: 'inset 3px 0 0 #3ee6cf' }}>
+      {me?.coach ? <CoachAvatar coach={me.coach} size={44} /> : <span className="text-2xl" aria-hidden>💬</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block font-bold">{c.active ? `Continue coaching · ${c.active.attribute}` : c.attributes.length ? `Coaching with ${name}` : `Get coached by ${name}`}</span>
+        <span className="block truncate text-sm text-muted">
+          {c.openCommitments.length ? `You committed: ${c.openCommitments[0].action}` : c.attributes.length ? c.attributes.join(' · ') : 'You lead, your coach asks the questions'}
+        </span>
+      </span>
+      <Chevron />
+    </Link>
   );
 }
 

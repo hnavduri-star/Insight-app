@@ -19,7 +19,7 @@ export const biteRoutes = Router();
 biteRoutes.use(requireAuth);
 
 /** AI calls per user per rolling 24 hours. */
-export const LIMITS: Record<string, number> = { bite: 20, grade: 40, reps: 15, situation: 10, roleplay: 8, roleplay_turn: 80, roleplay_hint: 30, roleplay_debrief: 12, finder: 10, tool_practice: 80 };
+export const LIMITS: Record<string, number> = { bite: 20, grade: 40, reps: 15, situation: 10, roleplay: 8, roleplay_turn: 80, roleplay_hint: 30, roleplay_debrief: 12, finder: 10, tool_practice: 80, coach_session: 8, coach_turn: 150, coach_summary: 10 };
 export const REPS_GOAL = 10;          // practice reps that complete level 2
 export const MASTERY_AFTER_REPS = 5;  // reps needed (with the toolkit done) to unlock mastery
 export const ROLEPLAY_AFTER_REPS = 3; // reps needed (with the toolkit done) to unlock level 3 role-play

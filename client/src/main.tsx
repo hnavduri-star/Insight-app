@@ -27,6 +27,7 @@ import Finder from './pages/Finder';
 import CpdLog, { Certificate, Verify } from './pages/Cpd';
 import Daily, { Week } from './pages/Daily';
 import Welcome from './pages/Welcome';
+import Coaching, { CoachingSession } from './pages/Coaching';
 
 /** Signed-out only. */
 function Public() {
@@ -114,6 +115,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/friends" element={<Friends />} />
             <Route path="/finder" element={<Finder />} />
             <Route path="/cpd" element={<CpdLog />} />
+            <Route path="/coach/session/:id" element={<CoachingSession />} />
             <Route path="/certificate/:id" element={<Certificate />} />
             <Route path="/week" element={<Week />} />
             <Route path="/situation" element={<NewSituation />} />
@@ -121,6 +123,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route element={<WithNav />}>
               <Route path="/skills/:id" element={<Skills />} />
               <Route path="/" element={<Home />} />
+              <Route path="/coach" element={<Coaching />} />
               <Route path="/people" element={<People />} />
               <Route path="/profile" element={<Profile />} />
             </Route>

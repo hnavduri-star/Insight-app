@@ -522,6 +522,38 @@ export const cpdRecords = pgTable('cpd_records', {
   completedAt: createdAt(),
 }, (t) => [uniqueIndex('cpd_records_code_unique').on(t.code), uniqueIndex('cpd_records_user_lesson_unique').on(t.userId, t.lessonId), index('cpd_records_user_idx').on(t.userId)]);
 
+// ---------- Coaching (coachee-led sessions on chosen attributes) ----------
+export const coachingPlans = pgTable('coaching_plans', {
+  userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  attributesJson: jsonb('attributes_json').notNull().default([]), // [{ name, why }]
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+export const coachingSessions = pgTable('coaching_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  attribute: text('attribute').notNull(),
+  status: text('status').notNull().default('active'), // active | closed
+  stage: text('stage').notNull().default('connect'), // connect | goal | reality | options | will | close
+  transcriptJson: jsonb('transcript_json').notNull().default([]), // [{ who: coach | coachee, text }]
+  summaryJson: jsonb('summary_json'),
+  createdAt: createdAt(),
+  closedAt: ts('closed_at'),
+}, (t) => [index('coaching_sessions_user_idx').on(t.userId, t.createdAt)]);
+
+export const coachingCommitments = pgTable('coaching_commitments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  sessionId: uuid('session_id').references(() => coachingSessions.id, { onDelete: 'set null' }),
+  attribute: text('attribute').notNull(),
+  action: text('action').notNull(),
+  when: text('when'),
+  status: text('status').notNull().default('open'), // open | done | dropped
+  note: text('note'),
+  createdAt: createdAt(),
+  reviewedAt: ts('reviewed_at'),
+}, (t) => [index('coaching_commitments_user_idx').on(t.userId, t.status)]);
+
 // ---------- Find my skills (diagnostic) ----------
 export const finderResults = pgTable('finder_results', {
   id: uuid('id').primaryKey().defaultRandom(),

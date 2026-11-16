@@ -113,6 +113,11 @@ Slow AI work runs as background jobs (`server/src/lib/jobs.ts`): a request waits
 - **Streaks** (`server/src/lib/activity.ts`): every learning action is logged with the learner's local date (their time zone). The first action of a day counts. Active yesterday → +1. One missed day with a freeze → the freeze is spent and the streak continues. Otherwise it restarts at 1. Learners start with 1 freeze and earn one at every 7-day milestone.
 - **Your week** (`/week`, `GET /api/daily/week`): days active over the last 7 local days, counts by activity, average rep and role-play scores, review accuracy, topics worked on, and a rule-based focus for next week.
 
+## Welcome page and coaching
+
+- **Welcome page** (`/welcome`): what signed-out visitors see first. Big type telling the Insight story, and one button, "Log in or register", that leads to the login page (with a Log in | Register switch).
+- **Coaching** (`/coach`, `/api/coaching`, a Coach tab in the bottom navigation): the coachee chooses up to 3 attributes to develop (from a list or their own words) and why each matters. In each session the coach (Maya or Alex) asks one open question at a time, reflects back the coachee's words, follows a light GROW flow (goal, reality, options, way forward) and **gives no advice unless asked**. If asked, it first asks what they think, then offers 2–3 options and hands the choice back. Closing a session writes notes in the coachee's words: what they explored, what they realised, the commitments they made, and a question for next time. The next session on that attribute opens by asking how the commitments went. Coachees mark commitments done or let them go. Sessions are private; coachee text is wrapped in tags and treated as data; signs of real distress pause the session with a caring note. Optional coach voice and spoken replies.
+
 ## CPD modules (one hour each)
 
 Each Foundations toolkit (and each Mastery toolkit) is a **one-hour CPD module**, learned tool by tool:
