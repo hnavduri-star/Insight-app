@@ -87,7 +87,7 @@ dailyRoutes.post('/complete', async (req, res) => {
   res.json({ ...(await streakView(userId)), usedFreeze: !!r?.usedFreeze, earnedFreeze: !!r?.earnedFreeze });
 });
 
-const KIND_LABEL: Record<string, string> = { tools: 'Toolkits', quiz: 'Quizzes', scenario: 'Scenarios', rep: 'Practice reps', roleplay: 'Role-plays', review: 'Reviews', situation: 'Real situations', daily: 'Daily sessions', win: 'Real-world wins' };
+const KIND_LABEL: Record<string, string> = { tools: 'Toolkits', quiz: 'Quizzes', scenario: 'Scenarios', rep: 'Practice reps', roleplay: 'Role-plays', review: 'Reviews', situation: 'Real situations', daily: 'Daily sessions', win: 'Real-world wins', cpd: 'CPD modules completed' };
 
 /** The last 7 local days: activity, scores and a focus for next week. */
 dailyRoutes.get('/week', async (req, res) => {

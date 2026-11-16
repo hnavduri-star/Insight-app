@@ -12,10 +12,84 @@ import { COACHES, personaLabel } from '../options';
 
 type Question = { q: string; options: string[]; answer: number; why: string };
 type Tool = {
-  name: string; source: string; idea: string; steps: string[]; say: string[];
-  caseStudy: { situation: string; action: string; result: string }; tryThis: string; check: Question;
+  name: string; source: string; idea: string; why: string; whenToUse: string; pitfalls: string[]; steps: string[]; say: string[];
+  caseStudy: { situation: string; action: string; result: string }; tryThis: string; checks: Question[]; practice: string;
 };
-type BiteData = { title: string; framework: string; scenario: string; tools: Tool[]; quiz: Question[] };
+type BiteData = { title: string; framework: string; outcomes: string[]; scenario: string; tools: Tool[]; quiz: Question[] };
+type ToolFeedback = { score: number; feedback: string; tryInstead: string };
+type ToolState = { checks: Record<string, number>; response: string | null; feedback: ToolFeedback | null; score: number | null; completed: boolean };
+type ModuleState = { tools: ToolState[]; seconds: number; quizDone: boolean; scenarioScore: number | null; cpdId: string | null };
+type Cert = { id: string; code: string; activeMinutes: number; plannedMinutes: number };
+
+/** After a tool's theory: two questions (understand, then apply), then a short written practice with coaching. */
+function ToolCheck({ tool, index, state, lessonId, tint, coach, onState }: {
+  tool: Tool; index: number; state: ToolState | undefined; lessonId: string; tint: string; coach: 'maya' | 'alex'; onState: (s: ToolState[]) => void;
+}) {
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [unavailable, setUnavailable] = useState(false);
+  const checks = state?.checks ?? {};
+  const answered = (k: number) => checks[k] !== undefined;
+  const answer = async (k: number, picked: number) => {
+    if (answered(k)) return;
+    try { onState((await api<{ tools: ToolState[] }>(`/bites/${lessonId}/tool/${index}/check`, { body: { q: k, picked } })).tools); }
+    catch (e) { setErr((e as Error).message); }
+  };
+  const submit = async () => {
+    setBusy(true); setErr('');
+    try {
+      const r = await api<{ tools: ToolState[]; feedbackUnavailable?: boolean }>(`/bites/${lessonId}/tool/${index}/practice`, { body: { response: text } });
+      setUnavailable(!!r.feedbackUnavailable); onState(r.tools);
+    } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
+  };
+  const box = { borderColor: `color-mix(in oklab, ${tint} 45%, transparent)`, background: `color-mix(in oklab, ${tint} 8%, transparent)` };
+  return (
+    <div className="mt-6 space-y-4">
+      {tool.checks.map((q, k) => (k === 0 || answered(k - 1)) && (
+        <motion.section key={k} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-[22px] border p-4" style={box} aria-label={k === 0 ? 'Check your understanding' : 'What would you do?'}>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: tint }}>{k === 0 ? 'Check your understanding' : 'Your turn · what would you do?'} · {k + 1} of {tool.checks.length}</p>
+          <p className="mt-1.5 text-[17px] font-bold leading-snug">{q.q}</p>
+          <div className="mt-3"><Choices q={q} picked={answered(k) ? checks[k] : null} coach={coach} tint={tint} onPick={(p) => answer(k, p)} /></div>
+        </motion.section>
+      ))}
+      {tool.checks.every((_, k) => answered(k)) && (
+        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-[22px] border p-4" style={box} aria-label="Apply it">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: tint }}>Apply it · write it</p>
+          <p className="mt-1.5 text-[16px] font-semibold leading-snug">{tool.practice}</p>
+          {state?.completed ? (
+            <div className="mt-3 space-y-2.5">
+              <p className="rounded-2xl rounded-br-md bg-white/[0.06] px-4 py-3 text-[15px] leading-relaxed">{state.response}</p>
+              {state.feedback ? (
+                <>
+                  <div className="flex items-start gap-3">
+                    <CoachAvatar coach={coach} size={36} />
+                    <p className="card px-4 py-3 text-sm leading-relaxed"><span className="font-bold" style={{ color: tint }}>{state.feedback.score}/100 · </span>{state.feedback.feedback}</p>
+                  </div>
+                  <div className="rounded-2xl bg-white p-3.5 text-[#0b1640]">
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.14em]">A stronger version</p>
+                    <p className="mt-1 text-[15px] font-semibold leading-snug">{quoted(state.feedback.tryInstead)}</p>
+                  </div>
+                </>
+              ) : <p className="text-sm text-muted">{unavailable ? 'Saved. Coaching is busy right now, but this tool is complete.' : 'Saved.'}</p>}
+            </div>
+          ) : (
+            <>
+              <label htmlFor={`practice-${index}`} className="sr-only">Your answer</label>
+              <textarea id={`practice-${index}`} rows={4} value={text} onChange={(e) => setText(e.target.value.slice(0, 800))}
+                placeholder="Write what you would say, in 2 or 3 sentences…" className="field mt-3 py-3 leading-relaxed" />
+              <div className="mt-1 flex justify-between text-xs text-muted"><span>Sent to our AI provider for coaching.</span><span>{text.length}/800</span></div>
+              <VoiceRow onText={(t) => setText((p) => appendSpoken(p, t, 800))} />
+              {err && <div className="mt-2"><Alert>{err}</Alert></div>}
+              <button className="btn-primary mt-3" disabled={busy || text.trim().length < 15} onClick={submit}>{busy ? 'Your coach is reading…' : 'Get coaching'}</button>
+            </>
+          )}
+        </motion.section>
+      )}
+      {err && !tool.checks.every((_, k) => answered(k)) && <Alert>{err}</Alert>}
+    </div>
+  );
+}
 
 /** A multiple-choice question with instant feedback from the coach. */
 function Choices({ q, picked, onPick, coach, tint }: { q: Question; picked: number | null; onPick: (i: number) => void; coach: 'maya' | 'alex'; tint: string }) {
@@ -51,7 +125,7 @@ function Choices({ q, picked, onPick, coach, tint }: { q: Question; picked: numb
 }
 type Started = { lessonId: string; topic: { id: string; name: string; category: string }; bite: BiteData; cached: boolean };
 type Grade = { score: number; feedback: string; strength: string; improve: string; toolsUsed: string[]; modelAnswer: string };
-type Phase = 'loading' | 'error' | 'intro' | 'tools' | 'quiz' | 'scenario' | 'done';
+type Phase = 'loading' | 'error' | 'intro' | 'tools' | 'quiz' | 'scenario' | 'reflect' | 'done';
 
 /** Wraps a phrase in curly quotes, without doubling quotes the AI already added. */
 const quoted = (s: string) => `“${s.trim().replace(/^["“']+|["”']+$/g, '')}”`;
@@ -86,9 +160,17 @@ export default function Bite() {
   const [qi, setQi] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [correct, setCorrect] = useState(0);
-  const [checks, setChecks] = useState<Record<number, number>>({}); // tool index → option picked
-  const answeredCheck = (i: number) => checks[i] !== undefined;
-  const checkCorrect = Object.entries(checks).filter(([i, p]) => data?.bite.tools[Number(i)]?.check?.answer === p).length;
+  // Tool-by-tool progress is saved on the server, so a one-hour module can be finished over several sittings.
+  const [mod, setMod] = useState<ModuleState | null>(null);
+  const toolStates = mod?.tools ?? [];
+  const setToolStates = (tools: ToolState[]) => { if (tools.length) setMod((m) => (m ? { ...m, tools } : m)); };
+  const answeredCheck = (i: number) => !!toolStates[i]?.completed;
+  const checkCorrect = (data?.bite.tools ?? []).reduce((n, t, i) => n + (t.checks ?? []).filter((q, k) => toolStates[i]?.checks[k] === q.answer).length, 0);
+  const [cert, setCert] = useState<Cert | null>(null);
+  const [reflection, setReflection] = useState('');
+  const [applyPlan, setApplyPlan] = useState('');
+  const [reflectBusy, setReflectBusy] = useState(false);
+  const [reflectErr, setReflectErr] = useState('');
   const [answer, setAnswer] = useState('');
   const [grading, setGrading] = useState(false);
   const [grade, setGrade] = useState<Grade | null>(null);
@@ -113,7 +195,7 @@ export default function Bite() {
           // A brief network or hosting hiccup (no connection, 502/503/504) shouldn't end the wait:
           // the toolkit keeps building on the server, so just check again.
           const s = (e as ApiError).status;
-          if ((s === 0 || (s >= 502 && s <= 504)) && blips < 8 && Date.now() - began < 6 * 60_000) {
+          if ((s === 0 || (s >= 502 && s <= 504)) && blips < 8 && Date.now() - began < 10 * 60_000) {
             blips++;
             await new Promise((r) => setTimeout(r, 4000));
             continue;
@@ -121,12 +203,19 @@ export default function Bite() {
           throw e;
         }
         if ('status' in d) {
-          if (Date.now() - began > 6 * 60_000) throw new ApiError(504, 'This is taking longer than usual. Please try again in a minute.');
+          if (Date.now() - began > 10 * 60_000) throw new ApiError(504, 'This is taking longer than usual. Please try again in a minute.');
           await new Promise((r) => setTimeout(r, 3000));
           continue;
         }
         if (!alive.current) return;
-        setData(d); setPhase(startAt ?? 'intro');
+        const st = await api<ModuleState>(`/bites/${d.lessonId}/state`).catch(() => null);
+        if (!alive.current) return;
+        setData(d); setMod(st);
+        if (st?.cpdId) setCert({ id: st.cpdId, code: '', activeMinutes: 0, plannedMinutes: 60 });
+        const firstOpen = st ? st.tools.findIndex((t) => !t.completed) : 0;
+        setTi(Math.max(0, firstOpen));
+        // Resume: straight to the next unfinished step.
+        setPhase(startAt ?? (st && firstOpen === -1 && st.quizDone ? (st.scenarioScore == null ? 'scenario' : st.cpdId ? 'intro' : 'reflect') : 'intro'));
         return;
       }
     } catch (e) {
@@ -147,9 +236,32 @@ export default function Bite() {
   const bite = data?.bite;
   const nT = bite?.tools.length ?? 6;
   const nQ = bite?.quiz.length ?? 3;
-  const total = nT + nQ + 1;
-  const step = { loading: 0, error: 0, intro: 0, tools: 1 + ti, quiz: 1 + nT + qi, scenario: total, done: total }[phase];
+  const total = nT + nQ + 2;
+  const step = { loading: 0, error: 0, intro: 0, tools: 1 + ti, quiz: 1 + nT + qi, scenario: nT + nQ + 1, reflect: total, done: total }[phase];
   const close = () => nav(-1);
+
+  // CPD time: count active learning time (page visible and the learner interacted in the last 90 seconds).
+  useEffect(() => {
+    if (!data || phase === 'loading' || phase === 'error') return;
+    let last = Date.now();
+    const touch = () => { last = Date.now(); };
+    const evs = ['pointerdown', 'keydown', 'scroll', 'touchstart'] as const;
+    evs.forEach((e) => window.addEventListener(e, touch, { passive: true }));
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible' && Date.now() - last < 90_000) {
+        api<{ seconds: number }>(`/bites/${data.lessonId}/time`, { body: { seconds: 30 } }).then((r) => setMod((m) => (m ? { ...m, seconds: r.seconds } : m))).catch(() => {});
+      }
+    }, 30_000);
+    return () => { clearInterval(timer); evs.forEach((e) => window.removeEventListener(e, touch)); };
+  }, [data, phase === 'loading' || phase === 'error']); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const complete = async () => {
+    setReflectBusy(true); setReflectErr('');
+    try {
+      setCert(await api<Cert>('/cpd/complete', { body: { lessonId: data!.lessonId, reflection, applyPlan: applyPlan.trim() || undefined } }));
+      setPhase('done');
+    } catch (e) { setReflectErr((e as Error).message); } finally { setReflectBusy(false); }
+  };
 
   const goTool = (to: number) => {
     if (!bite) return;
@@ -175,7 +287,7 @@ export default function Bite() {
     if (qi + 1 >= nQ) {
       // Wait for the quiz result to be saved: it is what opens Practice for this topic.
       for (let attempt = 0; attempt < 3; attempt++) {
-        try { await api(`/bites/${data!.lessonId}/progress`, { body: { stage: 'quiz', correct: correct + checkCorrect } }); break; }
+        try { await api(`/bites/${data!.lessonId}/progress`, { body: { stage: 'quiz', correct } }); break; }
         catch { await new Promise((r) => setTimeout(r, 1500)); }
       }
       setPhase('scenario'); return;
@@ -236,22 +348,51 @@ export default function Bite() {
                 </div>
               </div>
             </div>
-            <p className="eyebrow mt-6">{nT} tools you'll learn</p>
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-bold">
+              <span className="rounded-full bg-accent/15 px-3 py-1.5 text-accent">🎓 1 CPD hour</span>
+              <span className="rounded-full bg-white/[0.07] px-3 py-1.5">About 60 minutes</span>
+              <span className="rounded-full bg-white/[0.07] px-3 py-1.5">Save and continue any time</span>
+            </div>
+            {bite.outcomes?.length > 0 && (
+              <section className="card mt-4 p-4">
+                <p className="eyebrow">By the end, you will be able to</p>
+                <ul className="mt-2 space-y-1.5">{bite.outcomes.map((o) => <li key={o} className="flex gap-2 text-[15px] leading-snug"><span style={{ color: tint }} aria-hidden>✓</span>{o}</li>)}</ul>
+              </section>
+            )}
+            <p className="eyebrow mt-6">{nT} tools, one at a time</p>
             <ol className="mt-2 space-y-2">
-              {bite.tools.map((t, i) => (
-                <li key={t.name} className="card flex items-center gap-3 px-4 py-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold text-white" style={{ background: tileBackground(tint) }}>{i + 1}</span>
-                  <span className="min-w-0"><span className="block font-bold leading-snug">{t.name}</span><span className="text-xs text-muted">{t.source}</span></span>
-                </li>
-              ))}
+              {bite.tools.map((t, i) => {
+                const done = toolStates[i]?.completed;
+                return (
+                  <li key={t.name} className="card flex items-center gap-3 px-4 py-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold text-white" style={{ background: done ? '#22c55e' : tileBackground(tint) }}>{done ? '✓' : i + 1}</span>
+                    <span className="min-w-0"><span className="block font-bold leading-snug">{t.name}</span><span className="text-xs text-muted">{t.source}</span></span>
+                  </li>
+                );
+              })}
             </ol>
-            <div className="mt-5 grid grid-cols-3 gap-2 text-center text-xs">
-              {[['Learn', `${nT} tools, each with a question`], ['Check', `${nQ} mixed questions`], ['Practise', 'a scenario with your coach']].map(([a, b]) => (
+            <div className="mt-5 grid grid-cols-2 gap-2 text-center text-xs">
+              {[['Learn', 'Theory, case study and what to say'], ['Check', '2 questions per tool'], ['Apply', 'Write it, get coaching'], ['Prove it', 'Mixed questions, a scenario and a reflection']].map(([a, b]) => (
                 <div key={a} className="surface rounded-2xl px-2 py-3"><span className="block text-sm font-bold" style={{ color: tint }}>{a}</span><span className="text-muted">{b}</span></div>
               ))}
             </div>
-            <p className="mt-3 text-center text-xs text-muted">An original synthesis written for you, not a book summary.</p>
-            <button className="btn-primary mt-4" onClick={() => { setTi(0); setDir(1); setPhase('tools'); }}>Start learning</button>
+            <p className="mt-3 text-center text-xs text-muted">An original synthesis written for you, not a book summary. Finish it to earn a CPD certificate.</p>
+            {(() => {
+              const next = toolStates.findIndex((t) => !t.completed);
+              const allDone = toolStates.length > 0 && next === -1;
+              const resumed = toolStates.some((t) => t.completed || Object.keys(t.checks).length);
+              return allDone ? (
+                <div className="mt-4 space-y-2">
+                  {cert && <button className="btn-primary" onClick={() => nav(`/certificate/${cert.id}`)}>View your CPD certificate</button>}
+                  {!mod?.quizDone && <button className={cert ? 'btn-ghost w-full' : 'btn-primary'} onClick={() => { setQi(0); setPicked(null); setPhase('quiz'); }}>Continue to the mixed questions</button>}
+                  <button className="btn-ghost w-full" onClick={() => { setTi(0); setDir(1); setPhase('tools'); }}>Review the tools</button>
+                </div>
+              ) : (
+                <button className="btn-primary mt-4" onClick={() => { setTi(Math.max(0, next)); setDir(1); setPhase('tools'); }}>
+                  {resumed ? `Continue with tool ${Math.max(0, next) + 1}` : 'Start learning'}
+                </button>
+              );
+            })()}
           </motion.section>
         )}
 
@@ -272,6 +413,22 @@ export default function Bite() {
                   <h2 className="relative mt-3 text-[26px] leading-tight text-white">{bite.tools[ti].name}</h2>
                   <p className="relative mt-3 text-[15.5px] leading-relaxed text-white/95">{bite.tools[ti].idea}</p>
                 </div>
+
+                {bite.tools[ti].why && (
+                  <Section label="Why it works" color={tint}>
+                    <p className="text-[15px] leading-relaxed text-ink/90">{bite.tools[ti].why}</p>
+                  </Section>
+                )}
+                {bite.tools[ti].whenToUse && (
+                  <Section label="When to use it" color={tint}>
+                    <p className="text-[15px] leading-relaxed text-ink/90">{bite.tools[ti].whenToUse}</p>
+                  </Section>
+                )}
+                {bite.tools[ti].pitfalls?.length > 0 && (
+                  <Section label="Watch out for" color={tint}>
+                    <ul className="space-y-1.5">{bite.tools[ti].pitfalls.map((p) => <li key={p} className="flex gap-2 text-[15px] leading-snug"><span className="text-error" aria-hidden>✕</span>{p}</li>)}</ul>
+                  </Section>
+                )}
 
                 <Section label="How to use it" color={tint}>
                   <ol className="space-y-2">
@@ -307,18 +464,8 @@ export default function Bite() {
                 </div>
               </motion.article>
             </AnimatePresence>
-            {/* The question sits outside the swipeable card, so tapping an answer can't start a swipe. */}
-            {bite.tools[ti].check && (
-              <motion.section key={`check-${ti}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className="mt-6 rounded-[22px] border p-4" style={{ borderColor: `color-mix(in oklab, ${tint} 45%, transparent)`, background: `color-mix(in oklab, ${tint} 8%, transparent)` }} aria-label="Your turn">
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.14em]" style={{ color: tint }}>Your turn · what would you do?</p>
-                <p className="mt-1.5 text-[17px] font-bold leading-snug">{bite.tools[ti].check.q}</p>
-                <div className="mt-3">
-                  <Choices q={bite.tools[ti].check} picked={checks[ti] ?? null} coach={coach} tint={tint}
-                    onPick={(p) => setChecks((c) => (c[ti] !== undefined ? c : { ...c, [ti]: p }))} />
-                </div>
-              </motion.section>
-            )}
+            {/* Questions and practice sit outside the swipeable card, so tapping an answer can't start a swipe. */}
+            <ToolCheck key={`check-${ti}`} tool={bite.tools[ti]} index={ti} state={toolStates[ti]} lessonId={data!.lessonId} tint={tint} coach={coach} onState={setToolStates} />
             <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted">
               Was this tool helpful?
               {[true, false].map((v) => (
@@ -332,7 +479,7 @@ export default function Bite() {
                 {bite.tools.map((_, i) => <span key={i} className="h-2 rounded-full transition-all" style={{ width: i === ti ? 18 : 7, background: i === ti ? tint : 'rgba(255,255,255,0.2)' }} />)}
               </div>
               <button className="btn-primary w-28" disabled={!answeredCheck(ti)} onClick={() => goTool(ti + 1)}
-                title={answeredCheck(ti) ? undefined : 'Answer the question to continue'}>{!answeredCheck(ti) ? 'Answer ↑' : ti === nT - 1 ? 'Quiz' : 'Next'}</button>
+                title={answeredCheck(ti) ? undefined : 'Answer both questions and the practice to continue'}>{!answeredCheck(ti) ? 'Finish ↑' : ti === nT - 1 ? 'Quiz' : 'Next tool'}</button>
             </div>
           </motion.section>
         )}
@@ -350,7 +497,7 @@ export default function Bite() {
         {phase === 'scenario' && bite && !grade && (
           <motion.section key="scenario" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="flex flex-1 flex-col">
             <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em]" style={{ color: tint }}>Scenario · practise with your coach</p>
-            {level === 'toolkit' && <p className="mt-1 text-xs text-muted">The last step of Foundations. Answer it to unlock practice reps.</p>}
+            <p className="mt-1 text-xs text-muted">{level === 'toolkit' ? 'Answer it to finish Foundations and unlock practice reps.' : 'Answer it, then reflect, to complete the module.'}</p>
             <div className="tile mt-2 p-5" style={{ background: tileBackground(tint) }}>
               <p className="relative text-[16px] font-semibold leading-relaxed text-white">{bite.scenario}</p>
             </div>
@@ -368,9 +515,7 @@ export default function Bite() {
             <VoiceRow onText={(t) => setAnswer((p) => appendSpoken(p, t, 1500))} />
             {gradeErr && <div className="mt-3"><Alert>{gradeErr}</Alert></div>}
             <button className="btn-primary mt-4" disabled={grading || answer.trim().length < 20} onClick={submit}>{grading ? `${coachName} is reading your answer…` : 'Get coaching'}</button>
-            {level === 'mastery'
-              ? <button className="mt-2 min-h-[44px] text-sm text-muted" onClick={() => setPhase('done')}>Skip for now</button>
-              : <button className="mt-2 min-h-[44px] text-sm text-muted" onClick={close}>Save and finish later</button>}
+            <button className="mt-2 min-h-[44px] text-sm text-muted" onClick={close}>Save and finish later</button>
           </motion.section>
         )}
 
@@ -401,18 +546,38 @@ export default function Bite() {
               </div>
             </div>
             <div className="mt-auto space-y-2 pt-6">
-              <button className="btn-primary" onClick={() => setPhase('done')}>Finish bite</button>
+              <button className="btn-primary" onClick={() => setPhase(cert ? 'done' : 'reflect')}>{cert ? 'Finish' : 'Last step: reflect'}</button>
               <button className="btn-ghost w-full" onClick={() => setGrade(null)}>Try again with a better answer</button>
             </div>
+          </motion.section>
+        )}
+
+        {phase === 'reflect' && bite && (
+          <motion.section key="reflect" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="flex flex-1 flex-col">
+            <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em]" style={{ color: tint }}>Reflection · last step</p>
+            <h1 className="mt-2 text-[24px] leading-snug">What will you take from this hour?</h1>
+            <p className="mt-1.5 text-sm text-muted">Reflection is part of CPD. It goes on your CPD record (only you can see it) and completes your certificate.</p>
+            <label htmlFor="reflection" className="label mt-5">What did you learn, and what will you do differently?</label>
+            <textarea id="reflection" rows={5} value={reflection} onChange={(e) => setReflection(e.target.value.slice(0, 1500))} className="field py-3 leading-relaxed"
+              placeholder="e.g. I tend to over-explain when challenged. I'll lead with the answer and keep detail for follow-up." />
+            <div className="mt-1 flex justify-between text-xs text-muted"><span>At least a couple of sentences.</span><span>{reflection.length}/1500</span></div>
+            <VoiceRow onText={(t) => setReflection((p) => appendSpoken(p, t, 1500))} />
+            <label htmlFor="apply-plan" className="label mt-4">Where will you use it first? (optional)</label>
+            <input id="apply-plan" className="field" value={applyPlan} onChange={(e) => setApplyPlan(e.target.value.slice(0, 400))} placeholder="e.g. Thursday's budget review with Raj" />
+            {reflectErr && <div className="mt-3"><Alert>{reflectErr}</Alert></div>}
+            <button className="btn-primary mt-auto" disabled={reflectBusy || reflection.trim().length < 40} onClick={complete}>{reflectBusy ? 'Saving…' : 'Complete and get my certificate'}</button>
           </motion.section>
         )}
 
         {phase === 'done' && bite && (
           <motion.section key="done" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-1 flex-col items-center text-center">
             <motion.div initial={{ scale: 0.6, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 200 }}
-              className="mt-8 flex h-20 w-20 items-center justify-center rounded-[26px] text-4xl" style={{ background: tileBackground(tint) }}>🎉</motion.div>
-            <h1 className="mt-4 text-[28px]">Bite complete</h1>
-            <p className="mt-2 max-w-[19rem] text-muted">{data!.topic.name}: {nT} tools learned{startAt ? '' : `, ${correct + checkCorrect} of ${nT + nQ} questions right`}{grade ? `, scenario ${grade.score}/100` : ''}.</p>
+              className="mt-8 flex h-20 w-20 items-center justify-center rounded-[26px] text-4xl" style={{ background: tileBackground(tint) }}>🎓</motion.div>
+            <h1 className="mt-4 text-[28px]">Module complete</h1>
+            <p className="mt-2 max-w-[19rem] text-muted">{data!.topic.name}: {nT} tools learned{startAt ? '' : `, ${correct + checkCorrect} of ${nT * 2 + nQ} questions right`}{grade ? `, scenario ${grade.score}/100` : ''}.</p>
+            {cert && (
+              <button className="btn-primary mt-5" onClick={() => nav(`/certificate/${cert.id}`)}>View your CPD certificate</button>
+            )}
             <div className="mt-6 w-full text-left">
               <p className="eyebrow">Your toolkit</p>
               <ul className="mt-2 space-y-2">
@@ -463,7 +628,7 @@ function Loading({ topic, coach, persona, tint, mastery = false }: { topic: Topi
           {lines[i]}
         </motion.p>
       </AnimatePresence>
-      <p className="mt-4 max-w-[17rem] text-xs text-muted">The first time a toolkit is made it can take a minute or two. After that it opens instantly.</p>
+      <p className="mt-4 max-w-[17rem] text-xs text-muted">A full one-hour module takes a few minutes to write the first time. After that it opens instantly.</p>
       {topic && !mastery && <WhileYouWait topic={topic} tint={tint} />}
     </>
   );

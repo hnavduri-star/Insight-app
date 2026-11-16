@@ -78,3 +78,11 @@ h1, h2, h3, .font-display { font-family: theme('fontFamily.display'); font-weigh
 
 *:focus-visible { outline: 2px solid #5ec2ff; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* Certificates print (or save as PDF) on clean white paper, without the app's background or grain. */
+@media print {
+  html, body { background: #fff !important; }
+  body::before, body::after { display: none !important; }
+  nav { display: none !important; }
+  @page { margin: 12mm; }
+}

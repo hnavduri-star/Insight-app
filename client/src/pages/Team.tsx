@@ -6,8 +6,8 @@ import { Alert, Spinner } from '../components/ui';
 type Mine = { id: string; name: string; role: 'owner' | 'member'; members: number; inviteCode: string | null } | null;
 type Dash = {
   team: { name: string; inviteCode: string; members: number };
-  totals: { activeThisWeek: number; foundations: number; reps: number; roleplays: number; wins: number };
-  members: { name: string; role: string; days7: number; days30: number; lastActive: string | null; foundations: number; reps: number; roleplays: number; roleplayAvg: number | null; wins: number }[];
+  totals: { activeThisWeek: number; foundations: number; reps: number; roleplays: number; wins: number; cpdModules: number; cpdHours: number };
+  members: { name: string; role: string; cpdModules: number; cpdHours: number; days7: number; days30: number; lastActive: string | null; foundations: number; reps: number; roleplays: number; roleplayAvg: number | null; wins: number }[];
 };
 
 /** Profile section: create a team, join with a code, or see your team. */
@@ -99,8 +99,8 @@ export default function TeamDashboard() {
       {d && (
         <>
           <section className="mt-2 grid grid-cols-3 gap-2">
-            {[['Active this week', `${d.totals.activeThisWeek}/${d.team.members}`], ['Role-plays', d.totals.roleplays], ['Real-world wins', d.totals.wins],
-              ['Foundations done', d.totals.foundations], ['Practice reps', d.totals.reps], ['Invite code', d.team.inviteCode]].map(([l, v]) => (
+            {[['CPD hours', d.totals.cpdHours], ['Active this week', `${d.totals.activeThisWeek}/${d.team.members}`], ['Role-plays', d.totals.roleplays], ['Real-world wins', d.totals.wins],
+              ['Foundations done', d.totals.foundations], ['Invite code', d.team.inviteCode]].map(([l, v]) => (
               <div key={String(l)} className="card p-3 text-center"><p className="text-[19px] font-extrabold">{v}</p><p className="text-[11px] leading-tight text-muted">{l}</p></div>
             ))}
           </section>
@@ -114,10 +114,11 @@ export default function TeamDashboard() {
                     <div key={String(l)} className="rounded-xl bg-white/[0.05] py-1.5"><p className="text-[15px] font-extrabold">{v}</p><p className="text-[10px] text-muted">{l}</p></div>
                   ))}
                 </div>
-                <p className="mt-1.5 text-xs text-muted">{m.foundations} topic{m.foundations === 1 ? '' : 's'} with Foundations{m.roleplayAvg != null ? ` · role-play average ${m.roleplayAvg}` : ''}</p>
+                <p className="mt-1.5 text-xs text-muted">🎓 {m.cpdHours} CPD hour{m.cpdHours === 1 ? '' : 's'} · {m.foundations} topic{m.foundations === 1 ? '' : 's'} with Foundations{m.roleplayAvg != null ? ` · role-play average ${m.roleplayAvg}` : ''}</p>
               </li>
             ))}
           </ul>
+          <a href="/api/teams/cpd.csv" download className="btn-ghost mt-4 flex w-full items-center justify-center">Download team CPD records (CSV)</a>
           <p className="mt-4 text-center text-xs leading-relaxed text-muted">Members' answers, conversations, people and notes stay private. You see totals only.</p>
         </>
       )}

@@ -476,6 +476,52 @@ export const appSettings = pgTable('app_settings', {
   value: jsonb('value').notNull(),
 });
 
+// ---------- CPD module: tool-by-tool progress, time and records ----------
+// One row per tool the learner has worked on in a module (answers to its 2 questions, written practice, feedback).
+export const toolProgress = pgTable('tool_progress', {
+  userId: userRef(),
+  lessonId: uuid('lesson_id').notNull().references(() => cachedLessons.id, { onDelete: 'cascade' }),
+  toolIndex: integer('tool_index').notNull(),
+  checksJson: jsonb('checks_json').notNull().default({}), // { "0": picked, "1": picked }
+  response: text('response'),
+  feedbackJson: jsonb('feedback_json'),
+  score: integer('score'),
+  completedAt: ts('completed_at'),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.userId, t.lessonId, t.toolIndex] })]);
+
+// Active learning time per module (seconds), from the app's heartbeat while the learner is on the page.
+export const lessonTime = pgTable('lesson_time', {
+  userId: userRef(),
+  lessonId: uuid('lesson_id').notNull().references(() => cachedLessons.id, { onDelete: 'cascade' }),
+  seconds: integer('seconds').notNull().default(0),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.userId, t.lessonId] })]);
+
+// A completed CPD module: the evidence behind a certificate. Kept even if the cached module is later rebuilt.
+export const cpdRecords = pgTable('cpd_records', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: userRef(),
+  topicId: uuid('topic_id').references(() => topics.id, { onDelete: 'set null' }),
+  lessonId: uuid('lesson_id').references(() => cachedLessons.id, { onDelete: 'set null' }),
+  code: text('code').notNull(),                // public verification code
+  learnerName: text('learner_name').notNull(),
+  topicName: text('topic_name').notNull(),
+  level: text('level').notNull(),              // foundations | mastery
+  title: text('title').notNull(),
+  outcomesJson: jsonb('outcomes_json').notNull(),
+  toolsJson: jsonb('tools_json').notNull(),    // tool names covered
+  plannedMinutes: integer('planned_minutes').notNull().default(60),
+  activeMinutes: integer('active_minutes').notNull(),
+  questionsCorrect: integer('questions_correct').notNull(),
+  questionsTotal: integer('questions_total').notNull(),
+  practiceAvg: integer('practice_avg'),
+  scenarioScore: integer('scenario_score'),
+  reflection: text('reflection').notNull(),
+  applyPlan: text('apply_plan'),
+  completedAt: createdAt(),
+}, (t) => [uniqueIndex('cpd_records_code_unique').on(t.code), uniqueIndex('cpd_records_user_lesson_unique').on(t.userId, t.lessonId), index('cpd_records_user_idx').on(t.userId)]);
+
 // ---------- Find my skills (diagnostic) ----------
 export const finderResults = pgTable('finder_results', {
   id: uuid('id').primaryKey().defaultRandom(),

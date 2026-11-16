@@ -3,7 +3,8 @@ import crypto from 'node:crypto';
 import { z } from 'zod';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { teamMembers, teams, users } from '../db/schema.js';
+import { cpdRecords, teamMembers, teams, users } from '../db/schema.js';
+import { toCsv } from './cpd.js';
 import { requireAuth } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 
@@ -76,18 +77,37 @@ teamRoutes.get('/dashboard', async (req, res) => {
       (select count(*)::int from practice_reps r where r.user_id = u.id and r.answered_at is not null) as reps,
       (select count(*)::int from roleplay_sessions s where s.user_id = u.id and s.status = 'debriefed') as roleplays,
       (select round(avg(score))::int from roleplay_sessions s where s.user_id = u.id and s.status = 'debriefed') as roleplay_avg,
-      (select count(*)::int from checkins c where c.user_id = u.id and c.outcome in ('well','mixed')) as wins
+      (select count(*)::int from checkins c where c.user_id = u.id and c.outcome in ('well','mixed')) as wins,
+      (select count(*)::int from cpd_records r where r.user_id = u.id) as cpd_modules,
+      (select coalesce(sum(planned_minutes), 0)::int from cpd_records r where r.user_id = u.id) as cpd_minutes
     from users u where u.id in ${ids.length ? ids : ['00000000-0000-0000-0000-000000000000']}`);
   const by = new Map(rows.map((r) => [r.user_id, r]));
   const out = members.map((x) => {
     const r = by.get(x.id)!;
     return { name: x.name, role: x.role, joinedAt: x.joinedAt, days7: r.days7, days30: r.days30, lastActive: r.last_active, foundations: r.foundations,
-      reps: r.reps, roleplays: r.roleplays, roleplayAvg: r.roleplay_avg, wins: r.wins };
+      reps: r.reps, roleplays: r.roleplays, roleplayAvg: r.roleplay_avg, wins: r.wins, cpdModules: r.cpd_modules, cpdHours: Number(r.cpd_minutes) / 60 };
   });
   const sum = (k: keyof (typeof out)[number]) => out.reduce((a, r) => a + (Number(r[k]) || 0), 0);
   res.json({
     team: { name: m.team.name, inviteCode: m.team.inviteCode, members: out.length },
-    totals: { activeThisWeek: out.filter((r) => Number(r.days7) > 0).length, foundations: sum('foundations'), reps: sum('reps'), roleplays: sum('roleplays'), wins: sum('wins') },
+    totals: { activeThisWeek: out.filter((r) => Number(r.days7) > 0).length, foundations: sum('foundations'), reps: sum('reps'), roleplays: sum('roleplays'), wins: sum('wins'),
+      cpdModules: sum('cpdModules'), cpdHours: sum('cpdHours') },
     members: out,
   });
+});
+
+/** Owner only: every member's completed CPD modules as a CSV for HR (no answers, reflections or notes). */
+teamRoutes.get('/cpd.csv', async (req, res) => {
+  const m = await membership(req.userId!);
+  if (!m || m.role !== 'owner') throw new HttpError(403, 'Only the team owner can export CPD records.', 'forbidden');
+  const rows = await db.select({ r: cpdRecords }).from(teamMembers).innerJoin(cpdRecords, eq(cpdRecords.userId, teamMembers.userId))
+    .where(eq(teamMembers.teamId, m.team.id)).orderBy(asc(cpdRecords.learnerName), asc(cpdRecords.completedAt));
+  const csv = toCsv([
+    ['Learner', 'Date completed', 'Topic', 'Level', 'Module', 'CPD hours (planned)', 'Active minutes recorded', 'Questions correct', 'Scenario score', 'Verification code'],
+    ...rows.map(({ r }) => [r.learnerName, new Date(r.completedAt).toISOString().slice(0, 10), r.topicName, r.level, r.title, (r.plannedMinutes / 60).toFixed(1),
+      r.activeMinutes, `${r.questionsCorrect}/${r.questionsTotal}`, r.scenarioScore ?? '', r.code]),
+  ]);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${m.team.name.replace(/[^\w -]/g, '').trim() || 'team'}-cpd.csv"`);
+  res.send('﻿' + csv);
 });

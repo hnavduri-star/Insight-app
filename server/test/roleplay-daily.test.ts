@@ -21,17 +21,14 @@ vi.mock('@anthropic-ai/sdk', () => {
   return { default: Anthropic };
 });
 
+const { toolkit: cpdToolkit, completeTools, toolFeedback } = await import('./fixtures.js');
 const { createApp } = await import('../src/app.js');
 const { pool } = await import('../src/db/client.js');
 const { advanceStreak, currentStreak } = await import('../src/lib/activity.js');
 const { nextInterval } = await import('../src/routes/daily.js');
 const app = createApp();
 
-const toolkit = () => ({
-  title: 'Toolkit', framework: 'F',
-  tools: Array.from({ length: 6 }, (_, i) => ({ name: `Tool ${i}`, source: 'Getting to Yes', idea: `Idea ${i}`, steps: ['a', 'b'], say: ['x'], caseStudy: { situation: 's', action: 'a', result: 'r' }, tryThis: 't', check: { q: `Check ${i}`, options: ['a', 'b', 'c', 'd'], answer: 2, why: 'w' } })),
-  quiz: Array.from({ length: 3 }, (_, i) => ({ q: `Q${i}`, options: ['a', 'b', 'c', 'd'], answer: 0, why: 'w' })), scenario: 'S',
-});
+const toolkit = () => cpdToolkit();
 const reps = () => ({ reps: Array.from({ length: 5 }, (_, i) => ({ situation: `Situation ${i}`, ask: 'Say?', tools: ['Tool 1'], with: null })) });
 const setup = () => ({ title: 'Pay rise talk', characterName: 'Raj', characterRole: 'Your boss', situation: 'Review time.', yourGoal: 'Agree a raise.',
   hiddenObjective: 'SECRET budget freeze until Q3', skills: ['Tool 1', 'Tool 2', 'Invented'], opening: 'You wanted to talk?' });
@@ -68,8 +65,9 @@ async function learner(email = 'rp@example.com', tz = 'Asia/Dubai') {
 }
 async function foundations(a: any, topicId: string) {
   const { lessonId } = (await a.post('/api/bites').send({ topicId })).body;
+  await completeTools(a, lessonId);
   await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
-  await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 4 });
+  await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 3 });
   await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would acknowledge their concern first, then propose two options and agree a next step.' });
   return lessonId as string;
 }
@@ -192,22 +190,22 @@ describe('daily return', () => {
     expect(d).toMatchObject({ streak: 0, freezes: 1, activeToday: false, reviews: [] });
     await foundations(a, topic.id);
     d = (await a.get('/api/daily')).body;
-    expect(d).toMatchObject({ streak: 1, activeToday: true, reviewItems: 9, dueTotal: 0 }); // 6 tool questions + 3 quiz
+    expect(d).toMatchObject({ streak: 1, activeToday: true, reviewItems: 15, dueTotal: 0 }); // 2 questions on each of 6 tools + 3 mixed
     expect(d.rep).toMatchObject({ topicId: topic.id });
     // Re-taking the quiz does not add the questions twice.
     const { lessonId } = (await a.post('/api/bites').send({ topicId: topic.id })).body;
-    await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 5 });
-    expect((await a.get('/api/daily')).body.reviewItems).toBe(9);
+    await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 3 });
+    expect((await a.get('/api/daily')).body.reviewItems).toBe(15);
 
     await pool.query("update review_items set due_at = now() - interval '1 hour'");
     d = (await a.get('/api/daily')).body;
     expect(d.reviews).toHaveLength(4);
-    expect(d.dueTotal).toBe(9);
+    expect(d.dueTotal).toBe(15);
     const right = (await a.post(`/api/daily/review/${d.reviews[0].id}`).send({ correct: true })).body;
     expect(right.intervalDays).toBe(3);
     const wrong = (await a.post(`/api/daily/review/${d.reviews[1].id}`).send({ correct: false })).body;
     expect(wrong.intervalDays).toBe(1);
-    expect((await a.get('/api/daily')).body.dueTotal).toBe(7);
+    expect((await a.get('/api/daily')).body.dueTotal).toBe(13);
 
     const c = (await a.post('/api/daily/complete').send({})).body;
     expect(c).toMatchObject({ streak: 1, activeToday: true });

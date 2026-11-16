@@ -22,15 +22,12 @@ vi.mock('@anthropic-ai/sdk', () => {
   return { default: Anthropic };
 });
 
+const { toolkit: cpdToolkit, completeTools, toolFeedback } = await import('./fixtures.js');
 const { createApp } = await import('../src/app.js');
 const { pool } = await import('../src/db/client.js');
 const app = createApp();
 
-const toolkit = (title = 'Toolkit') => ({
-  title, framework: 'F',
-  tools: Array.from({ length: 6 }, (_, i) => ({ name: `Tool ${i}`, source: 'Getting to Yes', idea: `Idea ${i}`, steps: ['a', 'b'], say: ['x'], caseStudy: { situation: 's', action: 'a', result: 'r' }, tryThis: 't', check: { q: `Check ${i}`, options: ['a', 'b', 'c', 'd'], answer: 2, why: 'w' } })),
-  quiz: Array.from({ length: 3 }, () => ({ q: 'Q', options: ['a', 'b', 'c', 'd'], answer: 0, why: 'w' })), scenario: 'S',
-});
+const toolkit = (title = 'Toolkit') => cpdToolkit(title);
 let repN = 0;
 const reps = () => ({ reps: Array.from({ length: 5 }, (_, i) => ({ situation: `Situation ${++repN}`, ask: 'Say what?', tools: ['Tool 1', 'Not a tool'], with: i === 0 ? 'Raj' : null })) });
 const grade = (score = 70) => ({ score, feedback: 'f', strength: 's', improve: 'i', toolsUsed: ['Tool 1'], modelAnswer: 'm' });
@@ -54,6 +51,7 @@ afterAll(async () => { delete process.env.ANTHROPIC_API_KEY; await pool.end(); }
 /** Builds the toolkit and completes Foundations (all tools viewed + quiz finished). */
 async function foundations(a: any, topicId: string) {
   const { lessonId } = (await a.post('/api/bites').send({ topicId })).body;
+  await completeTools(a, lessonId);
   await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
   await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 3 });
   await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would acknowledge their concern first, then propose two options and agree a next step.' });
@@ -81,6 +79,7 @@ describe('topic track and practice reps', () => {
     expect(notViewed.status).toBe(409);
     expect(notViewed.body.error).toMatch(/Go through each tool and its question first/);
     expect((await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 2 })).body.code).toBe('tools_first');
+    await completeTools(a, lessonId);
     await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
     const noQuiz = await a.post('/api/practice/next').send({ topicId: topic.id });
     expect(noQuiz.status).toBe(409);
@@ -90,7 +89,7 @@ describe('topic track and practice reps', () => {
     expect(t.toolkit).toMatchObject({ done: false, toolsDone: true, quizDone: false });
     await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 0 }); // any score counts as taken
     t = (await a.get(`/api/bites/track/${topic.id}`)).body;
-    expect(t.toolkit).toMatchObject({ done: false, quizDone: true, scenarioDone: false, quizCorrect: 0, quizTotal: 9 });
+    expect(t.toolkit).toMatchObject({ done: false, quizDone: true, scenarioDone: false, quizCorrect: 12, quizTotal: 15 });
     expect((await a.post('/api/practice/next').send({ topicId: topic.id })).body.error).toMatch(/Answer the scenario first/);
     await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would listen first and then agree the next step together.' });
     t = (await a.get(`/api/bites/track/${topic.id}`)).body;
@@ -163,6 +162,7 @@ describe('topic track and practice reps', () => {
     expect(m.status).toBe(200);
     expect(m.body).toMatchObject({ level: 'mastery', bite: { title: 'Mastery toolkit' } });
     expect(m.body.lessonId).not.toBe(lessonId);
+    await completeTools(a, m.body.lessonId);
     await a.post(`/api/bites/${m.body.lessonId}/progress`).send({ stage: 'cards' });
     t = (await a.get(`/api/bites/track/${topic.id}`)).body;
     expect(t).toMatchObject({ toolkit: { done: true }, mastery: { done: true } });

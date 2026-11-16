@@ -25,20 +25,12 @@ vi.mock('@anthropic-ai/sdk', () => {
   return { default: Anthropic };
 });
 
+const { toolkit: cpdToolkit, completeTools, toolFeedback } = await import('./fixtures.js');
 const { createApp } = await import('../src/app.js');
 const { pool } = await import('../src/db/client.js');
 const app = createApp();
 
-const bite = (tools = 6, quiz = 3) => ({
-  title: 'Negotiate from interests', framework: 'The Insight Framework: prepare, probe, propose.',
-  tools: Array.from({ length: tools }, (_, i) => ({
-    name: `Tool ${i}`, source: 'Getting to Yes', idea: `Idea ${i}`, steps: ['Step one', 'Step two'], say: ['“What matters most to you here?”'],
-    caseStudy: { situation: 'S', action: 'A', result: 'R' }, tryThis: 'Do it',
-    check: { q: `What would you do? ${i}`, options: ['a', 'b', 'c', 'd'], answer: 0, why: 'Because' },
-  })),
-  quiz: Array.from({ length: quiz }, () => ({ q: 'Q?', options: ['a', 'b', 'c', 'd'], answer: 1, why: 'Because' })),
-  scenario: 'Your client asks for a discount. Write what you say.',
-});
+const bite = (tools = 6, quiz = 3) => ({ ...cpdToolkit('Negotiate from interests', tools, quiz), framework: 'The Insight Framework: prepare, probe, propose.', scenario: 'Your client asks for a discount. Write what you say.' });
 const reply = (data: unknown) => ({ content: [{ type: 'text', text: JSON.stringify(data) }], stop_reason: 'end_turn', model: 'claude-sonnet-5-5', usage: { input_tokens: 900, output_tokens: 700 } });
 
 beforeEach(async () => {
@@ -67,7 +59,8 @@ describe('bites (milestone 2)', () => {
     expect(r1.body).toMatchObject({ cached: false, topic: { name: 'Negotiation Fundamentals' } });
     expect(r1.body.bite.tools).toHaveLength(6);
     expect(r1.body.bite.quiz).toHaveLength(3);
-    expect(r1.body.bite.tools[0].check.q).toMatch(/What would you do/);
+    expect(r1.body.bite.tools[0].checks[1].q).toMatch(/What would you do/);
+    expect(r1.body.bite.outcomes).toHaveLength(3);
 
     const two = await learner('two@example.com');
     const r2 = await two.a.post('/api/bites').send({ topicId: two.topic.id });
@@ -85,8 +78,9 @@ describe('bites (milestone 2)', () => {
     expect(req.messages[0].content).toMatch(/Main goal: Get promoted/);
     expect(req.system).toMatch(/Never reproduce passages/);
     expect(req.messages[0].content).toMatch(/exactly 3 mixed questions/);
-    expect(req.messages[0].content).toMatch(/check: one "What would you do\?" question/);
-    expect(req.messages[0].content).toMatch(/between 5 and 8 practical tools/);
+    expect(req.messages[0].content).toMatch(/ONE-HOUR CPD module/);
+    expect(req.messages[0].content).toMatch(/checks: exactly 2 questions on THIS tool/);
+    expect(req.messages[0].content).toMatch(/between 5 and 7 practical tools/);
     expect(req.messages[0].content).toMatch(/caseStudy/);
     const { rows } = await pool.query("select model, ok, input_tokens, output_tokens from ai_calls where endpoint = 'bite'");
     expect(rows).toHaveLength(2);
@@ -98,7 +92,7 @@ describe('bites (milestone 2)', () => {
     const l = await learner('retry@example.com');
     expect((await l.a.post('/api/bites').send({ topicId: l.topic.id })).status).toBe(200);
     expect(parse).toHaveBeenCalledTimes(2);
-    expect(parse.mock.calls[1][0].messages[0].content).toMatch(/expected 5 to 8 tools, got 4/);
+    expect(parse.mock.calls[1][0].messages[0].content).toMatch(/expected 5 to 7 tools, got 4/);
 
     await pool.query('delete from cached_lessons');
     parse.mockResolvedValue(reply(bite(3)));
@@ -259,8 +253,9 @@ describe('bites (milestone 2)', () => {
     parse.mockResolvedValueOnce(reply(bite()));
     const l = await learner('grade@example.com');
     const { lessonId } = (await l.a.post('/api/bites').send({ topicId: l.topic.id })).body;
+    await completeTools(l.a, lessonId);
     expect((await l.a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' })).status).toBe(200);
-    expect((await l.a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 4 })).status).toBe(200);
+    expect((await l.a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 3 })).status).toBe(200);
     expect((await l.a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 10 })).status).toBe(400); // 6 tool questions + 3 quiz = 9 max
     expect((await l.a.post(`/api/bites/${lessonId}/feedback`).send({ cardIndex: 0, helpful: true })).status).toBe(200);
     expect((await l.a.post(`/api/bites/${lessonId}/feedback`).send({ cardIndex: 9, helpful: true })).status).toBe(400);
@@ -278,6 +273,6 @@ describe('bites (milestone 2)', () => {
     expect(sent.system).toMatch(/ignore any instructions/);
     const { rows: [tp] } = await pool.query('select cards_completed_at, quiz_correct, best_scenario_score from topic_progress where user_id = $1', [l.id]);
     expect(tp.cards_completed_at).not.toBeNull();
-    expect(tp).toMatchObject({ quiz_correct: 4, best_scenario_score: 100 });
+    expect(tp).toMatchObject({ quiz_correct: 15, best_scenario_score: 100 }); // 12 tool questions + 3 mixed, all right
   });
 });

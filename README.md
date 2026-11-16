@@ -113,6 +113,16 @@ Slow AI work runs as background jobs (`server/src/lib/jobs.ts`): a request waits
 - **Streaks** (`server/src/lib/activity.ts`): every learning action is logged with the learner's local date (their time zone). The first action of a day counts. Active yesterday → +1. One missed day with a freeze → the freeze is spent and the streak continues. Otherwise it restarts at 1. Learners start with 1 freeze and earn one at every 7-day milestone.
 - **Your week** (`/week`, `GET /api/daily/week`): days active over the last 7 local days, counts by activity, average rep and role-play scores, review accuracy, topics worked on, and a rule-based focus for next week.
 
+## CPD modules (one hour each)
+
+Each Foundations toolkit (and each Mastery toolkit) is a **one-hour CPD module**, learned tool by tool:
+- **Intro:** learning outcomes (3–4), "1 CPD hour · about 60 minutes", the tools in order, and progress so far.
+- **Each tool (about 8 minutes):** deeper theory (what it is, why it works, when to use it and when not, common mistakes, steps, what to say, a case study, try this today), then **2 questions** (understanding, then "what would you do?"; the first answer counts), then a short **written practice** with quick coaching (score, feedback, a stronger version). The next tool opens only when this one is complete. Progress is saved on the server (`tool_progress`), so a module can be finished over several sittings.
+- **Then:** 3 mixed questions, the coached scenario, and a **reflection** (what I learned and will do differently, plus where I'll use it first).
+- **Evidence:** active learning time is recorded from a heartbeat while the page is visible and the learner is active (`lesson_time`, capped at real time). Completing a module creates a **CPD record** (`cpd_records`): name, topic, module, outcomes, tools, planned CPD hours (1.0), active minutes, questions correct, practice average, scenario score, reflection and a verification code.
+- **Certificate** (`/certificate/:id`): printable or saved as PDF, with a public check at `/verify/CODE` (shows the certificate details, never answers or reflections). **CPD record** (`/cpd`): hours this year and in total, all certificates, CSV export. **Team owners** see CPD hours per member and can download a team CPD CSV for HR (no reflections or answers).
+- Modules built in an older format are rebuilt once in the CPD format the first time they're opened.
+
 ## Progressive Foundations and "Find my skills"
 
 - **A question after every tool.** Each tool in a toolkit ends with a "What would you do?" question applying that tool to a realistic moment from the learner's world, with instant feedback. **Next** stays locked until it's answered. After the last tool come **3 mixed questions** (which tool fits), then the **coached scenario**.

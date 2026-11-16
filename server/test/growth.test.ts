@@ -26,6 +26,7 @@ vi.mock('web-push', () => ({ default: {
   sendNotification: async (sub: any, payload: string) => { if (sub.endpoint.includes('gone')) throw Object.assign(new Error('gone'), { statusCode: 410 }); pushed.push(JSON.parse(payload)); },
 } }));
 
+const { toolkit: cpdToolkit, completeTools, toolFeedback } = await import('./fixtures.js');
 const { createApp } = await import('../src/app.js');
 const { pool } = await import('../src/db/client.js');
 const { sendDueReminders } = await import('../src/lib/push.js');
@@ -33,11 +34,7 @@ const { levelFor, longestRun } = await import('../src/routes/progress.js');
 const { personaFocus } = await import('../src/lib/ai.js');
 const app = createApp();
 
-const toolkit = () => ({
-  title: 'Toolkit', framework: 'F',
-  tools: Array.from({ length: 6 }, (_, i) => ({ name: `Tool ${i}`, source: 'Book', idea: `Idea ${i}`, steps: ['a', 'b'], say: ['x'], caseStudy: { situation: 's', action: 'a', result: 'r' }, tryThis: 't', check: { q: `Check ${i}`, options: ['a', 'b', 'c', 'd'], answer: 2, why: 'w' } })),
-  quiz: Array.from({ length: 3 }, (_, i) => ({ q: `Q${i}`, options: ['a', 'b', 'c', 'd'], answer: 0, why: 'w' })), scenario: 'S',
-});
+const toolkit = () => cpdToolkit('Toolkit', 6, 3, (i) => `Tool ${i}`);
 const setup = () => ({ title: 'Pay talk', characterName: 'Raj', characterRole: 'Boss', situation: 's', yourGoal: 'g', hiddenObjective: 'h', skills: ['Tool 1'], opening: 'Hi' });
 
 beforeEach(async () => {
@@ -71,8 +68,9 @@ async function learner(email = 'g@example.com', goals = ['Get promoted']) {
 }
 async function throughRoleplay(a: any, topicId: string, personId?: string) {
   const { lessonId } = (await a.post('/api/bites').send({ topicId })).body;
+  await completeTools(a, lessonId);
   await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
-  await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 9 });
+  await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 3 });
   await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would acknowledge their concern first, then propose two options and agree a next step.' });
   for (let i = 0; i < 3; i++) {
     const { rep } = (await a.post('/api/practice/next').send({ topicId })).body;
@@ -112,7 +110,7 @@ describe('content', () => {
     await a.post('/api/bites').send({ topicId: topic.id });
     const lib = (await a.get(`/api/bites/library/${topic.id}`)).body;
     expect(lib.sets).toHaveLength(1);
-    expect(lib.sets[0].tools[0]).toMatchObject({ name: 'Tool 0', say: ['x'] });
+    expect(lib.sets[0].tools[0]).toMatchObject({ name: 'Tool 0', say: ['x', 'y'] });
   });
 });
 
@@ -125,10 +123,11 @@ describe('home and first value', () => {
     expect(h.fiction.length).toBeGreaterThan(0);
     expect(h.level).toMatchObject({ n: 1, name: 'Explorer' });
     const { lessonId } = (await a.post('/api/bites').send({ topicId: topic.id })).body;
+    await completeTools(a, lessonId);
     await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
     h = (await a.get('/api/home')).body;
     expect(h.next).toMatchObject({ started: true, label: 'Take the quiz', path: `/bite/${topic.id}?start=quiz` });
-    await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 4 });
+    await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 3 });
     expect((await a.get('/api/home')).body.next).toMatchObject({ label: 'Answer the scenario', path: `/bite/${topic.id}?start=scenario` });
     await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would listen first and then agree the next step together.' });
     expect((await a.get('/api/home')).body.next.label).toBe('Practise · rep 1');
@@ -252,10 +251,11 @@ describe('friends and the weekly league', () => {
     expect((await ann.a.get('/api/friends')).body.friends).toBe(1); // both ways
     // Bob earns XP this week (and some last week, which doesn't count).
     const { lessonId } = (await bob.a.post('/api/bites').send({ topicId: bob.topic.id })).body;
+    await completeTools(bob.a, lessonId);
     await bob.a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
     await pool.query("insert into activity_events (user_id, kind, xp, local_day) values ($1, 'rep', 500, current_date - 14)", [bob.id]);
     const league = (await ann.a.get('/api/friends')).body.league;
-    expect(league.map((r: any) => [r.me, r.weekXp, r.rank])).toEqual([[false, 20, 1], [true, 0, 2]]);
+    expect(league.map((r: any) => [r.me, r.weekXp, r.rank])).toEqual([[false, 80, 1], [true, 0, 2]]);
     expect(Object.keys(league[0]).sort()).toEqual(['firstName', 'id', 'me', 'rank', 'streak', 'weekXp']);
     const home = (await ann.a.get('/api/home')).body.league;
     expect(home).toMatchObject({ friends: 1, me: { rank: 2 } });

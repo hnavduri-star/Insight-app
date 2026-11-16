@@ -3,12 +3,12 @@ import { z } from 'zod';
 import { and, asc, avg, count, eq, gt, isNotNull, max, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
-  aiCalls, assessments, books, cachedLessons, cardFeedback, categories, practiceReps, profiles, reviewItems, roleplaySessions, scenarios, topicBooks, topicProgress, topics,
+  aiCalls, assessments, books, cachedLessons, cardFeedback, categories, cpdRecords, lessonTime, practiceReps, profiles, reviewItems, roleplaySessions, scenarios, toolProgress, topicBooks, topicProgress, topics,
 } from '../db/schema.js';
 import { requireAuth } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { requireTopicAccess } from '../lib/access.js';
-import { checkBite, generateBite, gradeScenario, type Bite } from '../lib/ai.js';
+import { allQuestions, CHECKS_PER_TOOL, checkBite, generateBite, gradeScenario, QUIZ_LENGTH, toolPracticeFeedback, type Bite, type ToolFeedback } from '../lib/ai.js';
 import { runJob, WAIT_MS } from '../lib/jobs.js';
 import { PERSONAS } from '../../../shared/options.js';
 import { recordActivity } from '../lib/activity.js';
@@ -19,7 +19,7 @@ export const biteRoutes = Router();
 biteRoutes.use(requireAuth);
 
 /** AI calls per user per rolling 24 hours. */
-export const LIMITS: Record<string, number> = { bite: 20, grade: 40, reps: 15, situation: 10, roleplay: 8, roleplay_turn: 80, roleplay_hint: 30, roleplay_debrief: 12, finder: 10 };
+export const LIMITS: Record<string, number> = { bite: 20, grade: 40, reps: 15, situation: 10, roleplay: 8, roleplay_turn: 80, roleplay_hint: 30, roleplay_debrief: 12, finder: 10, tool_practice: 80 };
 export const REPS_GOAL = 10;          // practice reps that complete level 2
 export const MASTERY_AFTER_REPS = 5;  // reps needed (with the toolkit done) to unlock mastery
 export const ROLEPLAY_AFTER_REPS = 3; // reps needed (with the toolkit done) to unlock level 3 role-play
@@ -216,24 +216,119 @@ async function lessonFor(userId: string, lessonId: string) {
   return l;
 }
 
+// ---------- Tool by tool (CPD module) ----------
+type ToolState = { checks: Record<string, number>; response: string | null; feedback: ToolFeedback | null; score: number | null; completed: boolean };
+
+async function toolStates(userId: string, l: typeof cachedLessons.$inferSelect) {
+  const rows = await db.select().from(toolProgress).where(and(eq(toolProgress.userId, userId), eq(toolProgress.lessonId, l.id)));
+  return (l.contentJson as Bite).tools.map((_, i): ToolState => {
+    const r = rows.find((x) => x.toolIndex === i);
+    return { checks: (r?.checksJson as Record<string, number>) ?? {}, response: r?.response ?? null, feedback: (r?.feedbackJson as ToolFeedback) ?? null, score: r?.score ?? null, completed: !!r?.completedAt };
+  });
+}
+/** Right answers on the tools' own questions (as first answered). */
+const checksCorrect = (bite: Bite, states: ToolState[]) =>
+  bite.tools.reduce((n, t, i) => n + (t.checks ?? []).filter((q, k) => states[i]?.checks[k] === q.answer).length, 0);
+
+function toolAt(l: typeof cachedLessons.$inferSelect, index: string) {
+  const i = Number(index);
+  const bite = l.contentJson as Bite;
+  if (!Number.isInteger(i) || i < 0 || i >= bite.tools.length) throw new HttpError(404, 'Tool not found');
+  return { i, tool: bite.tools[i] };
+}
+/** Tools unlock in order: a tool opens once every earlier tool is complete. */
+async function requireToolOpen(userId: string, l: typeof cachedLessons.$inferSelect, i: number) {
+  const states = await toolStates(userId, l);
+  if (states.slice(0, i).some((s) => !s.completed)) throw new HttpError(409, 'Finish the earlier tools first.', 'earlier_tools_first');
+  return states;
+}
+
+/** Where the learner is in this module: each tool's answers and practice, time spent, later steps. */
+biteRoutes.get('/:id/state', async (req, res) => {
+  const userId = req.userId!;
+  const l = await lessonFor(userId, req.params.id);
+  const tools = await toolStates(userId, l);
+  const [t] = await db.select({ seconds: lessonTime.seconds }).from(lessonTime).where(and(eq(lessonTime.userId, userId), eq(lessonTime.lessonId, l.id)));
+  const [tp] = await db.select().from(topicProgress).where(and(eq(topicProgress.userId, userId), eq(topicProgress.topicId, l.topicId)));
+  const [sc] = await db.select({ best: sql<number | null>`max(${scenarios.score})` }).from(scenarios).where(and(eq(scenarios.userId, userId), eq(scenarios.lessonId, l.id)));
+  const [cpd] = await db.select({ id: cpdRecords.id }).from(cpdRecords).where(and(eq(cpdRecords.userId, userId), eq(cpdRecords.lessonId, l.id)));
+  const mastery = l.ratingBand === 'mastery';
+  res.json({
+    tools, seconds: t?.seconds ?? 0,
+    quizDone: mastery ? !!tp?.masteryCompletedAt : !!tp?.quizCompletedAt,
+    scenarioScore: sc?.best ?? null, cpdId: cpd?.id ?? null,
+  });
+});
+
+/** Answer one of a tool's two questions. The first answer counts (no changing it after seeing the explanation). */
+biteRoutes.post('/:id/tool/:index/check', async (req, res) => {
+  const { q, picked } = z.object({ q: z.number().int().min(0).max(CHECKS_PER_TOOL - 1), picked: z.number().int().min(0).max(3) }).parse(req.body);
+  const userId = req.userId!;
+  const l = await lessonFor(userId, req.params.id);
+  const { i } = toolAt(l, req.params.index);
+  await requireToolOpen(userId, l, i);
+  await db.insert(toolProgress).values({ userId, lessonId: l.id, toolIndex: i, checksJson: { [q]: picked } })
+    .onConflictDoUpdate({ target: [toolProgress.userId, toolProgress.lessonId, toolProgress.toolIndex],
+      set: { checksJson: sql`jsonb_build_object(${String(q)}::text, ${picked}::int) || ${toolProgress.checksJson}`, updatedAt: new Date() } });
+  res.json({ tools: await toolStates(userId, l) });
+});
+
+/** The tool's short written practice, with quick coaching. Completes the tool (and unlocks the next). */
+biteRoutes.post('/:id/tool/:index/practice', async (req, res) => {
+  const { response } = z.object({ response: z.string().trim().min(15, 'Write a sentence or two').max(800, 'Keep it under 800 characters') }).parse(req.body);
+  const userId = req.userId!;
+  const l = await lessonFor(userId, req.params.id);
+  const { i, tool } = toolAt(l, req.params.index);
+  const states = await requireToolOpen(userId, l, i);
+  if (Object.keys(states[i].checks).length < CHECKS_PER_TOOL) throw new HttpError(409, "Answer this tool's two questions first.", 'questions_first');
+  if (states[i].completed && states[i].feedback) return void res.json({ tools: states }); // already done
+  let feedback: ToolFeedback | null = null;
+  try {
+    await checkLimit(userId, 'tool_practice');
+    feedback = await toolPracticeFeedback(userId, { tool, practice: tool.practice, response });
+  } catch (e) {
+    // The answer still counts towards the module if coaching is unavailable right now.
+    console.warn('[tool practice] no feedback:', e instanceof Error ? e.message : e);
+  }
+  await db.update(toolProgress).set({ response, feedbackJson: feedback, score: feedback?.score ?? null, completedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(toolProgress.userId, userId), eq(toolProgress.lessonId, l.id), eq(toolProgress.toolIndex, i)));
+  await recordActivity(userId, 'rep', { topicId: l.topicId, score: feedback?.score ?? null, xp: 10 });
+  res.json({ tools: await toolStates(userId, l), feedbackUnavailable: !feedback });
+});
+
+/** Active learning time: the app sends a heartbeat while the module is open and the learner is active. */
+biteRoutes.post('/:id/time', async (req, res) => {
+  const { seconds } = z.object({ seconds: z.number().int().min(1).max(120) }).parse(req.body);
+  const userId = req.userId!;
+  const l = await lessonFor(userId, req.params.id);
+  // At most one heartbeat's worth per 25 seconds of wall-clock time, so the clock can't be inflated.
+  const [r] = await db.insert(lessonTime).values({ userId, lessonId: l.id, seconds })
+    .onConflictDoUpdate({ target: [lessonTime.userId, lessonTime.lessonId], set: {
+      seconds: sql`${lessonTime.seconds} + least(${seconds}, greatest(0, extract(epoch from now() - ${lessonTime.updatedAt})::int + 5))`, updatedAt: new Date() } })
+    .returning({ seconds: lessonTime.seconds });
+  res.json({ seconds: r.seconds });
+});
+
 /** Records progress through a toolkit (or mastery toolkit). */
 biteRoutes.post('/:id/progress', async (req, res) => {
   const body = z.discriminatedUnion('stage', [
     z.object({ stage: z.literal('cards') }),
-    // correct: right answers across the per-tool questions and the mixed quiz.
-    z.object({ stage: z.literal('quiz'), correct: z.number().int().min(0).max(20) }),
+    // correct: right answers on the 3 mixed questions (the tools' own questions are already recorded).
+    z.object({ stage: z.literal('quiz'), correct: z.number().int().min(0).max(QUIZ_LENGTH) }),
   ]).parse(req.body);
   const l = await lessonFor(req.userId!, req.params.id);
   const mastery = l.ratingBand === 'mastery';
   const bite = l.contentJson as Bite;
-  const total = bite.tools.length + bite.quiz.length;
-  if (body.stage === 'quiz') {
-    if (body.correct > total) throw new HttpError(400, `correct: at most ${total}`, 'invalid_input');
-    if (!mastery) {
-      const [tp] = await db.select({ cards: topicProgress.cardsCompletedAt }).from(topicProgress)
-        .where(and(eq(topicProgress.userId, req.userId!), eq(topicProgress.topicId, l.topicId)));
-      if (!tp?.cards) throw new HttpError(409, 'Go through each tool and its question before the quiz.', 'tools_first');
-    }
+  const states = await toolStates(req.userId!, l);
+  const total = allQuestions(bite).length;
+  const correct = body.stage === 'quiz' ? checksCorrect(bite, states) + body.correct : 0;
+  if (body.stage === 'cards' && states.some((s) => !s.completed)) {
+    throw new HttpError(409, 'Work through every tool (its questions and practice) first.', 'tools_incomplete');
+  }
+  if (body.stage === 'quiz' && !mastery) {
+    const [tp] = await db.select({ cards: topicProgress.cardsCompletedAt }).from(topicProgress)
+      .where(and(eq(topicProgress.userId, req.userId!), eq(topicProgress.topicId, l.topicId)));
+    if (!tp?.cards) throw new HttpError(409, 'Go through each tool and its questions before the quiz.', 'tools_first');
   }
   if (body.stage === 'cards') {
     const col = mastery ? { masteryCompletedAt: new Date() } : { cardsCompletedAt: new Date() };
@@ -242,16 +337,16 @@ biteRoutes.post('/:id/progress', async (req, res) => {
         set: mastery ? { masteryCompletedAt: sql`coalesce(${topicProgress.masteryCompletedAt}, now())` }
           : { cardsCompletedAt: sql`coalesce(${topicProgress.cardsCompletedAt}, now())` } });
   } else if (!mastery) {
-    await db.insert(topicProgress).values({ userId: req.userId!, topicId: l.topicId, quizCorrect: body.correct, quizTotal: total, quizCompletedAt: new Date() })
+    await db.insert(topicProgress).values({ userId: req.userId!, topicId: l.topicId, quizCorrect: correct, quizTotal: total, quizCompletedAt: new Date() })
       .onConflictDoUpdate({ target: [topicProgress.userId, topicProgress.topicId], set: {
-        quizCorrect: sql`greatest(${topicProgress.quizCorrect}, ${body.correct})`, quizTotal: total,
+        quizCorrect: sql`greatest(${topicProgress.quizCorrect}, ${correct})`, quizTotal: total,
         quizCompletedAt: sql`coalesce(${topicProgress.quizCompletedAt}, now())`,
       } });
   }
-  // Every question (each tool's check and the mixed quiz) joins spaced review.
-  if (body.stage === 'quiz') await seedReview(req.userId!, l.topicId, l.id, [...bite.tools.map((t) => t.check), ...bite.quiz].filter(Boolean));
+  // Every question (each tool's two and the mixed quiz) joins spaced review.
+  if (body.stage === 'quiz') await seedReview(req.userId!, l.topicId, l.id, allQuestions(bite));
   await recordActivity(req.userId!, body.stage === 'cards' ? 'tools' : 'quiz', {
-    topicId: l.topicId, score: body.stage === 'quiz' ? Math.round((body.correct / total) * 100) : null, xp: body.stage === 'cards' ? 20 : 10 + body.correct * 2,
+    topicId: l.topicId, score: body.stage === 'quiz' ? Math.round((correct / total) * 100) : null, xp: body.stage === 'cards' ? 20 : 10 + correct * 2,
   });
   res.json({ ok: true });
 });

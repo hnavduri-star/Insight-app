@@ -24,6 +24,7 @@ import TeamDashboard from './pages/Team';
 import Admin from './pages/Admin';
 import Friends from './pages/Friends';
 import Finder from './pages/Finder';
+import CpdLog, { Certificate, Verify } from './pages/Cpd';
 import Daily, { Week } from './pages/Daily';
 
 /** Signed-out only. */
@@ -95,6 +96,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           </Route>
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/verify/:code" element={<Verify />} />
           <Route element={<Private needsOnboarding={false} />}>
             <Route path="/onboarding" element={<Onboarding />} />
           </Route>
@@ -109,6 +111,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/admin" element={<Admin />} />
             <Route path="/friends" element={<Friends />} />
             <Route path="/finder" element={<Finder />} />
+            <Route path="/cpd" element={<CpdLog />} />
+            <Route path="/certificate/:id" element={<Certificate />} />
             <Route path="/week" element={<Week />} />
             <Route path="/situation" element={<NewSituation />} />
             <Route path="/situation/:id" element={<SituationPlan />} />
