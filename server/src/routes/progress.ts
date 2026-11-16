@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { and, asc, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
-  activityEvents, assessments, categories, checkins, practiceReps, reviewItems, roleplaySessions, situations, topicProgress, topics, userProgress,
+  activityEvents, assessments, categories, checkins, friendships, practiceReps, reviewItems, roleplaySessions, situations, topicProgress, topics, userProgress,
 } from '../db/schema.js';
 import { requireAuth } from '../lib/auth.js';
 import { daysBetween } from '../lib/activity.js';
@@ -48,6 +48,7 @@ export async function progressFor(userId: string) {
   const wins = await db.select({ n: sql<number>`count(*)::int` }).from(checkins).where(and(eq(checkins.userId, userId), sql`${checkins.outcome} in ('well','mixed')`));
   const [{ sits }] = await db.select({ sits: sql<number>`count(*)::int` }).from(situations).where(eq(situations.userId, userId));
   const [{ r21 }] = await db.select({ r21: sql<number>`count(*)::int` }).from(reviewItems).where(and(eq(reviewItems.userId, userId), sql`${reviewItems.intervalDays} >= 21`));
+  const [{ friendCount }] = await db.select({ friendCount: sql<number>`count(*)::int` }).from(friendships).where(eq(friendships.userId, userId));
   const days = (await db.selectDistinct({ d: activityEvents.localDay }).from(activityEvents).where(eq(activityEvents.userId, userId))).map((r) => r.d);
 
   const repsBy = new Map(reps.map((r) => [r.topicId, r.n]));
@@ -90,6 +91,7 @@ export async function progressFor(userId: string) {
     B('review_21', 'It stuck', '🧠', 'Keep a review question for 21 days', r21 >= 1),
     B('polymath', 'Polymath', '📚', 'Finish Foundations on 3 topics', foundations >= 3),
     B('mastery', 'Mastery', '🎓', 'Complete Mastery on a topic', tps.some(({ tp }) => tp.masteryCompletedAt)),
+    B('friends', 'Better together', '👋', 'Add a friend to your weekly league', friendCount >= 1),
   ];
   return { level: levelFor(up.xp), streak: up.streak, longestStreak: run, wins: winCount, topics: topicLevels, skills, badges };
 }

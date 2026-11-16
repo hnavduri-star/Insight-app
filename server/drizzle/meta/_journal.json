@@ -64,6 +64,13 @@
       "when": 1794755635399,
       "tag": "0008_growth",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794814761886,
+      "tag": "0009_friends",
+      "breakpoints": true
     }
   ]
 }

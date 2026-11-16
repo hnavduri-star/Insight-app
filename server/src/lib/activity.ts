@@ -59,7 +59,7 @@ export async function progressOf(userId: string) {
 /** Logs one learning action and advances the streak on the first action of the learner's day. */
 export async function recordActivity(userId: string, kind: ActivityKind, opts: { topicId?: string | null; score?: number | null; xp?: number } = {}) {
   const today = localDay(await timezoneOf(userId));
-  await db.insert(activityEvents).values({ userId, kind, topicId: opts.topicId ?? null, score: opts.score ?? null, localDay: today });
+  await db.insert(activityEvents).values({ userId, kind, topicId: opts.topicId ?? null, score: opts.score ?? null, xp: opts.xp ?? 10, localDay: today });
   return db.transaction(async (tx) => {
     await tx.insert(userProgress).values({ userId }).onConflictDoNothing();
     const [p] = await tx.select().from(userProgress).where(eq(userProgress.userId, userId)).for('update');

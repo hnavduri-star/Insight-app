@@ -10,6 +10,7 @@ import { ScoreRing } from '../components/GradeResult';
 import { appendSpoken, MicButton, speechSupported } from '../components/Mic';
 import { COACHES } from '../options';
 import { ConfidenceNow } from './Progress';
+import { setVoicePref, speak, stopSpeaking, ttsSupported, voicePref } from '../lib/speak';
 
 type Phase = 'choose' | 'setting-up' | 'brief' | 'chat' | 'debriefing' | 'debrief' | 'error';
 const quoted = (s: string) => `“${s.trim().replace(/^["“']+|["”']+$/g, '')}”`;
@@ -33,9 +34,14 @@ export default function RolePlay() {
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
   const alive = useRef(true);
   const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => () => { alive.current = false; stopSpeaking(); }, []);
+  // The character speaks its lines aloud (device voice). Toggle in the header; remembered per device.
+  const [voiceOn, setVoiceOn] = useState(() => ttsSupported() && voicePref());
+  const voiceSeed = (r: Roleplay | null) => `${r?.setup.characterName ?? ''}|${r?.difficulty ?? ''}`;
+  const say = (text: string, r: Roleplay | null = rp, force = false) => { if ((voiceOn || force) && r) speak(text, voiceSeed(r)); };
+  const toggleVoice = () => { const on = !voiceOn; setVoiceOn(on); setVoicePref(on); if (!on) stopSpeaking(); };
 
-  const fail = (e: unknown) => { const err = e as ApiError; setError({ message: err.message, code: err.code }); };
+  const fail =(e: unknown) => { const err = e as ApiError; setError({ message: err.message, code: err.code }); };
   const show = (r: Roleplay) => {
     setRp(r);
     setSearch({ id: r.id }, { replace: true });
@@ -66,7 +72,11 @@ export default function RolePlay() {
     setLine('');
     try {
       const r = await pollPost<Roleplay>(`/roleplay/${rp.id}/turn`, { message: text, turn: rp.turnsUsed }, () => alive.current);
-      if (alive.current) setRp(r);
+      if (alive.current) {
+        setRp(r);
+        const last = r.transcript[r.transcript.length - 1];
+        if (last?.who === 'character') say(last.text, r);
+      }
     } catch (e) { if (alive.current) { fail(e); setRp(rp); setLine(text); } }
     finally { if (alive.current) setBusy(''); }
   };
@@ -107,6 +117,14 @@ export default function RolePlay() {
             </div>
           ) : <p className="truncate font-bold">{rp?.setup.title ?? 'Role-play'}</p>}
         </div>
+        {ttsSupported() && (phase === 'chat' || phase === 'brief') && (
+          <button onClick={toggleVoice} aria-pressed={voiceOn} aria-label={voiceOn ? `Mute ${name}'s voice` : `Let ${name} speak aloud`}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-ink">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M11 5 6 9H3v6h3l5 4V5Z" />{voiceOn ? <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /> : <path d="m16 9 5 6M21 9l-5 6" />}
+            </svg>
+          </button>
+        )}
       </div>
 
       <AnimatePresence mode="wait">
@@ -214,7 +232,8 @@ export default function RolePlay() {
               {name} has something on their mind they won't say straight away. Up to {rp.maxTurns} turns. Stuck? Tap Hint and {coachName} steps in.
             </p>
             <p className="mt-2 text-xs leading-relaxed text-muted/80">This is practice coaching, not therapy or professional advice. If something feels heavy, pause and talk to someone you trust.</p>
-            <button className="btn-primary mt-auto" onClick={() => setPhase('chat')}>Start the conversation</button>
+            <button className="btn-primary mt-auto" onClick={() => { setPhase('chat'); say(rp.setup.opening, rp); }}>Start the conversation</button>
+            {ttsSupported() && <p className="mt-2 text-center text-xs text-muted">{voiceOn ? `${name} will speak out loud. Turn up your volume, or tap 🔈 at the top to mute.` : `${name} is muted. Tap 🔈 at the top to hear them speak.`}</p>}
           </motion.section>
         )}
 
@@ -229,7 +248,10 @@ export default function RolePlay() {
               ) : t.who === 'character' ? (
                 <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex items-end gap-2 pr-10">
                   <Avatar name={name} size={30} />
-                  <div className="card rounded-bl-md px-4 py-2.5 text-[15px] leading-relaxed"><p className="mb-0.5 text-[11px] font-bold text-muted">{name}</p>{t.text}</div>
+                  <div className="card rounded-bl-md px-4 py-2.5 text-[15px] leading-relaxed">
+                    <p className="mb-0.5 flex items-center justify-between gap-2 text-[11px] font-bold text-muted">{name}
+                      {ttsSupported() && <button onClick={() => say(t.text, rp, true)} className="-my-1 rounded-full px-1.5 py-1 text-muted hover:text-ink" aria-label={`Hear ${name} say this again`}>🔈</button>}
+                    </p>{t.text}</div>
                 </motion.div>
               ) : (
                 <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex justify-end pl-10">
@@ -258,7 +280,7 @@ export default function RolePlay() {
                   <label htmlFor="rp-line" className="sr-only">Your reply</label>
                   <textarea id="rp-line" value={line} rows={2} onChange={(e) => setLine(e.target.value.slice(0, 600))} placeholder={`Reply to ${name}…`}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} className="field min-h-[52px] flex-1 py-3 leading-relaxed" />
-                  <MicButton onText={(t) => setLine((p) => appendSpoken(p, t, 600))} label={`Speak your reply to ${name}`} />
+                  <MicButton onText={(t) => setLine((p) => appendSpoken(p, t, 600))} onStart={stopSpeaking} label={`Speak your reply to ${name}`} />
                   <button className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl text-white disabled:opacity-40" style={{ background: tileBackground(tint) }}
                     onClick={send} disabled={!!busy || line.trim().length < 2} aria-label="Send">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>

@@ -42,8 +42,9 @@ export const users = pgTable('users', {
   isAdmin: boolean('is_admin').notNull().default(false),
   // Bumped on password reset / logout-everywhere to invalidate issued tokens.
   tokenVersion: integer('token_version').notNull().default(0),
+  friendCode: text('friend_code'), // shared to add friends; generated on first use
   createdAt: createdAt(),
-}, (t) => [uniqueIndex('users_email_unique').on(t.email)]);
+}, (t) => [uniqueIndex('users_email_unique').on(t.email), uniqueIndex('users_friend_code_unique').on(t.friendCode)]);
 
 export const authTokens = pgTable('auth_tokens', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -418,6 +419,7 @@ export const activityEvents = pgTable('activity_events', {
   kind: text('kind').notNull(), // tools | quiz | scenario | rep | roleplay | review | situation | daily
   topicId: uuid('topic_id').references(() => topics.id, { onDelete: 'set null' }),
   score: integer('score'),
+  xp: integer('xp').notNull().default(0), // XP earned by this action (weekly league)
   localDay: date('local_day').notNull(),
   createdAt: createdAt(),
 }, (t) => [index('activity_events_user_day_idx').on(t.userId, t.localDay)]);
@@ -472,3 +474,11 @@ export const appSettings = pgTable('app_settings', {
   key: text('key').primaryKey(),
   value: jsonb('value').notNull(),
 });
+
+// ---------- Friends (weekly league) ----------
+// Stored both ways (a→b and b→a) when two people connect with a friend code.
+export const friendships = pgTable('friendships', {
+  userId: userRef(),
+  friendId: uuid('friend_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: createdAt(),
+}, (t) => [primaryKey({ columns: [t.userId, t.friendId] })]);

@@ -49,6 +49,7 @@ export default function Profile() {
       <section className="grid grid-cols-2 gap-3">
         <Link to="/progress" className="card p-4"><span className="text-xl" aria-hidden>🏅</span><span className="mt-1 block font-bold">Your progress</span><span className="text-xs text-muted">Level, skills, badges</span></Link>
         <Link to="/week" className="card p-4"><span className="text-xl" aria-hidden>📈</span><span className="mt-1 block font-bold">Your week</span><span className="text-xs text-muted">Days active and focus</span></Link>
+        <Link to="/friends" className="card col-span-2 flex items-center gap-3 p-4"><span className="text-xl" aria-hidden>🏁</span><span className="flex-1"><span className="block font-bold">Weekly league</span><span className="text-xs text-muted">Add friends and see who learns more this week</span></span></Link>
       </section>
 
       <section className="card flex items-center gap-4 p-5">

@@ -8,6 +8,7 @@ import { CoachAvatar } from '../components/Coach';
 import { CategoryGlyph, categoryTint, tileBackground } from '../components/CategoryIcon';
 import { TopicSheet } from '../components/TopicSheet';
 import { FeedbackSheet } from '../components/Feedback';
+import type { LeagueRow } from './Friends';
 import { COACHES, personaLabel } from '../options';
 
 function greeting() {
@@ -17,6 +18,7 @@ function greeting() {
 
 type HomeData = {
   askFeedback: boolean;
+  league: { friends: number; daysLeft: number; top: LeagueRow[]; me: LeagueRow };
   level: { n: number; name: string; xp: number };
   next: { topic: { id: string; name: string; category: string }; label: string; sub: string; minutes: number; path: string; started: boolean } | null;
   picks: { id: string; name: string; description: string | null; category: string; unlocked: boolean }[];
@@ -38,6 +40,8 @@ export default function Home() {
     api<HomeData>('/home').then(setHome).catch(() => {});
   };
   useEffect(load, []);
+  // Arrived from a friend's invite link and just signed up: take them to the league to connect.
+  useEffect(() => { try { if (localStorage.getItem('insight.invite')) nav('/friends'); } catch { /* storage blocked */ } }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const total = cats?.reduce((n, c) => n + c.topics.length, 0) ?? 0;
 
   return (
@@ -68,6 +72,7 @@ export default function Home() {
       <FeedbackSheet open={fb} onClose={() => setFb(false)} onSent={() => setFbDone(true)} />
       <CheckinCard />
       <DailyCard />
+      {home && <LeagueCard league={home.league} />}
 
       <Link to="/situation" className="card mt-3 flex items-center gap-4 p-4 transition active:scale-[0.99]">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl" style={{ background: 'rgba(240,90,126,0.18)' }} aria-hidden>⚡</span>
@@ -220,6 +225,39 @@ function CheckinCard() {
       </>}
       {step === 'done' && <p className="text-sm font-semibold">{outcome === 'not_yet' ? "No problem. I'll ask again in a couple of days." : outcome === 'well' ? '🎉 Real-world win logged. +25 XP' : 'Logged. Every try builds the skill. +25 XP'}</p>}
     </section>
+  );
+}
+
+/** Weekly league with friends: your rank and the top 3, or an invite if you have no friends yet. */
+function LeagueCard({ league }: { league: HomeData['league'] }) {
+  const medal = ['🥇', '🥈', '🥉'];
+  return (
+    <Link to="/friends" className="card mt-3 block p-4 transition active:scale-[0.99]">
+      <div className="flex items-center justify-between">
+        <p className="eyebrow">Weekly league</p>
+        <span className="text-xs text-muted">{league.friends ? (league.daysLeft === 0 ? 'Ends tonight' : `${league.daysLeft}d left`) : ''}</span>
+      </div>
+      {league.friends === 0 ? (
+        <div className="mt-1.5 flex items-center gap-3">
+          <span className="text-2xl" aria-hidden>🏁</span>
+          <span className="flex-1"><span className="block font-bold">Compete with friends</span><span className="block text-sm text-muted">Invite a friend and see who learns more this week.</span></span>
+          <Chevron />
+        </div>
+      ) : (
+        <>
+          <ol className="mt-2 flex gap-2">
+            {league.top.map((r) => (
+              <li key={r.id} className={`flex-1 rounded-2xl px-2 py-2 text-center ${r.me ? 'bg-accent/10 ring-1 ring-accent/40' : 'bg-white/[0.05]'}`}>
+                <span className="block text-lg" aria-hidden>{r.weekXp > 0 ? medal[r.rank - 1] ?? r.rank : r.rank}</span>
+                <span className="block truncate text-sm font-bold">{r.me ? 'You' : r.firstName}</span>
+                <span className="block text-xs text-muted">{r.weekXp} XP</span>
+              </li>
+            ))}
+          </ol>
+          {league.me.rank > 3 && <p className="mt-2 text-center text-sm">You're <span className="font-bold">#{league.me.rank}</span> with {league.me.weekXp} XP</p>}
+        </>
+      )}
+    </Link>
   );
 }
 

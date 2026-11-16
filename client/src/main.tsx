@@ -22,6 +22,7 @@ import Tools from './pages/Tools';
 import Progress from './pages/Progress';
 import TeamDashboard from './pages/Team';
 import Admin from './pages/Admin';
+import Friends from './pages/Friends';
 import Daily, { Week } from './pages/Daily';
 
 /** Signed-out only. */
@@ -69,6 +70,12 @@ function CheckoutReturn() {
 
 function WithNav() { return <><CheckoutReturn /><Outlet /><BottomNav /></>; }
 
+// A friend invite link (/friends?add=CODE) survives sign-up: keep the code until the league page uses it.
+try {
+  const invite = new URLSearchParams(window.location.search).get('add');
+  if (window.location.pathname === '/friends' && invite) localStorage.setItem('insight.invite', invite);
+} catch { /* storage blocked */ }
+
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
 }
@@ -99,6 +106,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/progress" element={<Progress />} />
             <Route path="/team" element={<TeamDashboard />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/friends" element={<Friends />} />
             <Route path="/week" element={<Week />} />
             <Route path="/situation" element={<NewSituation />} />
             <Route path="/situation/:id" element={<SituationPlan />} />

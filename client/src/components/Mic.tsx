@@ -18,7 +18,7 @@ export const speechSupported = () => !!Recognition();
  * Hold a conversation out loud: tap to talk, tap again to stop. Final phrases are appended to the
  * text box (which stays editable); the live phrase shows underneath while speaking.
  */
-export function MicButton({ onText, size = 52, label = 'Speak your answer' }: { onText: (t: string) => void; size?: number; label?: string }) {
+export function MicButton({ onText, onStart, size = 52, label = 'Speak your answer' }: { onText: (t: string) => void; onStart?: () => void; size?: number; label?: string }) {
   const [on, setOn] = useState(false);
   const [live, setLive] = useState('');
   const [err, setErr] = useState('');
@@ -31,6 +31,7 @@ export function MicButton({ onText, size = 52, label = 'Speak your answer' }: { 
 
   const toggle = () => {
     if (on) { rec.current?.stop(); return; }
+    onStart?.(); // e.g. stop the character talking so the mic doesn't hear it
     setErr('');
     const r = new R();
     r.lang = navigator.language || 'en-US';

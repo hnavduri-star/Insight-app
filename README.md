@@ -125,6 +125,8 @@ Slow AI work runs as background jobs (`server/src/lib/jobs.ts`): a request waits
 - **Beta feedback:** three questions (what you used, what felt generic, would you pay and how much), from Profile or a Home prompt after 3 active days.
 - **Beta metrics** (`/admin`, for emails in `ADMIN_EMAILS` or `npm run admin -w server -- you@example.com`): sign-ups, funnel, next-day and week-later retention, role-play score by week, feedback, least helpful tools and AI use.
 - **Teams** (`/api/teams`): a manager creates a team and shares a 6-character invite code. The owner's dashboard shows totals per member (days active, reps, role-plays, average score, wins); members' answers, conversations, people and notes are never shown.
+- **The character speaks:** in role-play, each character line is read aloud with the device's built-in voice (a consistent voice per character; mute in the header, replay any line with 🔈). Tapping the mic stops the character so it doesn't hear itself. Voice quality depends on the phone; a paid text-to-speech service would sound more natural.
+- **Weekly league with friends** (`/api/friends`, `/friends`): each learner has a 6-character friend code and an invite link (`/friends?add=CODE`, which survives sign-up). Friends are ranked by XP earned Monday to Sunday; friends see only first name, weekly XP and streak. Home shows the top 3; a "Better together" badge rewards adding a friend.
 - **Privacy notes** on People, and "practice coaching, not therapy" on role-play and Profile.
 
 ## Look and feel
