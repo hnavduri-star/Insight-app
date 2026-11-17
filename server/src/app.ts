@@ -77,8 +77,16 @@ export function createApp() {
   // In production the API also serves the built client.
   const dist = path.resolve(import.meta.dirname, '../../client/dist');
   if (fs.existsSync(dist)) {
-    app.use(express.static(dist));
-    app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+    // The page itself (and the service worker) must always be re-checked, so an update shows on the next open;
+    // the hashed JS/CSS files never change and can be cached for a year.
+    const noCache = (res: express.Response) => res.setHeader('Cache-Control', 'no-cache');
+    app.use(express.static(dist, {
+      setHeaders: (res, file) => {
+        if (/\.(html|webmanifest)$|[\\/]sw\.js$/.test(file)) noCache(res);
+        else if (/[\\/]assets[\\/]/.test(file)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      },
+    }));
+    app.get(/^(?!\/api).*/, (_req, res) => { noCache(res); res.sendFile(path.join(dist, 'index.html')); });
   }
 
   app.use(errorHandler);
