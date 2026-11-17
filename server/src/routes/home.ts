@@ -139,9 +139,9 @@ homeRoutes.get('/', async (req, res) => {
     league: await leagueFor(userId).then((l) => {
       const me = l.league.find((r) => r.me)!;
       // The person just ahead (to chase), if any.
-      const above = l.league.filter((r) => !r.me && r.weekXp > me.weekXp).sort((x, y) => x.weekXp - y.weekXp)[0];
+      const above = l.league.filter((r) => !r.me && r.weekMinutes > me.weekMinutes).sort((x, y) => x.weekMinutes - y.weekMinutes)[0];
       return { friends: l.friends, size: l.league.length, daysLeft: l.daysLeft, top: l.league.slice(0, 3), me,
-        ahead: above ? { firstName: above.firstName, gap: above.weekXp - me.weekXp } : null };
+        ahead: above ? { firstName: above.firstName, gap: above.weekMinutes - me.weekMinutes } : null };
     }),
     reviewsDue: await db.execute<{ n: number }>(sql`select count(*)::int as n from review_items where user_id = ${userId} and due_at <= now()`).then((r) => r.rows[0]?.n ?? 0),
     next,

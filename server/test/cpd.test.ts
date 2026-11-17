@@ -100,8 +100,24 @@ describe('CPD records and certificates', () => {
     expect((await a.post('/api/cpd/complete').send({ lessonId, reflection })).body.code).toBe('scenario_first');
     await a.post(`/api/bites/${lessonId}/scenario`).send(scenarioAnswer);
     expect((await a.post('/api/cpd/complete').send({ lessonId, reflection: 'Too short' })).status).toBe(400);
-    await pool.query("update lesson_time set seconds = 3240"); // no row yet: insert one
-    await pool.query('insert into lesson_time (user_id, lesson_id, seconds) select user_id, $1, 3240 from tool_progress limit 1 on conflict do nothing', [lessonId]);
+    // Under 30 active minutes: no certificate yet.
+    await pool.query('insert into lesson_time (user_id, lesson_id, seconds) select user_id, $1, 1700 from tool_progress limit 1 on conflict do nothing', [lessonId]);
+    expect((await a.post('/api/cpd/complete').send({ lessonId, reflection })).body.code).toBe('time_short');
+    await pool.query('update lesson_time set seconds = 3240 where lesson_id = $1', [lessonId]);
+    // Below the 70% pass mark on the questions: retake every question until it passes (the best score counts).
+    await pool.query('update module_assessments set correct = 9 where lesson_id = $1', [lessonId]);
+    const st = (await a.get(`/api/bites/${lessonId}/state`)).body;
+    expect(st).toMatchObject({ questions: { correct: 9, total: 15 }, passMark: 70, minMinutes: 30 });
+    expect((await a.post('/api/cpd/complete').send({ lessonId, reflection })).body.code).toBe('below_pass_mark');
+    expect((await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'retake', correct: 16 })).status).toBe(400);
+    expect((await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'retake', correct: 10 })).body.questions).toEqual({ correct: 10, total: 15 });
+    expect((await a.post('/api/cpd/complete').send({ lessonId, reflection })).body.code).toBe('below_pass_mark');
+    await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'retake', correct: 14 });
+    await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'retake', correct: 12 }); // a worse retake doesn't lower it
+    // The scenario needs 70 too: answer again to improve.
+    await pool.query('update scenarios set score = 60 where lesson_id = $1', [lessonId]);
+    expect((await a.post('/api/cpd/complete').send({ lessonId, reflection })).body.code).toBe('scenario_below_pass');
+    await a.post(`/api/bites/${lessonId}/scenario`).send(scenarioAnswer);
 
     const cert = (await a.post('/api/cpd/complete').send({ lessonId, reflection, applyPlan: 'Use it in Thursday\'s supplier call' })).body;
     expect(cert).toMatchObject({ learnerName: 'Asha Menon', topicName: topic.name, level: 'foundations', title: 'Negotiation module', plannedMinutes: 60,
@@ -137,6 +153,7 @@ describe('CPD records and certificates', () => {
     await m.a.post(`/api/bites/${m.lessonId}/progress`).send({ stage: 'cards' });
     await m.a.post(`/api/bites/${m.lessonId}/progress`).send({ stage: 'quiz', correct: 3 });
     await m.a.post(`/api/bites/${m.lessonId}/scenario`).send(scenarioAnswer);
+    await pool.query('insert into lesson_time (user_id, lesson_id, seconds) select user_id, $1, 2400 from tool_progress where lesson_id = $1 limit 1', [m.lessonId]);
     await m.a.post('/api/cpd/complete').send({ lessonId: m.lessonId, reflection: 'A private reflection about my own negotiation habits and what to change.' });
     const d = (await owner.a.get('/api/teams/dashboard')).body;
     expect(d.totals).toMatchObject({ cpdModules: 1, cpdHours: 1 });

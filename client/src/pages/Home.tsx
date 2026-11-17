@@ -6,13 +6,14 @@ import { useAuth } from '../auth';
 import { CoachAvatar } from '../components/Coach';
 import { TopicSheet } from '../components/TopicSheet';
 import { COACHES } from '../options';
+import { fmtMin } from './Friends';
 
 type HomeData = {
   streak: number;
   reviewsDue: number;
   coach: { kind: string; text: string; checkin?: { id: string } };
   next: { topic: { id: string; name: string; category: string }; label: string; sub: string; minutes: number; path: string; started: boolean } | null;
-  league: { friends: number; size: number; me: { rank: number; weekXp: number }; ahead: { firstName: string; gap: number } | null };
+  league: { friends: number; size: number; me: { rank: number; weekMinutes: number }; ahead: { firstName: string; gap: number } | null };
 };
 
 type Card = {
@@ -123,9 +124,9 @@ export default function Home() {
           <Tile to="/daily" bg="rgba(62,230,207,0.12)" icon={<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#3ee6cf" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M9 2h6" /></svg>}
             title="5-min review" sub={home.reviewsDue ? `${home.reviewsDue} question${home.reviewsDue === 1 ? '' : 's'} due` : 'Nothing due today'} />
           <Tile to="/friends" bg="rgba(196,181,253,0.14)"
-            icon={home.league.friends && (home.league.me.weekXp > 0 || home.league.ahead) ? <span className="flex items-baseline gap-1.5"><span className="font-display text-[34px] font-bold leading-none text-[#c4b5fd]">#{home.league.me.rank}</span><span className="text-[13px] font-semibold text-muted">of {home.league.size}</span></span>
+            icon={home.league.friends && (home.league.me.weekMinutes > 0 || home.league.ahead) ? <span className="flex items-baseline gap-1.5"><span className="font-display text-[34px] font-bold leading-none text-[#c4b5fd]">#{home.league.me.rank}</span><span className="text-[13px] font-semibold text-muted">of {home.league.size}</span></span>
               : <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M19 8v6M16 11h6" /></svg>}
-            title="Weekly league" sub={!home.league.friends ? 'Invite a friend' : home.league.ahead ? `${home.league.ahead.gap} XP behind ${home.league.ahead.firstName}` : home.league.me.weekXp ? "You're top this week" : 'Earn the first XP'} />
+            title="Weekly league" sub={!home.league.friends ? 'Invite a friend' : home.league.ahead ? `${fmtMin(home.league.ahead.gap)} behind ${home.league.ahead.firstName}` : home.league.me.weekMinutes ? `Top · ${fmtMin(home.league.me.weekMinutes)} this week` : 'Most time learning wins'} />
         </div>
       )}
 

@@ -7,9 +7,9 @@ import { cachedLessons, cpdRecords, lessonTime, scenarios, toolProgress, topicPr
 import { requireAuth } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { requireTopicAccess } from '../lib/access.js';
-import { allQuestions, type Bite } from '../lib/ai.js';
+import { type Bite } from '../lib/ai.js';
 import { recordActivity } from '../lib/activity.js';
-import { uuid } from './bites.js';
+import { bestQuestionScore, CPD_MIN_MINUTES, PASS_MARK, percent, uuid } from './bites.js';
 
 /**
  * CPD: each completed module (every tool with its questions and practice, the mixed questions, the scenario
@@ -46,10 +46,17 @@ cpdRoutes.post('/complete', async (req, res) => {
   const [sc] = await db.select({ best: sql<number | null>`max(${scenarios.score})` }).from(scenarios).where(and(eq(scenarios.userId, userId), eq(scenarios.lessonId, l.id)));
   if (sc?.best == null) throw new HttpError(409, 'Answer the scenario first.', 'scenario_first');
 
-  const checksRight = bite.tools.reduce((n, t, i) => n + t.checks.filter((q, k) => (tools.find((x) => x.toolIndex === i)?.checksJson as Record<string, number>)?.[k] === q.answer).length, 0);
-  const questionsTotal = mastery ? bite.tools.length * bite.tools[0].checks.length : allQuestions(bite).length;
-  const questionsCorrect = mastery ? checksRight : Math.min(questionsTotal, tp?.quizCorrect ?? checksRight);
   const [time] = await db.select({ s: lessonTime.seconds }).from(lessonTime).where(and(eq(lessonTime.userId, userId), eq(lessonTime.lessonId, l.id)));
+  const activeMinutes = Math.floor((time?.s ?? 0) / 60);
+  if (activeMinutes < CPD_MIN_MINUTES) {
+    throw new HttpError(409, `A CPD certificate needs at least ${CPD_MIN_MINUTES} minutes of active learning in this module. You have ${activeMinutes} so far: revisit the tools and their case studies.`, 'time_short');
+  }
+  const score = await bestQuestionScore(userId, l);
+  if (!score || percent(score) < PASS_MARK) {
+    throw new HttpError(409, `The pass mark is ${PASS_MARK}%. Your best on the questions is ${score ? percent(score) : 0}%: retake them to pass.`, 'below_pass_mark');
+  }
+  if (sc.best < PASS_MARK) throw new HttpError(409, `The scenario needs ${PASS_MARK} or more. Your best is ${sc.best}: try it again using the feedback.`, 'scenario_below_pass');
+  const questionsCorrect = score.correct, questionsTotal = score.total;
   const [pa] = await db.select({ a: avg(toolProgress.score) }).from(toolProgress).where(and(eq(toolProgress.userId, userId), eq(toolProgress.lessonId, l.id), isNotNull(toolProgress.score)));
   const [u] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId));
   const [t] = await db.select({ name: topics.name }).from(topics).where(eq(topics.id, l.topicId));
@@ -60,7 +67,7 @@ cpdRoutes.post('/complete', async (req, res) => {
       [row] = await db.insert(cpdRecords).values({
         userId, topicId: l.topicId, lessonId: l.id, code: newCode(), learnerName: u.name, topicName: t.name, level: mastery ? 'mastery' : 'foundations',
         title: bite.title, outcomesJson: bite.outcomes, toolsJson: bite.tools.map((x) => x.name), plannedMinutes: PLANNED_MINUTES,
-        activeMinutes: Math.round((time?.s ?? 0) / 60), questionsCorrect, questionsTotal,
+        activeMinutes, questionsCorrect, questionsTotal,
         practiceAvg: pa?.a == null ? null : Math.round(Number(pa.a)), scenarioScore: sc.best, reflection: body.reflection, applyPlan: body.applyPlan || null,
       }).onConflictDoNothing({ target: [cpdRecords.userId, cpdRecords.lessonId] }).returning();
       if (!row) [row] = await db.select().from(cpdRecords).where(and(eq(cpdRecords.userId, userId), eq(cpdRecords.lessonId, l.id)));

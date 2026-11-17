@@ -255,7 +255,7 @@ describe('the coach on Home', () => {
 });
 
 describe('friends and the weekly league', () => {
-  it('connects two learners by code and ranks them by XP earned this week, showing totals only', async () => {
+  it('connects two learners by code and ranks them by minutes learned this week, showing totals only', async () => {
     const { weekStart } = await import('../src/routes/friends.js');
     expect(weekStart('2026-11-16')).toBe('2026-11-16'); // Monday
     expect(weekStart('2026-11-22')).toBe('2026-11-16'); // Sunday
@@ -270,16 +270,18 @@ describe('friends and the weekly league', () => {
     const added = (await bob.a.post('/api/friends/add').send({ code: annCode.toLowerCase() })).body;
     expect(added.added).toBe('Grace');
     expect((await ann.a.get('/api/friends')).body.friends).toBe(1); // both ways
-    // Bob earns XP this week (and some last week, which doesn't count).
-    const { lessonId } = (await bob.a.post('/api/bites').send({ topicId: bob.topic.id })).body;
-    await completeTools(bob.a, lessonId);
-    await bob.a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
-    await pool.query("insert into activity_events (user_id, kind, xp, local_day) values ($1, 'rep', 500, current_date - 14)", [bob.id]);
+    // Bob learns for a while this week (and lots last week, which doesn't count); Ann for one minute.
+    await pool.query("insert into daily_time (user_id, local_day, seconds) values ($1, current_date, 1500), ($1, current_date - 14, 99999)", [bob.id]);
+    expect((await ann.a.post('/api/friends/time').send({ seconds: 30 })).body.todaySeconds).toBe(30);
+    // A second heartbeat straight away is capped by the wall clock (no inflating the time).
+    expect((await ann.a.post('/api/friends/time').send({ seconds: 60 })).body.todaySeconds).toBeLessThanOrEqual(40);
+    expect((await ann.a.post('/api/friends/time').send({ seconds: 600 })).status).toBe(400);
+    await pool.query("update daily_time set seconds = 90 where user_id = $1", [ann.id]);
     const league = (await ann.a.get('/api/friends')).body.league;
-    expect(league.map((r: any) => [r.me, r.weekXp, r.rank])).toEqual([[false, 80, 1], [true, 0, 2]]);
-    expect(Object.keys(league[0]).sort()).toEqual(['firstName', 'id', 'me', 'rank', 'streak', 'weekXp']);
+    expect(league.map((r: any) => [r.me, r.weekMinutes, r.rank])).toEqual([[false, 25, 1], [true, 1, 2]]);
+    expect(Object.keys(league[0]).sort()).toEqual(['firstName', 'id', 'me', 'rank', 'streak', 'weekMinutes']);
     const home = (await ann.a.get('/api/home')).body.league;
-    expect(home).toMatchObject({ friends: 1, me: { rank: 2 } });
+    expect(home).toMatchObject({ friends: 1, me: { rank: 2 }, ahead: { firstName: expect.any(String), gap: 24 } });
     expect((await bob.a.get('/api/progress')).body.badges.find((b: any) => b.key === 'friends').earned).toBe(true);
     await ann.a.delete(`/api/friends/${bob.id}`);
     expect((await bob.a.get('/api/friends')).body.friends).toBe(0);

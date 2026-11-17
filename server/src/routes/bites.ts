@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { and, asc, avg, count, eq, gt, isNotNull, max, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
-  aiCalls, assessments, books, cachedLessons, cardFeedback, categories, cpdRecords, lessonTime, practiceReps, profiles, reviewItems, roleplaySessions, scenarios, toolProgress, topicBooks, topicProgress, topics,
+  aiCalls, assessments, books, moduleAssessments, cachedLessons, cardFeedback, categories, cpdRecords, lessonTime, practiceReps, profiles, reviewItems, roleplaySessions, scenarios, toolProgress, topicBooks, topicProgress, topics,
 } from '../db/schema.js';
 import { requireAuth } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
@@ -20,6 +20,8 @@ biteRoutes.use(requireAuth);
 
 /** AI calls per user per rolling 24 hours. */
 export const LIMITS: Record<string, number> = { bite: 20, grade: 40, reps: 15, situation: 10, roleplay: 8, roleplay_turn: 80, roleplay_hint: 30, roleplay_debrief: 12, finder: 10, tool_practice: 80, coach_session: 8, coach_turn: 150, coach_summary: 10 };
+export const PASS_MARK = 70;         // % needed on the module's questions, and on the scenario, for a CPD certificate
+export const CPD_MIN_MINUTES = 30;    // active minutes in the module needed for a CPD certificate
 export const REPS_GOAL = 10;          // practice reps that complete level 2
 export const MASTERY_AFTER_REPS = 5;  // reps needed (with the toolkit done) to unlock mastery
 export const ROLEPLAY_AFTER_REPS = 3; // reps needed (with the toolkit done) to unlock level 3 role-play
@@ -230,6 +232,23 @@ async function toolStates(userId: string, l: typeof cachedLessons.$inferSelect) 
 const checksCorrect = (bite: Bite, states: ToolState[]) =>
   bite.tools.reduce((n, t, i) => n + (t.checks ?? []).filter((q, k) => states[i]?.checks[k] === q.answer).length, 0);
 
+/** The learner's best result on a module's questions (first attempt or a full retake), or null if not taken. */
+export async function bestQuestionScore(userId: string, l: typeof cachedLessons.$inferSelect) {
+  const [a] = await db.select().from(moduleAssessments).where(and(eq(moduleAssessments.userId, userId), eq(moduleAssessments.lessonId, l.id)));
+  if (a) return { correct: a.correct, total: a.total };
+  if (l.ratingBand === 'mastery') return null;
+  // Older records: the first attempt kept on topic progress.
+  const [tp] = await db.select().from(topicProgress).where(and(eq(topicProgress.userId, userId), eq(topicProgress.topicId, l.topicId)));
+  return tp?.quizCompletedAt ? { correct: tp.quizCorrect ?? 0, total: tp.quizTotal ?? allQuestions(l.contentJson as Bite).length } : null;
+}
+export const percent = (s: { correct: number; total: number }) => (s.total ? Math.round((s.correct / s.total) * 100) : 0);
+
+async function saveQuestionScore(userId: string, lessonId: string, correct: number, total: number) {
+  await db.insert(moduleAssessments).values({ userId, lessonId, correct, total })
+    .onConflictDoUpdate({ target: [moduleAssessments.userId, moduleAssessments.lessonId],
+      set: { correct: sql`greatest(${moduleAssessments.correct}, ${correct})`, total, updatedAt: new Date() } });
+}
+
 function toolAt(l: typeof cachedLessons.$inferSelect, index: string) {
   const i = Number(index);
   const bite = l.contentJson as Bite;
@@ -257,6 +276,7 @@ biteRoutes.get('/:id/state', async (req, res) => {
     tools, seconds: t?.seconds ?? 0,
     quizDone: mastery ? !!tp?.masteryCompletedAt : !!tp?.quizCompletedAt,
     scenarioScore: sc?.best ?? null, cpdId: cpd?.id ?? null,
+    questions: await bestQuestionScore(userId, l), passMark: PASS_MARK, minMinutes: CPD_MIN_MINUTES,
   });
 });
 
@@ -315,12 +335,21 @@ biteRoutes.post('/:id/progress', async (req, res) => {
     z.object({ stage: z.literal('cards') }),
     // correct: right answers on the 3 mixed questions (the tools' own questions are already recorded).
     z.object({ stage: z.literal('quiz'), correct: z.number().int().min(0).max(QUIZ_LENGTH) }),
+    // correct: right answers when retaking every question of the module (to reach the pass mark).
+    z.object({ stage: z.literal('retake'), correct: z.number().int().min(0).max(100) }),
   ]).parse(req.body);
   const l = await lessonFor(req.userId!, req.params.id);
   const mastery = l.ratingBand === 'mastery';
   const bite = l.contentJson as Bite;
   const states = await toolStates(req.userId!, l);
   const total = allQuestions(bite).length;
+  if (body.stage === 'retake') {
+    if (body.correct > total) throw new HttpError(400, 'Invalid score', 'bad_score');
+    if (!(await bestQuestionScore(req.userId!, l))) throw new HttpError(409, 'Finish the tools and the mixed questions first.', 'quiz_first');
+    await saveQuestionScore(req.userId!, l.id, body.correct, total);
+    await recordActivity(req.userId!, 'quiz', { topicId: l.topicId, score: Math.round((body.correct / total) * 100), xp: 5 });
+    return void res.json({ questions: await bestQuestionScore(req.userId!, l) });
+  }
   const correct = body.stage === 'quiz' ? checksCorrect(bite, states) + body.correct : 0;
   if (body.stage === 'cards' && states.some((s) => !s.completed)) {
     throw new HttpError(409, 'Work through every tool (its questions and practice) first.', 'tools_incomplete');
@@ -343,12 +372,13 @@ biteRoutes.post('/:id/progress', async (req, res) => {
         quizCompletedAt: sql`coalesce(${topicProgress.quizCompletedAt}, now())`,
       } });
   }
+  if (body.stage === 'quiz') await saveQuestionScore(req.userId!, l.id, correct, total);
   // Every question (each tool's two and the mixed quiz) joins spaced review.
   if (body.stage === 'quiz') await seedReview(req.userId!, l.topicId, l.id, allQuestions(bite));
   await recordActivity(req.userId!, body.stage === 'cards' ? 'tools' : 'quiz', {
     topicId: l.topicId, score: body.stage === 'quiz' ? Math.round((correct / total) * 100) : null, xp: body.stage === 'cards' ? 20 : 10 + correct * 2,
   });
-  res.json({ ok: true });
+  res.json({ ok: true, questions: body.stage === 'quiz' ? await bestQuestionScore(req.userId!, l) : undefined });
 });
 
 /** Helpful / not helpful on a card: used to improve bites. */

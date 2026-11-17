@@ -4,25 +4,28 @@ import { motion } from 'framer-motion';
 import { api } from '../api';
 import { Alert, Avatar, Spinner } from '../components/ui';
 
-export type LeagueRow = { id: string; firstName: string; me: boolean; weekXp: number; streak: number; rank: number };
+export type LeagueRow = { id: string; firstName: string; me: boolean; weekMinutes: number; streak: number; rank: number };
 type FriendsData = { code: string; weekStart: string; daysLeft: number; friends: number; league: LeagueRow[] };
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
-/** One league row: rank, name, streak and this week's XP. */
+/** 95 → "1h 35m", 12 → "12 min". */
+export const fmtMin = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}` : `${m} min`);
+
+/** One league row: rank, name, streak and this week's learning time. */
 export function LeagueLine({ r, max, onRemove }: { r: LeagueRow; max: number; onRemove?: () => void }) {
   return (
     <li className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 ${r.me ? 'bg-accent/10 ring-1 ring-accent/40' : 'bg-white/[0.04]'}`}>
-      <span className="w-7 text-center text-lg font-extrabold">{r.rank <= 3 && r.weekXp > 0 ? MEDAL[r.rank - 1] : r.rank}</span>
+      <span className="w-7 text-center text-lg font-extrabold">{r.rank <= 3 && r.weekMinutes > 0 ? MEDAL[r.rank - 1] : r.rank}</span>
       <Avatar name={r.firstName} size={34} />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-bold">{r.me ? 'You' : r.firstName}</span>
         <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-white/10">
-          <motion.span className="block h-full rounded-full bg-accent" initial={{ width: 0 }} animate={{ width: `${max ? (r.weekXp / max) * 100 : 0}%` }} />
+          <motion.span className="block h-full rounded-full bg-accent" initial={{ width: 0 }} animate={{ width: `${max ? (r.weekMinutes / max) * 100 : 0}%` }} />
         </span>
       </span>
       <span className="text-right">
-        <span className="block text-sm font-extrabold">{r.weekXp} XP</span>
+        <span className="block text-sm font-extrabold">{fmtMin(r.weekMinutes)}</span>
         <span className="block text-[11px] text-muted">🔥 {r.streak}</span>
       </span>
       {onRemove && !r.me && <button onClick={onRemove} className="ml-1 text-xs text-muted hover:text-error" aria-label={`Remove ${r.firstName}`}>✕</button>}
@@ -61,7 +64,7 @@ export default function Friends() {
 
   const link = d ? `${window.location.origin}/friends?add=${d.code}` : '';
   const invite = async () => {
-    const text = `Join me on Insight: let's see who learns more this week. ${link}`;
+    const text = `Join me on Insight: let's see who spends more time learning this week. ${link}`;
     if (navigator.share) { await navigator.share({ title: 'Insight weekly league', text, url: link }).catch(() => {}); }
     else { await navigator.clipboard?.writeText(text); setMsg({ kind: 'success', text: 'Invite link copied. Send it to a friend.' }); }
   };
@@ -70,7 +73,7 @@ export default function Friends() {
     const r = await api<Omit<FriendsData, 'code'>>(`/friends/${id}`, { method: 'DELETE' }).catch(() => null);
     if (r && d) setD({ ...d, ...r });
   };
-  const max = Math.max(0, ...(d?.league.map((r) => r.weekXp) ?? [0]));
+  const max = Math.max(0, ...(d?.league.map((r) => r.weekMinutes) ?? [0]));
   const me = d?.league.find((r) => r.me);
 
   return (
@@ -88,8 +91,8 @@ export default function Friends() {
         <>
           <section className="tile hero-grad p-5">
             <p className="relative text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">This week · {d.daysLeft === 0 ? 'ends tonight' : `${d.daysLeft} day${d.daysLeft === 1 ? '' : 's'} left`}</p>
-            <p className="relative mt-1 text-[30px] font-extrabold leading-tight">{d.friends === 0 ? 'Bring a friend' : !me?.weekXp ? 'Your move: earn the first XP' : me.rank === 1 ? "You're top 🏆" : `You're #${me.rank}`}</p>
-            <p className="relative mt-1 text-sm text-white/85">{d.friends === 0 ? 'Learning sticks better with a little friendly competition.' : 'Earn XP with toolkits, reps, role-plays, reviews and real-world wins. Resets every Monday.'}</p>
+            <p className="relative mt-1 text-[30px] font-extrabold leading-tight">{d.friends === 0 ? 'Bring a friend' : !me?.weekMinutes ? 'Your move: start the clock' : me.rank === 1 ? "You're top 🏆" : `You're #${me.rank}`}</p>
+            <p className="relative mt-1 text-sm text-white/85">{d.friends === 0 ? 'Learning sticks better with a little friendly competition.' : 'Ranked by time spent learning, whatever each of you is studying. Resets every Monday.'}</p>
           </section>
 
           <ol className="mt-4 space-y-2" aria-label="League table">
@@ -107,7 +110,7 @@ export default function Friends() {
               <input id="friend-code" className="field flex-1" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 12))} placeholder="e.g. 7KQ2MX" />
               <button className="btn-ghost px-4" disabled={busy || code.trim().length < 4} onClick={() => add(code.trim())}>Add</button>
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-muted">🔒 Friends see only your first name, weekly XP and streak. Never your answers, conversations, people or notes.</p>
+            <p className="mt-3 text-xs leading-relaxed text-muted">🔒 Friends see only your first name, weekly learning time and streak. Never your topics, answers, conversations, people or notes.</p>
           </section>
           <Link to="/progress" className="mt-4 flex min-h-[44px] items-center justify-center text-sm font-semibold text-primary">See your badges</Link>
         </>

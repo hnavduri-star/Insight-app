@@ -16,6 +16,7 @@ export default function Onboarding() {
     persona: me?.persona ?? null, industry: me?.industry ?? null, goals: me?.goals ?? [],
     dailyMinutes: me?.dailyMinutes ?? null, coach: me?.coach ?? null,
   });
+  const [start, setStart] = useState<'choose' | 'guide' | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,6 +24,7 @@ export default function Onboarding() {
     { title: "Let's shape your learning journey", ok: !!f.persona && !!f.industry },
     { title: 'What are you working towards?', ok: f.goals.length > 0 && !!f.dailyMinutes },
     { title: 'Meet your coach', ok: !!f.coach },
+    { title: 'How would you like to begin?', ok: !!start },
   ];
   const cur = steps[step];
 
@@ -31,7 +33,8 @@ export default function Onboarding() {
     setBusy(true); setError('');
     try {
       setMe(await api<Me>('/me/onboarding', { body: { ...f, timezone: browserTimezone() } }));
-      nav('/finder?welcome=1', { replace: true }); // last step: "Find my skills" (skippable)
+      // Choose topics yourself (Explore), or let the coach guide with a few questions (Find my skills).
+      nav(start === 'guide' ? '/finder?welcome=1' : '/explore', { replace: true });
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
 
@@ -71,6 +74,21 @@ export default function Onboarding() {
               </CoachBubble>
             )}
           </>}
+          {step === 3 && (
+            <div className="space-y-3" role="radiogroup" aria-label="How to begin">
+              {([
+                ['choose', 'I know what I want', 'Browse the skills and pick your own topics.', '🧭'],
+                ['guide', `Guide me, ${coachName ?? 'coach'}`, 'Answer about 10 quick questions about your work, and I’ll recommend where to start.', '✨'],
+              ] as const).map(([v, t, d, icon]) => (
+                <button key={v} role="radio" aria-checked={start === v} onClick={() => setStart(v)}
+                  className={`flex w-full items-start gap-3 rounded-[22px] p-4 text-left transition ${start === v ? 'bg-accent/15 ring-2 ring-accent' : 'bg-white/[0.06]'}`}>
+                  <span className="text-2xl" aria-hidden>{icon}</span>
+                  <span><span className="block text-[17px] font-bold">{t}</span><span className="mt-0.5 block text-sm text-muted">{d}</span></span>
+                </button>
+              ))}
+              <p className="px-1 text-xs text-muted">You can do either any time from Explore.</p>
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
 

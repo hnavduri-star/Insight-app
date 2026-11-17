@@ -211,7 +211,14 @@ Originality and copyright rules (always follow):
 Quality rules:
 - Stay strictly within the topic's scope; adjacent skills belong to other topics.
 - Be concrete and specific to the learner's career stage, industry and goals. No generic advice.
-- Plain, warm, direct English. Short sentences.`;
+- Plain, warm, direct English. Short sentences.
+
+Practicality rules (the most important test of every tool):
+- The "Monday morning" test: a learner can use each tool in a real meeting, conversation, email or decision this week, with no preparation beyond reading its steps.
+- No abstract mindsets or "be more aware / be authentic / build trust" advice. Every step is an observable action: something to say, write, ask, do, schedule or check, with when to do it.
+- Prefer tools with a clear trigger ("When someone pushes back on your number...") and a clear first move.
+- Example phrases must be words a real person would say out loud at work: natural, short, not consultant-speak.
+- Cases and practice use everyday working moments (1:1s, team meetings, emails, chats, reviews, client calls), not rare dramatic events.`;
 
 /** What each career stage needs most, so toolkits differ in substance, not just wording. */
 export function personaFocus(persona: string) {
@@ -250,10 +257,10 @@ Write the module:
   - why: why it works (60 to 100 words): the underlying principle from the books or behavioural science, in plain language. No invented statistics or fake study citations.
   - whenToUse: when to use it and when not to (40 words or fewer).
   - pitfalls: 2 or 3 common mistakes people make with this tool (15 words or fewer each).
-  - steps: 3 to 5 steps for using it (18 words or fewer each).
+  - steps: 3 to 5 steps for using it (18 words or fewer each), each starting with a verb and describing a concrete action in the moment.
   - say: 2 or 3 example phrases this learner could actually say or write in their work (25 words or fewer each).
   - caseStudy: a realistic case. situation (50 words or fewer), action (70 words or fewer: how the person used this tool, including what they said), result (35 words or fewer). Vary the people across tools (role, personality, seniority, setting); at least half should be close to this learner's world. No real names of real people.
-  - tryThis: one action doable today (25 words or fewer).
+  - tryThis: one specific action for a real moment in the next 24 hours, naming when and with whom, e.g. "In your next 1:1, ..." (25 words or fewer).
   - checks: exactly 2 questions on THIS tool. The first checks understanding of how or why it works (a short scenario, not a definition to recall). The second is "What would you do?": a realistic moment from this learner's world (35 words or fewer) ending with what they should do or say. 4 options each: one applies the tool well; the others are plausible, common reactions (e.g. over-explaining, avoiding, overreacting), never silly. answer (0-3 index of the correct option) and why (one sentence linking back to the tool). Vary which option is correct.
   - practice: a short situation from this learner's world (45 words or fewer) that calls for this tool, ending with exactly what they should write or say in 2 or 3 sentences.
 - quiz: exactly 3 mixed questions, asked after all the tools. Each describes a new situation and asks which tool, or which combination of tools, fits best, or what to say. Not recall. Vary which option is correct. Each has 4 options, answer (0-3) and why (one sentence).

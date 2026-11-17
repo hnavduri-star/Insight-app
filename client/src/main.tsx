@@ -43,7 +43,25 @@ function Private({ needsOnboarding = true }: { needsOnboarding?: boolean }) {
   if (loading) return <Spinner />;
   if (!me) return <Navigate to="/welcome" replace />;
   if (needsOnboarding && !me.onboarded) return <Navigate to="/onboarding" replace />;
-  return <Outlet />;
+  return <><ActiveTime /><Outlet /></>;
+}
+
+/**
+ * Time spent learning (the weekly league): every 30 seconds while the app is open and visible and the learner
+ * has touched it in the last 90 seconds. Idle or background time doesn't count.
+ */
+function ActiveTime() {
+  useEffect(() => {
+    let last = Date.now();
+    const touch = () => { last = Date.now(); };
+    const evs = ['pointerdown', 'keydown', 'scroll', 'touchstart'] as const;
+    evs.forEach((e) => window.addEventListener(e, touch, { passive: true }));
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible' && Date.now() - last < 90_000) api('/friends/time', { body: { seconds: 30 } }).catch(() => {});
+    }, 30_000);
+    return () => { clearInterval(timer); evs.forEach((e) => window.removeEventListener(e, touch)); };
+  }, []);
+  return null;
 }
 
 function ScrollToTop() {

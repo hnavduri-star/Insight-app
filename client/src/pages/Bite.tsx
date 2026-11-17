@@ -18,7 +18,12 @@ type Tool = {
 type BiteData = { title: string; framework: string; outcomes: string[]; scenario: string; tools: Tool[]; quiz: Question[] };
 type ToolFeedback = { score: number; feedback: string; tryInstead: string };
 type ToolState = { checks: Record<string, number>; response: string | null; feedback: ToolFeedback | null; score: number | null; completed: boolean };
-type ModuleState = { tools: ToolState[]; seconds: number; quizDone: boolean; scenarioScore: number | null; cpdId: string | null };
+type Score = { correct: number; total: number };
+type ModuleState = {
+  tools: ToolState[]; seconds: number; quizDone: boolean; scenarioScore: number | null; cpdId: string | null;
+  questions: Score | null; passMark: number; minMinutes: number;
+};
+const pct = (s: Score | null | undefined) => (s && s.total ? Math.round((s.correct / s.total) * 100) : 0);
 type Cert = { id: string; code: string; activeMinutes: number; plannedMinutes: number };
 
 /** After a tool's theory: two questions (understand, then apply), then a short written practice with coaching. */
@@ -125,7 +130,7 @@ function Choices({ q, picked, onPick, coach, tint }: { q: Question; picked: numb
 }
 type Started = { lessonId: string; topic: { id: string; name: string; category: string }; bite: BiteData; cached: boolean };
 type Grade = { score: number; feedback: string; strength: string; improve: string; toolsUsed: string[]; modelAnswer: string };
-type Phase = 'loading' | 'error' | 'intro' | 'tools' | 'quiz' | 'scenario' | 'reflect' | 'done';
+type Phase = 'loading' | 'error' | 'intro' | 'tools' | 'quiz' | 'scenario' | 'reflect' | 'retake' | 'done';
 
 /** Wraps a phrase in curly quotes, without doubling quotes the AI already added. */
 const quoted = (s: string) => `“${s.trim().replace(/^["“']+|["”']+$/g, '')}”`;
@@ -175,6 +180,10 @@ export default function Bite() {
   const [grading, setGrading] = useState(false);
   const [grade, setGrade] = useState<Grade | null>(null);
   const [gradeErr, setGradeErr] = useState('');
+  // Retaking every question to reach the pass mark.
+  const [ri, setRi] = useState(0);
+  const [rPicked, setRPicked] = useState<number | null>(null);
+  const [rCorrect, setRCorrect] = useState(0);
   const started = useRef(false);
 
   const alive = useRef(true);
@@ -237,7 +246,15 @@ export default function Bite() {
   const nT = bite?.tools.length ?? 6;
   const nQ = bite?.quiz.length ?? 3;
   const total = nT + nQ + 2;
-  const step = { loading: 0, error: 0, intro: 0, tools: 1 + ti, quiz: 1 + nT + qi, scenario: nT + nQ + 1, reflect: total, done: total }[phase];
+  const step = { loading: 0, error: 0, intro: 0, tools: 1 + ti, quiz: 1 + nT + qi, scenario: nT + nQ + 1, reflect: total, retake: total, done: total }[phase];
+  const passMark = mod?.passMark ?? 70;
+  const minMinutes = mod?.minMinutes ?? 30;
+  const allQs = bite ? [...bite.tools.flatMap((t) => t.checks ?? []), ...bite.quiz] : [];
+  const reqs = {
+    time: Math.floor((mod?.seconds ?? 0) / 60) >= minMinutes,
+    questions: pct(mod?.questions) >= passMark,
+    scenario: (mod?.scenarioScore ?? 0) >= passMark,
+  };
   const close = () => nav(-1);
 
   // CPD time: count active learning time (page visible and the learner interacted in the last 90 seconds).
@@ -287,7 +304,11 @@ export default function Bite() {
     if (qi + 1 >= nQ) {
       // Wait for the quiz result to be saved: it is what opens Practice for this topic.
       for (let attempt = 0; attempt < 3; attempt++) {
-        try { await api(`/bites/${data!.lessonId}/progress`, { body: { stage: 'quiz', correct } }); break; }
+        try {
+          const r = await api<{ questions?: Score }>(`/bites/${data!.lessonId}/progress`, { body: { stage: 'quiz', correct } });
+          if (r.questions) setMod((m) => (m ? { ...m, quizDone: true, questions: r.questions! } : m));
+          break;
+        }
         catch { await new Promise((r) => setTimeout(r, 1500)); }
       }
       setPhase('scenario'); return;
@@ -296,8 +317,25 @@ export default function Bite() {
   };
   const submit = async () => {
     setGrading(true); setGradeErr('');
-    try { setGrade(await api<Grade>(`/bites/${data!.lessonId}/scenario`, { body: { response: answer } })); }
+    try {
+      const g = await api<Grade>(`/bites/${data!.lessonId}/scenario`, { body: { response: answer } });
+      setGrade(g);
+      setMod((m) => (m ? { ...m, scenarioScore: Math.max(m.scenarioScore ?? 0, g.score) } : m));
+    }
     catch (e) { setGradeErr((e as Error).message); } finally { setGrading(false); }
+  };
+
+  const startRetake = () => { setRi(0); setRPicked(null); setRCorrect(0); setPhase('retake'); };
+  const pickRetake = (i: number) => {
+    if (rPicked !== null) return;
+    setRPicked(i);
+    if (i === allQs[ri].answer) setRCorrect((c) => c + 1);
+  };
+  const nextRetake = async () => {
+    if (ri + 1 < allQs.length) { setRi(ri + 1); setRPicked(null); return; }
+    const r = await api<{ questions: Score }>(`/bites/${data!.lessonId}/progress`, { body: { stage: 'retake', correct: rCorrect } }).catch(() => null);
+    if (r) setMod((m) => (m ? { ...m, questions: r.questions } : m));
+    setPhase('reflect');
   };
 
   return (
@@ -352,6 +390,7 @@ export default function Bite() {
               <span className="rounded-full bg-accent/15 px-3 py-1.5 text-accent">🎓 1 CPD hour</span>
               <span className="rounded-full bg-white/[0.07] px-3 py-1.5">About 60 minutes</span>
               <span className="rounded-full bg-white/[0.07] px-3 py-1.5">Save and continue any time</span>
+              <span className="rounded-full bg-white/[0.07] px-3 py-1.5">Pass mark {passMark}%</span>
             </div>
             {bite.outcomes?.length > 0 && (
               <section className="card mt-4 p-4">
@@ -376,7 +415,7 @@ export default function Bite() {
                 <div key={a} className="surface rounded-2xl px-2 py-3"><span className="block text-sm font-bold" style={{ color: tint }}>{a}</span><span className="text-muted">{b}</span></div>
               ))}
             </div>
-            <p className="mt-3 text-center text-xs text-muted">An original synthesis written for you, not a book summary. Finish it to earn a CPD certificate.</p>
+            <p className="mt-3 text-center text-xs text-muted">An original synthesis written for you, not a book summary. For the CPD certificate: every tool, the questions and the scenario, at least {minMinutes} active minutes, and {passMark}% on the questions and the scenario.</p>
             {(() => {
               const next = toolStates.findIndex((t) => !t.completed);
               const allDone = toolStates.length > 0 && next === -1;
@@ -545,6 +584,9 @@ export default function Bite() {
                 <p className="mt-1 text-[15px] font-semibold leading-relaxed">{quoted(grade.modelAnswer)}</p>
               </div>
             </div>
+            {!cert && grade.score < passMark && (
+              <p className="mt-4 rounded-2xl bg-[#ffb36b]/10 p-3 text-sm text-[#ffb36b]">The certificate needs {passMark} or more on the scenario. Use the feedback and try again: your best score counts.</p>
+            )}
             <div className="mt-auto space-y-2 pt-6">
               <button className="btn-primary" onClick={() => setPhase(cert ? 'done' : 'reflect')}>{cert ? 'Finish' : 'Last step: reflect'}</button>
               <button className="btn-ghost w-full" onClick={() => setGrade(null)}>Try again with a better answer</button>
@@ -557,6 +599,21 @@ export default function Bite() {
             <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em]" style={{ color: tint }}>Reflection · last step</p>
             <h1 className="mt-2 text-[24px] leading-snug">What will you take from this hour?</h1>
             <p className="mt-1.5 text-sm text-muted">Reflection is part of CPD. It goes on your CPD record (only you can see it) and completes your certificate.</p>
+            <section className="card mt-4 p-4" aria-label="Certificate requirements">
+              <p className="eyebrow">For your certificate</p>
+              <ul className="mt-2 space-y-2 text-[14px]">
+                <Req ok>Every tool, the mixed questions and the scenario</Req>
+                <Req ok={reqs.time}>At least {minMinutes} active minutes <span className="text-muted">({Math.floor((mod?.seconds ?? 0) / 60)} so far)</span></Req>
+                <Req ok={reqs.questions} action={!reqs.questions ? { label: 'Retake the questions', go: startRetake } : undefined}>
+                  {passMark}% on the questions <span className="text-muted">(best {pct(mod?.questions)}%)</span>
+                </Req>
+                <Req ok={reqs.scenario} action={!reqs.scenario ? { label: 'Try the scenario again', go: () => { setGrade(null); setPhase('scenario'); } } : undefined}>
+                  {passMark}+ on the scenario <span className="text-muted">(best {mod?.scenarioScore ?? 0})</span>
+                </Req>
+              </ul>
+              {!reqs.time && <p className="mt-3 text-xs text-muted">Time counts while you work in this module. Revisit the tools: re-read the case studies and the phrases, and the clock keeps running.</p>}
+              {!reqs.time && <button className="btn-ghost mt-2 w-full" onClick={() => { setTi(0); setDir(1); setPhase('tools'); }}>Revisit the tools</button>}
+            </section>
             <label htmlFor="reflection" className="label mt-5">What did you learn, and what will you do differently?</label>
             <textarea id="reflection" rows={5} value={reflection} onChange={(e) => setReflection(e.target.value.slice(0, 1500))} className="field py-3 leading-relaxed"
               placeholder="e.g. I tend to over-explain when challenged. I'll lead with the answer and keep detail for follow-up." />
@@ -565,7 +622,17 @@ export default function Bite() {
             <label htmlFor="apply-plan" className="label mt-4">Where will you use it first? (optional)</label>
             <input id="apply-plan" className="field" value={applyPlan} onChange={(e) => setApplyPlan(e.target.value.slice(0, 400))} placeholder="e.g. Thursday's budget review with Raj" />
             {reflectErr && <div className="mt-3"><Alert>{reflectErr}</Alert></div>}
-            <button className="btn-primary mt-auto" disabled={reflectBusy || reflection.trim().length < 40} onClick={complete}>{reflectBusy ? 'Saving…' : 'Complete and get my certificate'}</button>
+            <button className="btn-primary mt-auto" disabled={reflectBusy || reflection.trim().length < 40 || !reqs.time || !reqs.questions || !reqs.scenario} onClick={complete}>{reflectBusy ? 'Saving…' : 'Complete and get my certificate'}</button>
+          </motion.section>
+        )}
+
+        {phase === 'retake' && bite && allQs[ri] && (
+          <motion.section key={`retake-${ri}`} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="flex flex-1 flex-col">
+            <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em]" style={{ color: tint }}>Retake · {ri + 1} of {allQs.length}</p>
+            <p className="mt-1 text-xs text-muted">Every question again. You need {passMark}% ({Math.ceil((passMark / 100) * allQs.length)} of {allQs.length}); your best attempt counts.</p>
+            <h2 className="mt-2 text-[22px] leading-tight">{allQs[ri].q}</h2>
+            <div className="mt-5"><Choices q={allQs[ri]} picked={rPicked} onPick={pickRetake} coach={coach} tint={tint} /></div>
+            <button className="btn-primary mt-auto" disabled={rPicked === null} onClick={nextRetake}>{ri === allQs.length - 1 ? 'See my result' : 'Continue'}</button>
           </motion.section>
         )}
 
@@ -656,6 +723,15 @@ function WhileYouWait({ topic, tint }: { topic: TopicDetail; tint: string }) {
         <ul className="mt-1.5 space-y-1 text-sm">{topic.books.map((b) => <li key={b.title}><span className="font-semibold">{b.title}</span>{b.author ? <span className="text-muted"> · {b.author}</span> : null}{b.kind === 'fiction' ? <span className="ml-1.5 text-[11px] font-bold uppercase text-[#c4b5fd]">fiction</span> : null}</li>)}</ul>
       </div>
     </div>
+  );
+}
+
+function Req({ ok, children, action }: { ok: boolean; children: ReactNode; action?: { label: string; go: () => void } }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${ok ? 'bg-success text-[#0b1640]' : 'border border-white/25'}`} aria-label={ok ? 'Done' : 'Not yet'}>{ok ? '✓' : ''}</span>
+      <span className="flex-1">{children}{action && <button onClick={action.go} className="mt-1 block text-[13px] font-bold text-accent underline underline-offset-2">{action.label}</button>}</span>
+    </li>
   );
 }
 

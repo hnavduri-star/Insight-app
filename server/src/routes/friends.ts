@@ -3,14 +3,15 @@ import crypto from 'node:crypto';
 import { z } from 'zod';
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { activityEvents, friendships, userProgress, users } from '../db/schema.js';
+import { dailyTime, friendships, userProgress, users } from '../db/schema.js';
 import { requireAuth } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { addDays, currentStreak, localDay, timezoneOf } from '../lib/activity.js';
 
 /**
- * Friends and the weekly league: connect with a friend code, then compete on XP earned this week
- * (Monday to Sunday). Friends see first name, weekly XP and streak only, never what you wrote.
+ * Friends and the weekly league: connect with a friend code, then see who spent the most time learning this week
+ * (Monday to Sunday). Indirect: everyone learns their own topics; the league counts time, not what was learned.
+ * Friends see first name, weekly minutes and streak only, never what you studied or wrote.
  */
 export const friendRoutes = Router();
 friendRoutes.use(requireAuth);
@@ -39,24 +40,45 @@ export function weekStart(today: string) {
   return addDays(today, -((dow + 6) % 7));
 }
 
-/** The weekly league among the learner and their friends, highest XP first. */
+/** The weekly league among the learner and their friends: most active learning minutes first. */
 export async function leagueFor(userId: string) {
   const today = localDay(await timezoneOf(userId));
   const from = weekStart(today);
   const friendIds = (await db.select({ id: friendships.friendId }).from(friendships).where(eq(friendships.userId, userId))).map((r) => r.id);
   const ids = [userId, ...friendIds];
   const rows = await db.select({ id: users.id, name: users.name, streak: userProgress.streak, last: userProgress.lastActiveDate, freezes: userProgress.freezes,
-    weekXp: sql<number>`coalesce((select sum(${activityEvents.xp}) from ${activityEvents} where ${activityEvents.userId} = ${users.id} and ${activityEvents.localDay} >= ${from}), 0)::int` })
+    weekSeconds: sql<number>`coalesce((select sum(${dailyTime.seconds}) from ${dailyTime} where ${dailyTime.userId} = ${users.id} and ${dailyTime.localDay} >= ${from}), 0)::int` })
     .from(users).leftJoin(userProgress, eq(userProgress.userId, users.id)).where(inArray(users.id, ids));
   const ranked = rows
-    .map((r) => ({ id: r.id, firstName: r.name.split(/\s+/)[0], me: r.id === userId, weekXp: r.weekXp,
+    .map((r) => ({ id: r.id, firstName: r.name.split(/\s+/)[0], me: r.id === userId, weekMinutes: Math.floor(r.weekSeconds / 60),
       streak: r.streak != null ? currentStreak({ streak: r.streak, lastActiveDate: r.last, freezes: r.freezes ?? 0 }, today) : 0 }))
-    .sort((a, b) => b.weekXp - a.weekXp || b.streak - a.streak || a.firstName.localeCompare(b.firstName));
+    .sort((a, b) => b.weekMinutes - a.weekMinutes || b.streak - a.streak || a.firstName.localeCompare(b.firstName));
   let rank = 0, prev = -1;
-  const withRank = ranked.map((r, i) => { if (r.weekXp !== prev) { rank = i + 1; prev = r.weekXp; } return { ...r, rank }; });
+  const withRank = ranked.map((r, i) => { if (r.weekMinutes !== prev) { rank = i + 1; prev = r.weekMinutes; } return { ...r, rank }; });
   const daysLeft = 6 - ((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7);
   return { weekStart: from, daysLeft, friends: friendIds.length, league: withRank };
 }
+
+/** Max seconds one heartbeat can add. */
+export const HEARTBEAT_MAX = 60;
+
+/**
+ * Active time: the app sends a heartbeat every 30 seconds while it is open, visible and the learner has
+ * interacted recently. Capped by wall-clock time since the last heartbeat, so the clock can't be inflated.
+ */
+export async function addActiveTime(userId: string, seconds: number) {
+  const day = localDay(await timezoneOf(userId));
+  const [r] = await db.insert(dailyTime).values({ userId, localDay: day, seconds })
+    .onConflictDoUpdate({ target: [dailyTime.userId, dailyTime.localDay], set: {
+      seconds: sql`${dailyTime.seconds} + least(${seconds}, greatest(0, extract(epoch from now() - ${dailyTime.updatedAt})::int + 5))`, updatedAt: new Date() } })
+    .returning({ seconds: dailyTime.seconds });
+  return r.seconds;
+}
+
+friendRoutes.post('/time', async (req, res) => {
+  const { seconds } = z.object({ seconds: z.number().int().min(1).max(HEARTBEAT_MAX) }).parse(req.body);
+  res.json({ todaySeconds: await addActiveTime(req.userId!, seconds) });
+});
 
 friendRoutes.get('/', async (req, res) => {
   res.json({ code: await friendCodeFor(req.userId!), ...(await leagueFor(req.userId!)) });

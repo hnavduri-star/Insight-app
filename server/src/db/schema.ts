@@ -572,3 +572,20 @@ export const friendships = pgTable('friendships', {
   friendId: uuid('friend_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: createdAt(),
 }, (t) => [primaryKey({ columns: [t.userId, t.friendId] })]);
+
+// Active time in the app per learner per local day (the weekly league ranks friends by time spent learning).
+export const dailyTime = pgTable('daily_time', {
+  userId: userRef(),
+  localDay: date('local_day').notNull(),
+  seconds: integer('seconds').notNull().default(0),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.userId, t.localDay] })]);
+
+// Best score on a module's full assessment retake (every question again), for the 70% pass mark.
+export const moduleAssessments = pgTable('module_assessments', {
+  userId: userRef(),
+  lessonId: uuid('lesson_id').notNull().references(() => cachedLessons.id, { onDelete: 'cascade' }),
+  correct: integer('correct').notNull(),
+  total: integer('total').notNull(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.userId, t.lessonId] })]);
