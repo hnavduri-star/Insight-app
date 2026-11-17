@@ -2,9 +2,10 @@ import { NavLink } from 'react-router-dom';
 
 const items = [
   { to: '/', label: 'Home', icon: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" /> },
+  { to: '/explore', label: 'Explore', icon: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></> },
+  { to: '/mind', label: 'On my mind', icon: <><path d="M12 3a7 7 0 0 0-4 12.7V19h8v-3.3A7 7 0 0 0 12 3Z" /><path d="M10 22h4" /></> },
   { to: '/coach', label: 'Coach', icon: <><path d="M4 5h16v10H9l-5 4V5Z" /><path d="M9 9.5h6M9 12h3.5" /></> },
-  { to: '/people', label: 'People', icon: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" /><circle cx="17" cy="9" r="2.6" /><path d="M16.5 14.2c3 .2 5 2.3 5 5.3" /></> },
-  { to: '/profile', label: 'Profile', icon: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></> },
+  { to: '/profile', label: 'Me', icon: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></> },
 ];
 
 export function BottomNav() {
@@ -15,7 +16,7 @@ export function BottomNav() {
         {items.map((i) => (
           <li key={i.to} className="flex-1">
             <NavLink to={i.to} end
-              className={({ isActive }) => `flex min-h-[54px] flex-col items-center justify-center gap-0.5 rounded-[20px] text-[11px] font-bold transition ${isActive ? 'bg-white text-[#1e3a8a]' : 'text-muted hover:text-ink'}`}>
+              className={({ isActive }) => `flex min-h-[54px] flex-col items-center justify-center gap-0.5 rounded-[20px] px-0.5 text-center text-[10.5px] font-bold leading-tight transition ${isActive ? 'bg-white text-[#1e3a8a]' : 'text-muted hover:text-ink'}`}>
               <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{i.icon}</svg>
               {i.label}
             </NavLink>

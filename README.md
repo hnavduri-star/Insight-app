@@ -113,6 +113,15 @@ Slow AI work runs as background jobs (`server/src/lib/jobs.ts`): a request waits
 - **Streaks** (`server/src/lib/activity.ts`): every learning action is logged with the learner's local date (their time zone). The first action of a day counts. Active yesterday → +1. One missed day with a freeze → the freeze is spent and the streak continues. Otherwise it restarts at 1. Learners start with 1 freeze and earn one at every 7-day milestone.
 - **Your week** (`/week`, `GET /api/daily/week`): days active over the last 7 local days, counts by activity, average rep and role-play scores, review accuracy, topics worked on, and a rule-based focus for next week.
 
+## Navigation and Home
+
+Five tabs: **Home · Explore · On my mind · Coach · Me**.
+- **Home** is coach-led and fits one screen: a greeting and streak, the coach's portrait and one line about the learner's journey, one big next step, and three shortcuts (Learn, Practise, 5-minute review). The coach's line is chosen on the server (`coachMessage` in `routes/home.ts`), in priority order: a real-world check-in (answered with one tap on Home), a welcome for new learners, a gentle welcome back after 3+ days away, an open coaching commitment, progress through the current topic, a streak, or an encouraging line for the current stage. It never repeats the button.
+- **Explore**: "For you" (Find my skills results, or an invitation to take it), Editor's picks, Lessons from fiction and all skills.
+- **On my mind**: "What's on your mind?" The situation planner (plan, the words, likely pushback, rehearsal) and recent situations.
+- **Coach**: coaching sessions and commitments.
+- **Me**: profile, progress, week, people, CPD record, weekly league, reminders, team, feedback, and the email-verification reminder.
+
 ## Welcome page and coaching
 
 - **Welcome page** (`/welcome`): what signed-out visitors see first. Big type telling the Insight story, and one button, "Log in or register", that leads to the login page (with a Log in | Register switch).

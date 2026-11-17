@@ -43,12 +43,13 @@ export default function Profile() {
         <Avatar name={m.name} size={84} />
         <h1 className="mt-3 text-2xl font-semibold">{m.name}</h1>
         <p className="text-sm text-muted">{m.email}</p>
-        {!m.emailVerified && <p className="mt-1 text-xs text-error">Email not verified</p>}
+        {!m.emailVerified && <VerifyLine />}
       </section>
 
       <section className="grid grid-cols-2 gap-3">
         <Link to="/progress" className="card p-4"><span className="text-xl" aria-hidden>🏅</span><span className="mt-1 block font-bold">Your progress</span><span className="text-xs text-muted">Level, skills, badges</span></Link>
         <Link to="/week" className="card p-4"><span className="text-xl" aria-hidden>📈</span><span className="mt-1 block font-bold">Your week</span><span className="text-xs text-muted">Days active and focus</span></Link>
+        <Link to="/people" className="card col-span-2 flex items-center gap-3 p-4"><span className="text-xl" aria-hidden>👥</span><span className="flex-1"><span className="block font-bold">Your people</span><span className="text-xs text-muted">The real people you practise conversations with</span></span></Link>
         <Link to="/cpd" className="card col-span-2 flex items-center gap-3 p-4"><span className="text-xl" aria-hidden>🎓</span><span className="flex-1"><span className="block font-bold">Your CPD record</span><span className="text-xs text-muted">Certificates, hours this year, export for your employer</span></span></Link>
         <Link to="/friends" className="card col-span-2 flex items-center gap-3 p-4"><span className="text-xl" aria-hidden>🏁</span><span className="flex-1"><span className="block font-bold">Weekly league</span><span className="text-xs text-muted">Add friends and see who learns more this week</span></span></Link>
       </section>
@@ -168,5 +169,17 @@ function DeleteSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
         <button type="button" className="btn-ghost w-full" onClick={onClose}>Cancel</button>
       </form>
     </Sheet>
+  );
+}
+
+/** Email not verified: a quiet reminder with a resend link (kept off Home). */
+function VerifyLine() {
+  const [sent, setSent] = useState(false);
+  return (
+    <p className="mt-1 text-xs text-error">
+      Email not verified ·{' '}
+      {sent ? <span className="text-muted">link sent, check your inbox</span>
+        : <button className="link" onClick={() => api('/auth/resend-verification', { body: {} }).then(() => setSent(true)).catch(() => {})}>Resend link</button>}
+    </p>
   );
 }

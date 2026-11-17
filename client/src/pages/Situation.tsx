@@ -27,7 +27,7 @@ function TopBar({ title }: { title: string }) {
 }
 
 /** Describe a real upcoming moment; get a prep plan. Also lists recent situations. */
-export function NewSituation() {
+export function NewSituation({ asTab = false }: { asTab?: boolean }) {
   const nav = useNavigate();
   const { me } = useAuth();
   const coach = me?.coach ?? 'maya';
@@ -49,13 +49,22 @@ export function NewSituation() {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-app flex-col px-4 pb-8" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
-      <TopBar title="I have a situation" />
-      <div className="tile mt-3 p-5" style={{ background: GRAD }}>
-        <p className="relative text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">Prepare for a real moment</p>
-        <h1 className="relative mt-2 text-[26px] leading-tight text-white">What's coming up?</h1>
-        <p className="relative mt-2 text-sm text-white/90">Describe it in a sentence or two. You'll get a plan, the words to use, replies to likely pushback, and a rehearsal with {coachName}.</p>
-      </div>
+    <main className={asTab ? 'page page-with-nav flex min-h-dvh flex-col' : 'mx-auto flex min-h-dvh w-full max-w-app flex-col px-4 pb-8'} style={asTab ? undefined : { paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+      {asTab ? (
+        <>
+          <h1 className="text-[34px] leading-[1.05] tracking-tight">What’s on your mind?</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-muted">A conversation coming up, a decision, a tricky person. Tell {coachName} and get a plan, the words to use, and a rehearsal.</p>
+        </>
+      ) : (
+        <>
+          <TopBar title="I have a situation" />
+          <div className="tile mt-3 p-5" style={{ background: GRAD }}>
+            <p className="relative text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">Prepare for a real moment</p>
+            <h1 className="relative mt-2 text-[26px] leading-tight text-white">What's coming up?</h1>
+            <p className="relative mt-2 text-sm text-white/90">Describe it in a sentence or two. You'll get a plan, the words to use, replies to likely pushback, and a rehearsal with {coachName}.</p>
+          </div>
+        </>
+      )}
       {busy ? (
         <div className="mt-10 flex flex-col items-center text-center">
           <CoachAvatar coach={coach} size={80} />
@@ -64,8 +73,8 @@ export function NewSituation() {
         </div>
       ) : (
         <>
-          <label htmlFor="situation" className="label mt-5">Your situation</label>
-          <textarea id="situation" rows={4} value={text} onChange={(e) => setText(e.target.value.slice(0, 600))} className="field py-3 leading-relaxed"
+          <label htmlFor="situation" className={asTab ? 'sr-only' : 'label mt-5'}>Your situation</label>
+          <textarea id="situation" rows={asTab ? 5 : 4} value={text} onChange={(e) => setText(e.target.value.slice(0, 600))} className="field py-3 leading-relaxed"
             placeholder="e.g. My boss Raj wants to cut my team's budget at Thursday's review, and I need to keep two roles." />
           <div className="mt-1.5 flex justify-between text-xs text-muted"><span>Sent to our AI provider to build your plan.</span><span>{text.length}/600</span></div>
           <VoiceRow onText={(t) => setText((p) => appendSpoken(p, t, 600))} />

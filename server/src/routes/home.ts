@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { activityEvents, books, categories, profiles, topicBooks, topicProgress, topics, userProgress } from '../db/schema.js';
+import { activityEvents, books, cachedLessons, categories, checkins, profiles, toolProgress, topicBooks, topicProgress, topics, userProgress } from '../db/schema.js';
+import { currentStreak, daysBetween, localDay, timezoneOf } from '../lib/activity.js';
+import { COACHES } from '../../../shared/options.js';
 import { levelFor } from './progress.js';
 import { shouldAskFeedback } from './admin.js';
 import { leagueFor } from './friends.js';
@@ -58,6 +60,50 @@ export function stepFor(t: Awaited<ReturnType<typeof trackFor>>, id: string) {
   return { label: 'Another real conversation', sub: 'Try a harder character or difficulty', minutes: 5, path: `/roleplay/${id}` };
 }
 
+type Next = { topic: { id: string; name: string; category: string }; label: string; started: boolean } | null;
+type CoachMessage = { kind: 'checkin' | 'welcome' | 'comeback' | 'progress' | 'streak' | 'commitment' | 'nudge'; text: string; checkin?: { id: string } };
+
+/**
+ * What the coach says on Home: one short, encouraging line about the learner's journey,
+ * chosen from where they are (a real-world check-in, coming back, mid-topic, a streak, a commitment).
+ */
+export async function coachMessage(userId: string, next: Next, coaching: Awaited<ReturnType<typeof coachingSummaryFor>>): Promise<CoachMessage> {
+  const [p] = await db.select({ name: sql<string>`(select name from users where id = ${userId})`, coach: profiles.coach }).from(profiles).where(eq(profiles.userId, userId));
+  const first = (p?.name ?? '').split(/\s+/)[0] || 'there';
+  const coachName = COACHES.find((c) => c.value === p?.coach)?.name ?? 'your coach';
+  const [due] = await db.select().from(checkins).where(and(eq(checkins.userId, userId), sql`${checkins.answeredAt} is null`, sql`${checkins.dueAt} <= now()`)).orderBy(asc(checkins.dueAt)).limit(1);
+  if (due) {
+    const q = due.kind === 'situation' ? `Did “${due.title}” happen? How did it go?` : due.withName ? `Did you have the real conversation with ${due.withName}? How did it go?` : `Did you get to use what you practised in “${due.title}”?`;
+    return { kind: 'checkin', text: q, checkin: { id: due.id } };
+  }
+  const today = localDay(await timezoneOf(userId));
+  const [up] = await db.select().from(userProgress).where(eq(userProgress.userId, userId));
+  if (!up?.lastActiveDate) return { kind: 'welcome', text: `Welcome, ${first}. I'm ${coachName}. Let's start with the skill that matters most to you.` };
+  const gap = daysBetween(up.lastActiveDate, today);
+  if (gap >= 3) return { kind: 'comeback', text: `Good to see you again, ${first}. Let's pick up gently: one tool today is plenty.` };
+  if (coaching.openCommitments.length && gap >= 1) return { kind: 'commitment', text: `You committed to: ${coaching.openCommitments[0].action}. How's it going?` };
+  const streak = currentStreak({ streak: up.streak, lastActiveDate: up.lastActiveDate, freezes: up.freezes }, today);
+  if (next?.started) {
+    const [d] = await db.select({ n: sql<number>`count(*)::int` }).from(toolProgress).innerJoin(cachedLessons, eq(cachedLessons.id, toolProgress.lessonId))
+      .where(and(eq(toolProgress.userId, userId), eq(cachedLessons.topicId, next.topic.id), isNotNull(toolProgress.completedAt)));
+    const n = d?.n ?? 0;
+    if (n > 0 && /tool|toolkit/i.test(next.label)) return { kind: 'progress', text: `You're ${n} tool${n === 1 ? '' : 's'} into ${next.topic.name}. Let's keep the momentum.` };
+  }
+  if (streak >= 3) return { kind: 'streak', text: `${streak} days in a row, ${first}. That's a habit forming.` };
+  if (next?.started) {
+    // Encourage, don't repeat the button.
+    const l = next.label.toLowerCase();
+    const text = l.includes('quiz') ? `You've learned the tools, ${first}. Let's see what's stuck.`
+      : l.includes('scenario') ? `One scenario left and ${next.topic.name} Foundations is yours.`
+      : l.includes('rep') ? 'Every rep makes the real conversation easier. Ready for the next one?'
+      : l.includes('conversation') ? `You're ready to try ${next.topic.name} in a real conversation.`
+      : l.includes('mastery') ? `You've earned Mastery in ${next.topic.name}. This is where it gets interesting.`
+      : `Small steps, ${first}. Each one compounds.`;
+    return { kind: 'progress', text };
+  }
+  return { kind: 'nudge', text: `${first}, what would make today a step forward?` };
+}
+
 homeRoutes.get('/', async (req, res) => {
   const userId = req.userId!;
   const access = await accessFor(userId);
@@ -82,10 +128,13 @@ homeRoutes.get('/', async (req, res) => {
     .from(topics).innerJoin(categories, eq(categories.id, topics.categoryId)).innerJoin(topicBooks, eq(topicBooks.topicId, topics.id))
     .innerJoin(books, eq(books.id, topicBooks.bookId)).where(eq(books.kind, 'fiction')).orderBy(topics.id, asc(topicBooks.sortOrder));
   const [up] = await db.select({ xp: userProgress.xp }).from(userProgress).where(eq(userProgress.userId, userId));
+  const coaching = await coachingSummaryFor(userId);
   res.json({
     level: levelFor(up?.xp ?? 0),
     askFeedback: await shouldAskFeedback(userId),
-    coaching: await coachingSummaryFor(userId),
+    coaching,
+    coach: await coachMessage(userId, next, coaching),
+    streak: await streakFor(userId),
     finder: await latestPicks(userId).then((r) => (r ? { at: r.createdAt, topics: r.topics } : null)),
     league: await leagueFor(userId).then((l) => ({ friends: l.friends, daysLeft: l.daysLeft, top: l.league.slice(0, 3), me: l.league.find((r) => r.me)! })),
     next,
@@ -94,3 +143,9 @@ homeRoutes.get('/', async (req, res) => {
   });
 });
 
+
+async function streakFor(userId: string) {
+  const today = localDay(await timezoneOf(userId));
+  const [up] = await db.select().from(userProgress).where(eq(userProgress.userId, userId));
+  return up ? currentStreak({ streak: up.streak, lastActiveDate: up.lastActiveDate, freezes: up.freezes }, today) : 0;
+}

@@ -28,6 +28,7 @@ import CpdLog, { Certificate, Verify } from './pages/Cpd';
 import Daily, { Week } from './pages/Daily';
 import Welcome from './pages/Welcome';
 import Coaching, { CoachingSession } from './pages/Coaching';
+import Explore from './pages/Explore';
 
 /** Signed-out only. */
 function Public() {
@@ -124,6 +125,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/skills/:id" element={<Skills />} />
               <Route path="/" element={<Home />} />
               <Route path="/coach" element={<Coaching />} />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/mind" element={<NewSituation asTab />} />
               <Route path="/people" element={<People />} />
               <Route path="/profile" element={<Profile />} />
             </Route>

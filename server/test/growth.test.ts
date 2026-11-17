@@ -233,6 +233,27 @@ describe('teams', () => {
   });
 });
 
+describe('the coach on Home', () => {
+  it('welcomes, encourages by stage without repeating the button, and asks real-world check-ins', async () => {
+    const { a, topic, person } = await learner('coachline@example.com');
+    let h = (await a.get('/api/home')).body;
+    expect(h.coach).toMatchObject({ kind: 'welcome', text: "Welcome, Grace. I'm Maya. Let's start with the skill that matters most to you." });
+    expect(h.streak).toBe(0);
+    const { lessonId } = (await a.post('/api/bites').send({ topicId: topic.id })).body;
+    await completeTools(a, lessonId);
+    await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
+    h = (await a.get('/api/home')).body;
+    expect(h.next.label).toBe('Take the quiz');
+    expect(h.coach.text).toBe("You've learned the tools, Grace. Let's see what's stuck.");
+    expect(h.streak).toBe(1);
+    await throughRoleplay(a, topic.id, person.id);
+    await pool.query("update checkins set due_at = now() - interval '1 minute'");
+    h = (await a.get('/api/home')).body;
+    expect(h.coach).toMatchObject({ kind: 'checkin', text: 'Did you have the real conversation with Raj? How did it go?' });
+    expect(h.coach.checkin.id).toBeTruthy();
+  });
+});
+
 describe('friends and the weekly league', () => {
   it('connects two learners by code and ranks them by XP earned this week, showing totals only', async () => {
     const { weekStart } = await import('../src/routes/friends.js');
