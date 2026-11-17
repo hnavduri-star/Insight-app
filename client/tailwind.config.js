@@ -20,8 +20,9 @@ export default {
         matte: 'inset 0 1px 0 rgba(232, 240, 255, 0.05), 0 12px 32px -14px rgba(2, 8, 30, 0.8), 0 2px 4px rgba(2, 8, 30, 0.3)',
       },
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        // Inter for reading and UI; Fraunces (a warm serif) for headings and the coach's voice.
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
       },
       maxWidth: { app: '480px' },
     },

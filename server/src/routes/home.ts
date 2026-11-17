@@ -136,7 +136,14 @@ homeRoutes.get('/', async (req, res) => {
     coach: await coachMessage(userId, next, coaching),
     streak: await streakFor(userId),
     finder: await latestPicks(userId).then((r) => (r ? { at: r.createdAt, topics: r.topics } : null)),
-    league: await leagueFor(userId).then((l) => ({ friends: l.friends, daysLeft: l.daysLeft, top: l.league.slice(0, 3), me: l.league.find((r) => r.me)! })),
+    league: await leagueFor(userId).then((l) => {
+      const me = l.league.find((r) => r.me)!;
+      // The person just ahead (to chase), if any.
+      const above = l.league.filter((r) => !r.me && r.weekXp > me.weekXp).sort((x, y) => x.weekXp - y.weekXp)[0];
+      return { friends: l.friends, size: l.league.length, daysLeft: l.daysLeft, top: l.league.slice(0, 3), me,
+        ahead: above ? { firstName: above.firstName, gap: above.weekXp - me.weekXp } : null };
+    }),
+    reviewsDue: await db.execute<{ n: number }>(sql`select count(*)::int as n from review_items where user_id = ${userId} and due_at <= now()`).then((r) => r.rows[0]?.n ?? 0),
     next,
     picks: picks.map((p) => ({ ...p, unlocked: unlocked(p.id) })),
     fiction: fiction.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 12).map((f) => ({ ...f, unlocked: unlocked(f.id) })),

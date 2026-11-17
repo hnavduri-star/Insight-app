@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { api } from '../api';
@@ -7,105 +7,143 @@ import { CoachAvatar } from '../components/Coach';
 import { TopicSheet } from '../components/TopicSheet';
 import { COACHES } from '../options';
 
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-}
-
 type HomeData = {
   streak: number;
+  reviewsDue: number;
   coach: { kind: string; text: string; checkin?: { id: string } };
   next: { topic: { id: string; name: string; category: string }; label: string; sub: string; minutes: number; path: string; started: boolean } | null;
+  league: { friends: number; size: number; me: { rank: number; weekXp: number }; ahead: { firstName: string; gap: number } | null };
 };
 
+type Card = {
+  key: string; eyebrow: string; text: string; coach: boolean; bg: string;
+  action?: { label: string; go: () => void }; checkin?: string;
+};
+
+const BLUE = 'linear-gradient(160deg, #2563eb 0%, #4f46e5 55%, #6d28d9 100%)';
+const ORANGE = 'linear-gradient(160deg, #fb7b1c 0%, #d9480f 100%)';
+const TEAL = 'linear-gradient(160deg, #11b39f 0%, #0b7a72 100%)';
+
 /**
- * Home, coach-led: the coach speaks one line about your journey, one big next step, three shortcuts.
- * Everything else lives in Explore, On my mind, Coach and Me.
+ * Home: "Today". The coach brings up to 3 cards, one at a time (a check-in or encouragement, the next step,
+ * reviews due), swiped through like a short conversation. Below: the 5-minute review and the weekly league.
  */
 export default function Home() {
   const { me } = useAuth();
   const nav = useNavigate();
   const [home, setHome] = useState<HomeData | null>(null);
   const [topicId, setTopicId] = useState<string | null>(null);
-  const load = () => { api<HomeData>('/home').then(setHome).catch(() => {}); };
+  const [i, setI] = useState(0);
+  const load = () => { api<HomeData>('/home').then((h) => { setHome(h); setI(0); }).catch(() => {}); };
   useEffect(load, []);
   // Arrived from a friend's invite link and just signed up: take them to the league to connect.
   useEffect(() => { try { if (localStorage.getItem('insight.invite')) nav('/friends'); } catch { /* storage blocked */ } }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const m = me!;
   const coach = m.coach ?? 'maya';
   const coachName = COACHES.find((c) => c.value === coach)?.name ?? 'Your coach';
-  const n = home?.next;
+
+  const cards = useMemo<Card[]>(() => {
+    if (!home) return [];
+    const n = home.next;
+    const goNext = n ? () => (n.started || m.plan === 'premium' ? nav(n.path) : setTopicId(n.topic.id)) : () => nav('/explore');
+    const nextLabel = n ? (n.started ? n.label : `Start ${n.topic.name}`) : 'Explore skills';
+    const list: Card[] = [];
+    const k = home.coach.kind;
+    if (k === 'checkin') list.push({ key: 'checkin', eyebrow: coachName, text: home.coach.text, coach: true, bg: BLUE, checkin: home.coach.checkin!.id });
+    else if (k === 'commitment') list.push({ key: 'commit', eyebrow: coachName, text: home.coach.text, coach: true, bg: BLUE, action: { label: 'Talk it through', go: () => nav('/coach') } });
+    else list.push({ key: 'coach', eyebrow: coachName, text: home.coach.text, coach: true, bg: BLUE, action: { label: nextLabel, go: goNext } });
+    if (list[0].key !== 'coach' && n) {
+      list.push({ key: 'next', eyebrow: n.started ? `Continue · ${n.topic.name}` : 'Your first module', text: nextLabel, coach: false, bg: ORANGE,
+        action: { label: n.started ? `Go · ${n.minutes} min` : 'Start', go: goNext } });
+    }
+    if (home.reviewsDue > 0 && list.length < 3) {
+      list.push({ key: 'review', eyebrow: 'Keep it fresh', text: `${home.reviewsDue} question${home.reviewsDue === 1 ? ' is' : 's are'} due. Five minutes keeps your tools sharp.`, coach: false, bg: TEAL,
+        action: { label: 'Start review', go: () => nav('/daily') } });
+    }
+    return list.slice(0, 3);
+  }, [home, m.plan, coachName, nav]);
+
+  const go = (to: number) => setI(Math.max(0, Math.min(cards.length - 1, to)));
+  const card = cards[i];
 
   return (
-    <main className="page page-with-nav relative overflow-hidden">
-      <div className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-[#7c3aed]/35 blur-3xl" aria-hidden />
-
-      <div className="relative flex items-center justify-between">
-        <p className="text-[15px] text-muted">{greeting()}, {m.name.split(' ')[0]}</p>
+    <main className="page page-with-nav flex min-h-dvh flex-col">
+      <div className="flex items-center justify-between">
+        <h1 className="text-[36px] leading-none">Today</h1>
         {home && home.streak > 0 && (
-          <Link to="/daily" className="flex items-center gap-1.5 rounded-full bg-[#ffb36b]/15 px-3 py-1.5 text-sm font-extrabold text-[#ffb36b]" aria-label={`${home.streak} day streak. Open today's 5 minutes`}>
+          <Link to="/daily" className="flex items-center gap-1.5 rounded-full bg-[#ffb36b]/15 px-3 py-1.5 text-sm font-bold text-[#ffb36b]" aria-label={`${home.streak} day streak`}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9Z" /></svg>
             {home.streak} day{home.streak === 1 ? '' : 's'}
           </Link>
         )}
       </div>
 
-
-      {/* The coach speaks */}
-      <section className="relative mt-5 flex flex-col items-center text-center" aria-live="polite">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-full p-1.5"
-          style={{ background: 'linear-gradient(150deg, #5ec2ff, #7c3aed)', boxShadow: '0 0 0 10px rgba(94,194,255,0.10), 0 24px 50px -18px rgba(124,58,237,0.8)' }}>
-          <CoachAvatar coach={coach} size={92} />
-        </motion.div>
-        <Link to="/coach" className="mt-4 text-[13px] font-bold uppercase tracking-[0.14em] text-accent">{coachName}</Link>
-        <AnimatePresence mode="wait">
-          {home ? (
-            <motion.p key={home.coach.text} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className="mt-1.5 max-w-[22rem] text-[24px] font-extrabold leading-[1.2] tracking-[-0.02em]">{home.coach.text}</motion.p>
-          ) : <div className="mt-3 h-16 w-64 animate-pulse rounded-2xl bg-white/[0.06]" aria-hidden />}
-        </AnimatePresence>
-        {home?.coach.checkin && <CheckinAnswers id={home.coach.checkin.id} onDone={load} />}
-      </section>
-
-      {/* One next step */}
-      {n && (
-        <button onClick={() => (n.started || m.plan === 'premium' ? nav(n.path) : setTopicId(n.topic.id))}
-          className="relative mt-7 flex w-full items-center gap-4 rounded-[28px] p-4 text-left text-white transition active:scale-[0.99]"
-          style={{ background: 'linear-gradient(135deg, #fb7b1c, #d9480f)', boxShadow: '0 22px 44px -20px rgba(251,123,28,0.9)' }}>
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-white/20">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M7 5v14l11-7Z" /></svg>
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[19px] font-extrabold leading-tight">{n.started ? n.label : `Start ${n.topic.name}`}</span>
-            <span className="block truncate text-sm text-white/90">{n.started ? `${n.topic.name} · ${n.minutes} min` : `Your first module · ${n.minutes} min`}</span>
-          </span>
-        </button>
+      {cards.length > 1 && (
+        <div className="mt-4" aria-hidden>
+          <div className="flex gap-1.5">{cards.map((c, k) => <span key={c.key} className="h-1.5 flex-1 rounded-full transition" style={{ background: k <= i ? '#3ee6cf' : 'rgba(255,255,255,0.14)' }} />)}</div>
+          <div className="mt-2 flex items-center justify-between text-[13px] text-muted">
+            <span>{i + 1} of {cards.length} · swipe for more</span>
+            {i < cards.length - 1 && <button onClick={() => go(i + 1)} className="-my-2 min-h-[40px] px-1 font-semibold text-ink/85">Next ›</button>}
+          </div>
+        </div>
       )}
 
-      {/* Three shortcuts */}
-      <nav aria-label="Shortcuts" className="relative mt-5 grid grid-cols-3 gap-3">
-        <Shortcut to="/explore" label="Learn" tint="#5ec2ff" icon={<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" />} />
-        <Shortcut to={n?.started ? `/roleplay/${n.topic.id}` : '/explore'} label="Practise" tint="#ffb36b" icon={<><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" /><path d="M16 11l2 2 4-4" /></>} />
-        <Shortcut to="/daily" label="5-min review" tint="#3ee6cf" icon={<><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M9 2h6" /></>} />
-      </nav>
+      {/* The coach's cards, one at a time */}
+      <div className="relative mt-4 min-h-[300px] flex-1" style={{ maxHeight: 420 }}>
+        {cards.length > i + 2 && <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-[32px] bg-white/[0.05]" aria-hidden />}
+        {cards.length > i + 1 && <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-[32px] bg-white/[0.08]" aria-hidden />}
+        {!home && <div className="absolute inset-0 animate-pulse rounded-[32px] bg-white/[0.06]" aria-hidden />}
+        <AnimatePresence mode="popLayout" initial={false}>
+          {card && (
+            <motion.article key={card.key} aria-roledescription="card" aria-label={`${i + 1} of ${cards.length}`}
+              initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -80 }} transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+              drag={cards.length > 1 ? 'x' : false} dragConstraints={{ left: 0, right: 0 }} dragElastic={0.5}
+              onDragEnd={(_, info) => { if (info.offset.x < -70) go(i + 1); else if (info.offset.x > 70) go(i - 1); }}
+              className="absolute inset-0 flex flex-col rounded-[32px] p-6 text-white" style={{ background: card.bg, boxShadow: '0 30px 60px -24px rgba(79,70,229,0.8)' }}>
+              <div className="flex items-center gap-3">
+                {card.coach ? <span className="rounded-full bg-white/20 p-1"><CoachAvatar coach={coach} size={44} idle={false} /></span> : null}
+                <span className="text-[14px] font-semibold text-white/85">{card.eyebrow}</span>
+              </div>
+              <p className="mt-5 font-display text-[clamp(1.55rem,7.4vw,2rem)] font-medium leading-[1.16]">{card.text}</p>
+              <div className="mt-auto space-y-2 pt-5">
+                {card.checkin ? <CheckinAnswers id={card.checkin} onDone={load} /> : card.action && (
+                  <button onClick={card.action.go} className="flex min-h-[54px] w-full items-center justify-center rounded-[18px] bg-white px-4 text-[17px] font-bold text-[#1e3a8a] transition active:scale-[0.98]">
+                    <span className="truncate">{card.action.label}</span>
+                  </button>
+                )}
+              </div>
+            </motion.article>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Two tiles */}
+      {home && (
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <Tile to="/daily" bg="rgba(62,230,207,0.12)" icon={<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#3ee6cf" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M9 2h6" /></svg>}
+            title="5-min review" sub={home.reviewsDue ? `${home.reviewsDue} question${home.reviewsDue === 1 ? '' : 's'} due` : 'Nothing due today'} />
+          <Tile to="/friends" bg="rgba(196,181,253,0.14)"
+            icon={home.league.friends && (home.league.me.weekXp > 0 || home.league.ahead) ? <span className="flex items-baseline gap-1.5"><span className="font-display text-[34px] font-bold leading-none text-[#c4b5fd]">#{home.league.me.rank}</span><span className="text-[13px] font-semibold text-muted">of {home.league.size}</span></span>
+              : <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M19 8v6M16 11h6" /></svg>}
+            title="Weekly league" sub={!home.league.friends ? 'Invite a friend' : home.league.ahead ? `${home.league.ahead.gap} XP behind ${home.league.ahead.firstName}` : home.league.me.weekXp ? "You're top this week" : 'Earn the first XP'} />
+        </div>
+      )}
 
       <TopicSheet id={topicId} onClose={() => setTopicId(null)} onChanged={load} />
     </main>
   );
 }
 
-function Shortcut({ to, label, tint, icon }: { to: string; label: string; tint: string; icon: ReactNode }) {
+function Tile({ to, bg, icon, title, sub }: { to: string; bg: string; icon: ReactNode; title: string; sub: string }) {
   return (
-    <Link to={to} className="flex flex-col items-center gap-2 rounded-2xl py-1 transition active:scale-[0.97]">
-      <span className="flex h-16 w-16 items-center justify-center rounded-[22px]" style={{ background: `color-mix(in oklab, ${tint} 16%, transparent)` }}>
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke={tint} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{icon}</svg>
-      </span>
-      <span className="text-sm font-bold">{label}</span>
+    <Link to={to} className="flex h-[124px] flex-col justify-between rounded-[26px] p-4 transition active:scale-[0.98]" style={{ background: bg }}>
+      {icon}
+      <span><span className="block text-[16px] font-bold">{title}</span><span className="block truncate text-[13px] text-muted">{sub}</span></span>
     </Link>
   );
 }
 
-/** The coach asked "did it happen?": answer in one tap, right under the question. */
+/** The coach asked "did it happen?": answer in one tap, right on the card. */
 function CheckinAnswers({ id, onDone }: { id: string; onDone: () => void }) {
   const [done, setDone] = useState<string | null>(null);
   const answer = async (outcome: 'well' | 'mixed' | 'not_yet') => {
@@ -113,11 +151,11 @@ function CheckinAnswers({ id, onDone }: { id: string; onDone: () => void }) {
     await api(`/checkins/${id}`, { body: { outcome } }).catch(() => {});
     setTimeout(onDone, 2200);
   };
-  if (done) return <p className="mt-4 text-sm font-semibold text-accent">{done}</p>;
+  if (done) return <p className="text-[15px] font-semibold">{done}</p>;
   return (
-    <div className="mt-5 flex flex-wrap justify-center gap-2">
+    <div className="grid grid-cols-3 gap-2">
       {([['well', 'Went well'], ['mixed', 'Mixed'], ['not_yet', 'Not yet']] as const).map(([v, l]) => (
-        <button key={v} onClick={() => answer(v)} className="min-h-[44px] rounded-full bg-white/[0.08] px-4 text-sm font-bold">{l}</button>
+        <button key={v} onClick={() => answer(v)} className="min-h-[50px] rounded-[16px] bg-white/20 text-[14px] font-bold">{l}</button>
       ))}
     </div>
   );

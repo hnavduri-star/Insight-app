@@ -7,7 +7,7 @@ async function drawWeek(w: Week, firstName: string): Promise<Blob> {
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const g = cv.getContext('2d')!;
   await document.fonts?.ready;
-  const font = (wt: number, px: number) => `${wt} ${px}px "Plus Jakarta Sans", system-ui, sans-serif`;
+  const font = (wt: number, px: number) => `${wt} ${px}px ${wt >= 700 && px >= 60 ? "Fraunces, Georgia, serif" : "Inter, system-ui, sans-serif"}`;
   const bg = g.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, '#2563eb'); bg.addColorStop(0.55, '#4f46e5'); bg.addColorStop(1, '#6d28d9');
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
