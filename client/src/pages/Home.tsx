@@ -14,11 +14,12 @@ type HomeData = {
   coach: { kind: string; text: string; checkin?: { id: string } };
   next: { topic: { id: string; name: string; category: string }; label: string; sub: string; minutes: number; path: string; started: boolean } | null;
   league: { friends: number; size: number; me: { rank: number; weekMinutes: number }; ahead: { firstName: string; gap: number } | null };
+  myTopics: { id: string; name: string; category: string; label: string; path: string; done: boolean }[];
 };
 
 type Card = {
   key: string; eyebrow: string; text: string; coach: boolean; bg: string;
-  action?: { label: string; go: () => void }; checkin?: string;
+  action?: { label: string; go: () => void }; checkin?: string; choices?: boolean;
 };
 
 const BLUE = 'linear-gradient(160deg, #2563eb 0%, #4f46e5 55%, #6d28d9 100%)';
@@ -35,6 +36,7 @@ export default function Home() {
   const [home, setHome] = useState<HomeData | null>(null);
   const [topicId, setTopicId] = useState<string | null>(null);
   const [i, setI] = useState(0);
+  const [adding, setAdding] = useState(false);
   const load = () => { api<HomeData>('/home').then((h) => { setHome(h); setI(0); }).catch(() => {}); };
   useEffect(load, []);
   // Arrived from a friend's invite link and just signed up: take them to the league to connect.
@@ -50,10 +52,11 @@ export default function Home() {
     const nextLabel = n ? (n.started ? n.label : `Start ${n.topic.name}`) : 'Explore skills';
     const list: Card[] = [];
     const k = home.coach.kind;
-    if (k === 'checkin') list.push({ key: 'checkin', eyebrow: coachName, text: home.coach.text, coach: true, bg: BLUE, checkin: home.coach.checkin!.id });
+    if (k === 'start') list.push({ key: 'start', eyebrow: coachName, text: home.coach.text, coach: true, bg: BLUE, choices: true });
+    else if (k === 'checkin') list.push({ key: 'checkin', eyebrow: coachName, text: home.coach.text, coach: true, bg: BLUE, checkin: home.coach.checkin!.id });
     else if (k === 'commitment') list.push({ key: 'commit', eyebrow: coachName, text: home.coach.text, coach: true, bg: BLUE, action: { label: 'Talk it through', go: () => nav('/coach') } });
     else list.push({ key: 'coach', eyebrow: coachName, text: home.coach.text, coach: true, bg: BLUE, action: { label: nextLabel, go: goNext } });
-    if (list[0].key !== 'coach' && n) {
+    if (list[0].key !== 'coach' && list[0].key !== 'start' && n) {
       list.push({ key: 'next', eyebrow: n.started ? `Continue · ${n.topic.name}` : 'Your first module', text: nextLabel, coach: false, bg: ORANGE,
         action: { label: n.started ? `Go · ${n.minutes} min` : 'Start', go: goNext } });
     }
@@ -90,7 +93,7 @@ export default function Home() {
       )}
 
       {/* The coach's cards, one at a time */}
-      <div className="relative mt-4 min-h-[300px] flex-1" style={{ maxHeight: 420 }}>
+      <div className="relative mt-3 flex min-h-[260px] flex-1 flex-col">
         {cards.length > i + 2 && <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-[32px] bg-white/[0.05]" aria-hidden />}
         {cards.length > i + 1 && <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-[32px] bg-white/[0.08]" aria-hidden />}
         {!home && <div className="absolute inset-0 animate-pulse rounded-[32px] bg-white/[0.06]" aria-hidden />}
@@ -100,14 +103,14 @@ export default function Home() {
               initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -80 }} transition={{ type: 'spring', stiffness: 260, damping: 30 }}
               drag={cards.length > 1 ? 'x' : false} dragConstraints={{ left: 0, right: 0 }} dragElastic={0.5}
               onDragEnd={(_, info) => { if (info.offset.x < -70) go(i + 1); else if (info.offset.x > 70) go(i - 1); }}
-              className="absolute inset-0 flex flex-col rounded-[32px] p-6 text-white" style={{ background: card.bg, boxShadow: '0 30px 60px -24px rgba(79,70,229,0.8)' }}>
+              className="relative flex flex-1 flex-col rounded-[32px] p-6 text-white" style={{ background: card.bg, boxShadow: '0 30px 60px -24px rgba(79,70,229,0.8)' }}>
               <div className="flex items-center gap-3">
-                {card.coach ? <span className="rounded-full bg-white/20 p-1"><CoachAvatar coach={coach} size={44} idle={false} /></span> : null}
+                {card.coach ? <span className="rounded-full bg-white/20 p-1"><CoachAvatar coach={coach} size={36} idle={false} /></span> : null}
                 <span className="text-[14px] font-semibold text-white/85">{card.eyebrow}</span>
               </div>
-              <p className="mt-5 font-display text-[clamp(1.55rem,7.4vw,2rem)] font-medium leading-[1.16]">{card.text}</p>
-              <div className="mt-auto space-y-2 pt-5">
-                {card.checkin ? <CheckinAnswers id={card.checkin} onDone={load} /> : card.action && (
+              <p className={`mt-4 font-display font-medium leading-[1.16] ${card.choices || card.text.length > 70 ? 'text-[clamp(1.35rem,6.2vw,1.7rem)]' : 'text-[clamp(1.55rem,7.4vw,2rem)]'}`}>{card.text}</p>
+              <div className="mt-auto space-y-2 pt-4">
+                {card.choices ? <StartChoices onPick={(to) => nav(to)} /> : card.checkin ? <CheckinAnswers id={card.checkin} onDone={load} /> : card.action && (
                   <button onClick={card.action.go} className="flex min-h-[54px] w-full items-center justify-center rounded-[18px] bg-white px-4 text-[17px] font-bold text-[#1e3a8a] transition active:scale-[0.98]">
                     <span className="truncate">{card.action.label}</span>
                   </button>
@@ -118,9 +121,23 @@ export default function Home() {
         </AnimatePresence>
       </div>
 
+      {/* Your topics: go back to any course, any time, or add another */}
+      {home && home.myTopics.length > 0 && (
+        <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Your topics">
+          {home.myTopics.map((t) => (
+            <Link key={t.id} to={t.path} className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-full bg-white/[0.07] px-4 text-[14px] font-semibold">
+              {t.done && <span className="text-success" aria-label="Foundations done">✓</span>}{t.name}
+            </Link>
+          ))}
+          <button onClick={() => setAdding(true)} className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border border-dashed border-white/30 px-4 text-[14px] font-semibold text-muted">
+            <span aria-hidden className="text-lg leading-none">+</span> Add a topic
+          </button>
+        </div>
+      )}
+
       {/* Two tiles */}
       {home && (
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-3 grid grid-cols-2 gap-3">
           <Tile to="/daily" bg="rgba(62,230,207,0.12)" icon={<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#3ee6cf" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M9 2h6" /></svg>}
             title="5-min review" sub={home.reviewsDue ? `${home.reviewsDue} question${home.reviewsDue === 1 ? '' : 's'} due` : 'Nothing due today'} />
           <Tile to="/friends" bg="rgba(196,181,253,0.14)"
@@ -131,13 +148,43 @@ export default function Home() {
       )}
 
       <TopicSheet id={topicId} onClose={() => setTopicId(null)} onChanged={load} />
+      <AnimatePresence>
+        {adding && (
+          <motion.div className="fixed inset-0 z-40 flex items-end bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setAdding(false)}>
+            <motion.div role="dialog" aria-label="Add a topic" initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }} onClick={(e) => e.stopPropagation()}
+              className="mx-auto w-full max-w-app rounded-t-[28px] bg-[#13235a] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+              <p className="font-display text-[22px] font-semibold">Add a topic</p>
+              <div className="mt-4"><StartChoices dark onPick={(to) => nav(to)} /></div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
+  );
+}
+
+/** The two ways to begin: choose a topic yourself, or answer a few questions and get recommendations. */
+function StartChoices({ onPick, dark = false }: { onPick: (to: string) => void; dark?: boolean }) {
+  const opts = [
+    { to: '/explore', title: 'I know what I want', sub: 'Choose any topic and take it at your pace' },
+    { to: '/finder', title: 'Help me find out', sub: 'About 10 quick questions, then my recommendations' },
+  ];
+  return (
+    <div className="space-y-2.5">
+      {opts.map((o) => (
+        <button key={o.to} onClick={() => onPick(o.to)}
+          className={`flex min-h-[64px] w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left transition active:scale-[0.98] ${dark ? 'bg-white/[0.08]' : 'bg-white text-[#1e3a8a]'}`}>
+          <span className="min-w-0 flex-1"><span className="block text-[16px] font-bold">{o.title}</span><span className={`block text-[13px] ${dark ? 'text-muted' : 'text-[#1e3a8a]/70'}`}>{o.sub}</span></span>
+          <span aria-hidden className="text-xl">›</span>
+        </button>
+      ))}
+    </div>
   );
 }
 
 function Tile({ to, bg, icon, title, sub }: { to: string; bg: string; icon: ReactNode; title: string; sub: string }) {
   return (
-    <Link to={to} className="flex h-[124px] flex-col justify-between rounded-[26px] p-4 transition active:scale-[0.98]" style={{ background: bg }}>
+    <Link to={to} className="flex h-[112px] flex-col justify-between rounded-[26px] p-4 transition active:scale-[0.98]" style={{ background: bg }}>
       {icon}
       <span><span className="block text-[16px] font-bold">{title}</span><span className="block truncate text-[13px] text-muted">{sub}</span></span>
     </Link>

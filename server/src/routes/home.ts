@@ -33,19 +33,34 @@ type TopicRow = { id: string; name: string; category: string };
 const topicMeta = async (ids: string[]): Promise<TopicRow[]> => ids.length ? db.select({ id: topics.id, name: topics.name, category: categories.name })
   .from(topics).innerJoin(categories, eq(categories.id, topics.categoryId)).where(inArray(topics.id, ids)) : [];
 
-/** The topic to suggest first: the free topic, else the flagship topic for the learner's main goal. */
+/**
+ * The topic to suggest first, only when the learner chose it: their free topic, or the top pick from their
+ * "Find my skills" answers. Otherwise none: Home asks them to choose a topic or answer the questions.
+ */
 export async function suggestedTopic(userId: string): Promise<TopicRow | null> {
   const access = await accessFor(userId);
   if (!access.allAccess && access.freeTopicId) return (await topicMeta([access.freeTopicId]))[0] ?? null;
   // Their "Find my skills" result comes first.
   const found = await latestPicks(userId);
   const first = found?.topics.find((t) => access.allAccess || access.topicIds.has(t.id!));
-  if (first) return { id: first.id!, name: first.name, category: first.category! };
-  const [p] = await db.select({ goals: profiles.goals }).from(profiles).where(eq(profiles.userId, userId));
-  const names = GOAL_TOPICS[((p?.goals as string[]) ?? [])[0]] ?? ['Executive Presence'];
-  const rows = await db.select({ id: topics.id, name: topics.name, category: categories.name }).from(topics)
-    .innerJoin(categories, eq(categories.id, topics.categoryId)).where(inArray(topics.name, names));
-  return names.map((n) => rows.find((r) => r.name === n)).find(Boolean) ?? null;
+  return first ? { id: first.id!, name: first.name, category: first.category! } : null;
+}
+
+/** Topics the learner has started, most recently active first, each with its next step. */
+async function myTopics(userId: string) {
+  const r = await db.execute<{ topic_id: string }>(sql`
+    select topic_id from (
+      select topic_id, max(created_at) as at from activity_events where user_id = ${userId} and topic_id is not null group by topic_id
+      union all select topic_id, coalesce(cards_completed_at, quiz_completed_at, '2000-01-01') from topic_progress where user_id = ${userId}
+      union all select l.topic_id, max(tp.updated_at) from tool_progress tp join cached_lessons l on l.id = tp.lesson_id where tp.user_id = ${userId} group by l.topic_id
+    ) x group by topic_id order by max(at) desc limit 12`);
+  const ids = r.rows.map((x) => x.topic_id);
+  const meta = await topicMeta(ids);
+  return Promise.all(ids.map((id) => meta.find((m) => m.id === id)).filter(Boolean).map(async (m) => {
+    const t = await trackFor(userId, m!.id);
+    const step = stepFor(t, m!.id);
+    return { ...m!, label: step.label, path: step.path, done: t.toolkit.done };
+  }));
 }
 
 /** The single best next step on a topic, as a label and a path. */
@@ -61,7 +76,7 @@ export function stepFor(t: Awaited<ReturnType<typeof trackFor>>, id: string) {
 }
 
 type Next = { topic: { id: string; name: string; category: string }; label: string; started: boolean } | null;
-type CoachMessage = { kind: 'checkin' | 'welcome' | 'comeback' | 'progress' | 'streak' | 'commitment' | 'nudge'; text: string; checkin?: { id: string } };
+type CoachMessage = { kind: 'checkin' | 'start' | 'welcome' | 'comeback' | 'progress' | 'streak' | 'commitment' | 'nudge'; text: string; checkin?: { id: string } };
 
 /**
  * What the coach says on Home: one short, encouraging line about the learner's journey,
@@ -78,7 +93,9 @@ export async function coachMessage(userId: string, next: Next, coaching: Awaited
   }
   const today = localDay(await timezoneOf(userId));
   const [up] = await db.select().from(userProgress).where(eq(userProgress.userId, userId));
-  if (!up?.lastActiveDate) return { kind: 'welcome', text: `Welcome, ${first}. I'm ${coachName}. Let's start with the skill that matters most to you.` };
+  // Nothing chosen yet: the learner decides. Pick a topic, or answer a few questions to find one.
+  if (!next) return { kind: 'start', text: up?.lastActiveDate ? `${first}, what would you like to learn next?` : `Welcome, ${first}. I'm ${coachName}. How would you like to start?` };
+  if (!up?.lastActiveDate) return { kind: 'welcome', text: `Welcome, ${first}. Your answers point to ${next.topic.name}. Start there, or choose any topic you like.` };
   const gap = daysBetween(up.lastActiveDate, today);
   if (gap >= 3) return { kind: 'comeback', text: `Good to see you again, ${first}. Let's pick up gently: one tool today is plenty.` };
   if (coaching.openCommitments.length && gap >= 1) return { kind: 'commitment', text: `You committed to: ${coaching.openCommitments[0].action}. How's it going?` };
@@ -145,6 +162,7 @@ homeRoutes.get('/', async (req, res) => {
     }),
     reviewsDue: await db.execute<{ n: number }>(sql`select count(*)::int as n from review_items where user_id = ${userId} and due_at <= now()`).then((r) => r.rows[0]?.n ?? 0),
     next,
+    myTopics: await myTopics(userId),
     picks: picks.map((p) => ({ ...p, unlocked: unlocked(p.id) })),
     fiction: fiction.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 12).map((f) => ({ ...f, unlocked: unlocked(f.id) })),
   });

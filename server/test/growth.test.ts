@@ -115,10 +115,12 @@ describe('content', () => {
 });
 
 describe('home and first value', () => {
-  it('suggests a flagship topic for the main goal, then shows the next step on the topic in progress', async () => {
+  it("doesn't push a topic the learner didn't choose, then shows the next step on their topics", async () => {
     const { a, topic } = await learner();
     let h = (await a.get('/api/home')).body;
-    expect(h.next).toMatchObject({ started: false, topic: { name: 'Executive Presence' } });
+    expect(h.next).toBeNull(); // Home asks: choose a topic, or answer a few questions
+    expect(h.coach.kind).toBe('start');
+    expect(h.myTopics).toEqual([]);
     expect(h.picks.length).toBe(12);
     expect(h.fiction.length).toBeGreaterThan(0);
     expect(h.level).toMatchObject({ n: 1, name: 'Explorer' });
@@ -127,6 +129,7 @@ describe('home and first value', () => {
     await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
     h = (await a.get('/api/home')).body;
     expect(h.next).toMatchObject({ started: true, label: 'Take the quiz', path: `/bite/${topic.id}?start=quiz` });
+    expect(h.myTopics).toMatchObject([{ id: topic.id, label: 'Take the quiz', done: false }]);
     await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 3 });
     expect((await a.get('/api/home')).body.next).toMatchObject({ label: 'Answer the scenario', path: `/bite/${topic.id}?start=scenario` });
     await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would listen first and then agree the next step together.' });
@@ -237,7 +240,8 @@ describe('the coach on Home', () => {
   it('welcomes, encourages by stage without repeating the button, and asks real-world check-ins', async () => {
     const { a, topic, person } = await learner('coachline@example.com');
     let h = (await a.get('/api/home')).body;
-    expect(h.coach).toMatchObject({ kind: 'welcome', text: "Welcome, Grace. I'm Maya. Let's start with the skill that matters most to you." });
+    expect(h.coach).toMatchObject({ kind: 'start', text: "Welcome, Grace. I'm Maya. How would you like to start?" });
+    expect(h.next).toBeNull();
     expect(h.streak).toBe(0);
     const { lessonId } = (await a.post('/api/bites').send({ topicId: topic.id })).body;
     await completeTools(a, lessonId);
