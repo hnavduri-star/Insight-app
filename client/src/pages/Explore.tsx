@@ -64,17 +64,14 @@ function ProgressBar({ percent, tint }: { percent: number; tint: string }) {
 /** Every topic, with progress on the ones the learner has started. */
 function AllTopics({ cats, mine, loading, onOpen }: { cats: Category[] | null; mine: Mine | null; loading: boolean; onOpen: (id: string) => void }) {
   const nav = useNavigate();
-  const [params, setParams] = useSearchParams();
-  const catId = params.get('cat');
-  const openCat = (id: string | null) => { setParams(id ? { cat: id } : {}); window.scrollTo(0, 0); };
+  const openCat = (id: string) => nav(`/skills/${id}`);
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const started = useMemo(() => new Map((mine?.started ?? []).map((s) => [s.id, s])), [mine]);
   const total = cats?.reduce((n, c) => n + c.topics.length, 0) ?? 0;
   const term = q.trim().toLowerCase();
   const browsing = !term && filter === 'all';
-  const current = cats?.find((c) => c.id === catId) ?? null;
-  const shown = (cats ?? []).filter((c) => !browsing || !current || c.id === current.id).map((c) => ({
+  const shown = (cats ?? []).map((c) => ({
     ...c,
     topics: c.topics.filter((t) => (!term || t.name.toLowerCase().includes(term) || c.name.toLowerCase().includes(term))
       && (filter === 'all' || (filter === 'picks' && t.featured) || (filter === 'fiction' && t.fiction) || (filter === 'mine' && started.has(t.id)))),
@@ -82,7 +79,7 @@ function AllTopics({ cats, mine, loading, onOpen }: { cats: Category[] | null; m
 
   return (
     <>
-      {mine && mine.started.length > 0 && browsing && !current && (
+      {mine && mine.started.length > 0 && browsing && (
         <section className="mt-6">
           <h2 className="text-[20px]">Your topics</h2>
           <p className="text-xs text-muted">Pick up any of them, whenever you like.</p>
@@ -110,14 +107,8 @@ function AllTopics({ cats, mine, loading, onOpen }: { cats: Category[] | null; m
       )}
 
       <section className="mt-7">
-        {current && browsing ? (
-          <button onClick={() => openCat(null)} className="flex min-h-[44px] items-center gap-1 text-sm font-semibold text-muted">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden><path d="m15 6-6 6 6 6" /></svg> All main topics
-          </button>
-        ) : (<>
-          <h2 className="text-[20px]">All topics</h2>
-          <p className="text-xs text-muted">{total ? `${cats?.length} main topics, ${total} topics in all. Choose a main topic, or search.` : 'Topics from the best books.'}</p>
-        </>)}
+        <h2 className="text-[20px]">All topics</h2>
+        <p className="text-xs text-muted">{total ? `${cats?.length} main topics, ${total} topics in all. Choose a main topic, or search.` : 'Topics from the best books.'}</p>
         <label htmlFor="topic-search" className="sr-only">Search topics</label>
         <input id="topic-search" className="field mt-3" type="search" placeholder="Search, e.g. feedback, negotiation" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]" role="radiogroup" aria-label="Filter topics">
@@ -130,7 +121,7 @@ function AllTopics({ cats, mine, loading, onOpen }: { cats: Category[] | null; m
 
       {loading && <Spinner label="Loading topics" />}
       {/* Main topics first: a tile per heading, with how many you've started */}
-      {cats && browsing && !current && (
+      {cats && browsing && (
         <ul className="mt-5 grid grid-cols-2 gap-3">
           {cats.map((c) => {
             const n = c.topics.filter((t) => started.has(t.id)).length;
@@ -150,35 +141,27 @@ function AllTopics({ cats, mine, loading, onOpen }: { cats: Category[] | null; m
         </ul>
       )}
       {cats && shown.length === 0 && <p className="mt-6 text-center text-sm text-muted">No topics match. Try another word.</p>}
-      {(!browsing || current) && shown.map((c) => {
-        const tint = categoryTint(c.name);
-        return (
-          <section key={c.id} className="mt-6">
-            <button onClick={() => openCat(c.id)} className="flex items-center gap-2.5 text-left">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ background: tileBackground(tint) }}><CategoryGlyph name={c.name} size={16} className="text-white" /></span>
-              <span className="text-[16px] font-bold">{c.name}</span>
-            </button>
-            <ul className="mt-2 divide-y divide-white/[0.06] overflow-hidden rounded-[20px] bg-white/[0.04]">
-              {c.topics.map((t) => {
-                const s = started.get(t.id);
-                return (
-                  <li key={t.id}>
-                    <button onClick={() => (s ? nav(s.path) : onOpen(t.id))} className="flex min-h-[60px] w-full items-center gap-3 px-4 py-2.5 text-left">
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-semibold leading-snug">{t.name}{t.fiction && <span className="ml-1.5 text-[10px] font-bold uppercase text-[#c4b5fd]">fiction</span>}</span>
-                        {s && <span className="mt-1.5 block max-w-[12rem]"><ProgressBar percent={s.percent} tint={tint} /></span>}
-                      </span>
-                      <span className="shrink-0 text-xs font-bold" style={{ color: s ? tint : undefined }}>
-                        {s ? (s.done ? `✓ ${s.percent}%` : `${s.percent}%`) : <span className="text-muted">Start ›</span>}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        );
-      })}
+      {/* Search or filter results: colourful topic tiles */}
+      {!browsing && (
+        <ul className="mt-5 grid grid-cols-2 gap-3">
+          {shown.flatMap((c) => c.topics.map((t) => ({ t, c }))).map(({ t, c }) => {
+            const st = started.get(t.id);
+            return (
+              <li key={t.id}>
+                <button onClick={() => (st ? nav(st.path) : onOpen(t.id))} className="tile flex h-[138px] w-full flex-col justify-between p-4 text-left transition active:scale-[0.97]" style={{ background: tileBackground(categoryTint(c.name)) }}>
+                  <CategoryGlyph name={c.name} size={80} className="absolute -right-3 -top-2 text-white/15" />
+                  <span className="relative text-[11px] font-bold uppercase tracking-[0.08em] text-white/75">{c.name.split(/[,&]/)[0].trim()}</span>
+                  <span className="relative">
+                    <span className="block text-[15px] font-extrabold leading-tight">{t.name}</span>
+                    {st ? <span className="mt-2 block"><span className="block h-1.5 overflow-hidden rounded-full bg-black/25"><span className="block h-full rounded-full bg-white" style={{ width: `${Math.max(4, st.percent)}%` }} /></span><span className="mt-1 block text-[11px] font-bold text-white/85">{st.percent}%</span></span>
+                      : t.fiction ? <span className="mt-1 block text-[11px] font-bold uppercase text-white/80">From fiction</span> : null}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </>
   );
 }
