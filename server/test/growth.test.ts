@@ -129,7 +129,10 @@ describe('home and first value', () => {
     await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'cards' });
     h = (await a.get('/api/home')).body;
     expect(h.next).toMatchObject({ started: true, label: 'Take the quiz', path: `/bite/${topic.id}?start=quiz` });
-    expect(h.myTopics).toMatchObject([{ id: topic.id, label: 'Take the quiz', done: false }]);
+    expect(h.myTopics).toMatchObject([{ id: topic.id, label: 'Take the quiz', done: false, percent: 35, stage: 'Foundations' }]);
+    const mine = (await a.get('/api/topics/mine')).body;
+    expect(mine.started.map((t: any) => t.id)).toEqual([topic.id]);
+    expect(mine.suggestions.every((t: any) => t.id !== topic.id && /^For your goal: /.test(t.reason))).toBe(true);
     await a.post(`/api/bites/${lessonId}/progress`).send({ stage: 'quiz', correct: 3 });
     expect((await a.get('/api/home')).body.next).toMatchObject({ label: 'Answer the scenario', path: `/bite/${topic.id}?start=scenario` });
     await a.post(`/api/bites/${lessonId}/scenario`).send({ response: 'I would listen first and then agree the next step together.' });

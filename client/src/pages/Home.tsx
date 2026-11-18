@@ -166,8 +166,8 @@ export default function Home() {
 /** The two ways to begin: choose a topic yourself, or answer a few questions and get recommendations. */
 function StartChoices({ onPick, dark = false }: { onPick: (to: string) => void; dark?: boolean }) {
   const opts = [
-    { to: '/explore', title: 'I know what I want', sub: 'Choose any topic and take it at your pace' },
-    { to: '/finder', title: 'Help me find out', sub: 'About 10 quick questions, then my recommendations' },
+    { to: '/explore', title: 'I know what I want', sub: 'See all topics and choose yours' },
+    { to: '/explore?tab=find', title: 'Help me find out', sub: 'Suggestions and a skills questionnaire' },
   ];
   return (
     <div className="space-y-2.5">

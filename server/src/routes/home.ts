@@ -46,20 +46,43 @@ export async function suggestedTopic(userId: string): Promise<TopicRow | null> {
   return first ? { id: first.id!, name: first.name, category: first.category! } : null;
 }
 
-/** Topics the learner has started, most recently active first, each with its next step. */
-async function myTopics(userId: string) {
+/**
+ * How far through a topic's journey the learner is (0-100): Foundations 50 (tools 35, quiz 5, scenario 10),
+ * practice reps 25, a role-play 10, Mastery 15.
+ */
+export async function topicPercent(userId: string, topicId: string, t: Awaited<ReturnType<typeof trackFor>>) {
+  let toolsFrac = t.toolkit.toolsDone ? 1 : 0;
+  if (!toolsFrac) {
+    const r = await db.execute<{ done: number; total: number }>(sql`
+      select count(*) filter (where tp.completed_at is not null)::int as done, max(jsonb_array_length(l.content_json->'tools'))::int as total
+      from tool_progress tp join cached_lessons l on l.id = tp.lesson_id
+      where tp.user_id = ${userId} and l.topic_id = ${topicId} and l.rating_band <> 'mastery'`);
+    const x = r.rows[0];
+    toolsFrac = x?.total ? Math.min(1, x.done / x.total) : 0;
+  }
+  const p = toolsFrac * 35 + (t.toolkit.quizDone ? 5 : 0) + (t.toolkit.scenarioDone ? 10 : 0)
+    + Math.min(t.reps.done, t.reps.goal) / t.reps.goal * 25 + (t.roleplay.done > 0 ? 10 : 0) + (t.mastery.done ? 15 : 0);
+  return Math.round(p);
+}
+
+/** The stage name for a topic in progress. */
+const stageFor = (t: Awaited<ReturnType<typeof trackFor>>) =>
+  !t.toolkit.done ? 'Foundations' : t.mastery.done ? 'Mastery done' : t.reps.done < t.reps.goal ? 'Practice' : 'Role-play and Mastery';
+
+/** Topics the learner has started, most recently active first, each with its next step and progress. */
+export async function myTopics(userId: string, limit = 12) {
   const r = await db.execute<{ topic_id: string }>(sql`
     select topic_id from (
       select topic_id, max(created_at) as at from activity_events where user_id = ${userId} and topic_id is not null group by topic_id
       union all select topic_id, coalesce(cards_completed_at, quiz_completed_at, '2000-01-01') from topic_progress where user_id = ${userId}
       union all select l.topic_id, max(tp.updated_at) from tool_progress tp join cached_lessons l on l.id = tp.lesson_id where tp.user_id = ${userId} group by l.topic_id
-    ) x group by topic_id order by max(at) desc limit 12`);
+    ) x group by topic_id order by max(at) desc limit ${limit}`);
   const ids = r.rows.map((x) => x.topic_id);
   const meta = await topicMeta(ids);
   return Promise.all(ids.map((id) => meta.find((m) => m.id === id)).filter(Boolean).map(async (m) => {
     const t = await trackFor(userId, m!.id);
     const step = stepFor(t, m!.id);
-    return { ...m!, label: step.label, path: step.path, done: t.toolkit.done };
+    return { ...m!, label: step.label, path: step.path, done: t.toolkit.done, percent: await topicPercent(userId, m!.id, t), stage: stageFor(t) };
   }));
 }
 
